@@ -3,6 +3,12 @@ Main FastAPI Application Entry Point for SIH Problem Statement 26002:
 AI-Based Smart Logistics and Accessibility Intelligence Platform for North Eastern Region (MDoNER).
 """
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from backend/.env
+dotenv_path = os.path.join(os.path.dirname(__file__), ".env")
+load_dotenv(dotenv_path)
+
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

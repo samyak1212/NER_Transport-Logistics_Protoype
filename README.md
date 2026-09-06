@@ -128,7 +128,7 @@ This platform is intentionally engineered to rely on **100% free, open-source AP
 | **Geocoding** | **Nominatim OSM** | `https://nominatim.openstreetmap.org/search` | **100% FREE** open reverse geocoder. |
 | **AI Assistant (Optional)**| **Google Gemini API** | `gemini-1.5-flash` | **Generous FREE tier** (15 RPM). Get your key at [Google AI Studio](https://aistudio.google.com/) in 30 seconds. |
 
-Configuration is managed via `.env` (template in `.env.example`).
+Configuration is managed via `backend/.env` (template in `backend/.env.example`).
 
 ---
 
@@ -145,8 +145,8 @@ Configuration is managed via `.env` (template in `.env.example`).
 git clone <repository-url>
 cd North_India_Transport&Logistic_proto
 
-# Create .env from template
-cp .env.example .env
+# Create backend .env from template
+cp backend/.env.example backend/.env
 ```
 
 ### Step 2: Start the Python Backend
