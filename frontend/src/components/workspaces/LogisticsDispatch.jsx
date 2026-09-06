@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Truck, 
   Play, 
@@ -10,10 +10,13 @@ import {
   ArrowRight, 
   Gauge, 
   Clock, 
-  CheckCircle,
-  HelpCircle,
-  CornerUpRight,
-  PackageCheck
+  CheckCircle, 
+  HelpCircle, 
+  CornerUpRight, 
+  PackageCheck,
+  User,
+  BadgeCheck,
+  Phone
 } from 'lucide-react';
 import MapCanvas from '../MapCanvas';
 
@@ -22,6 +25,10 @@ export default function LogisticsDispatch({
   segments = [],
   activeRoute,
   activeVehicle,
+  currentDriver,
+  drivers = [],
+  selectedDriverId,
+  onSelectDriver = () => {},
   comparisonData,
   onCalculateRoute,
   onAdvanceVehicle,
@@ -34,9 +41,25 @@ export default function LogisticsDispatch({
   const [destination, setDestination] = useState('Tawang');
   const [cargoPriority, setCargoPriority] = useState('CRITICAL_MEDICAL');
 
+  // Keep cargo priority aligned with selected driver when driver changes
+  useEffect(() => {
+    if (currentDriver?.cargo_priority) {
+      setCargoPriority(currentDriver.cargo_priority);
+    }
+  }, [currentDriver]);
+
   const handleCalculate = (e) => {
     e.preventDefault();
     onCalculateRoute(origin, destination, cargoPriority);
+  };
+
+  const driver = currentDriver || drivers[0] || {
+    name: 'Subedar R. Thapa',
+    id: 'DRV-014',
+    phone: '+91 94350-12844',
+    license_no: 'HMV-AR-2016-9021',
+    vehicle_reg: 'AS-01-EC-9042',
+    vehicle_model: 'Tata 1618 SE 4x4 Cold-Chain'
   };
 
   return (
@@ -71,49 +94,87 @@ export default function LogisticsDispatch({
 
       {/* 2. Mission Configuration Rail & Route Trade-Off */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Left: Mission Form */}
-        <div className="glass-panel p-4 rounded-xl border border-slate-800 shadow-lg">
+        {/* Left: Mission Form with Driver Assignment */}
+        <div className="glass-panel p-4 rounded-xl border border-slate-800 shadow-lg space-y-3">
           <h3 className="font-bold text-xs uppercase tracking-wider text-slate-200 flex items-center gap-2 pb-2 border-b border-slate-800">
             <Navigation className="w-4 h-4 text-emerald-400" />
-            Mission Dispatch Planner (Clause c)
+            Mission Dispatch Planner & Driver Assignment
           </h3>
 
-          <form onSubmit={handleCalculate} className="mt-3 space-y-3 text-xs">
+          <form onSubmit={handleCalculate} className="space-y-3 text-xs">
+            {/* Driver & Vehicle Assignment Selector */}
             <div>
-              <label className="text-slate-400 font-medium">Origin Supply Hub</label>
+              <label className="text-slate-400 font-medium flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-white font-bold">
+                  <User className="w-3.5 h-3.5 text-cyan-400" />
+                  Assign Fleet Driver & Vehicle:
+                </span>
+                <span className="text-[10px] text-cyan-400 font-mono">Fleet Registry</span>
+              </label>
               <select
-                value={origin}
-                onChange={(e) => setOrigin(e.target.value)}
-                className="mt-1 w-full bg-defense-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:border-cyan-500 outline-none font-mono cursor-pointer"
+                value={selectedDriverId || driver.id}
+                onChange={(e) => onSelectDriver(e.target.value)}
+                className="mt-1 w-full bg-defense-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:border-cyan-500 outline-none font-mono cursor-pointer text-xs"
               >
-                {nodes.map(n => (
-                  <option key={n.id} value={n.id}>{n.name} ({n.state})</option>
+                {drivers.map(d => (
+                  <option key={d.id} value={d.id}>
+                    {d.name} ({d.id}) — {d.vehicle_model} [{d.vehicle_reg}]
+                  </option>
                 ))}
               </select>
             </div>
 
-            <div>
-              <label className="text-slate-400 font-medium">Destination Frontier Depot</label>
-              <select
-                value={destination}
-                onChange={(e) => setDestination(e.target.value)}
-                className="mt-1 w-full bg-defense-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:border-cyan-500 outline-none font-mono cursor-pointer"
-              >
-                {nodes.map(n => (
-                  <option key={n.id} value={n.id}>{n.name} ({n.state})</option>
-                ))}
-              </select>
+            {/* Assigned Driver Credentials Card */}
+            <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] space-y-1">
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-white flex items-center gap-1">
+                  <BadgeCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  {driver.name}
+                </span>
+                <span className="text-[10px] font-mono text-cyan-300">{driver.phone}</span>
+              </div>
+              <div className="text-slate-400 font-mono text-[10px]">
+                License: {driver.license_no} &bull; Reg: <b className="text-amber-400">{driver.vehicle_reg}</b>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-slate-400 font-medium">Origin Supply Hub</label>
+                <select
+                  value={origin}
+                  onChange={(e) => setOrigin(e.target.value)}
+                  className="mt-1 w-full bg-defense-900 border border-slate-700 rounded-lg px-2.5 py-2 text-slate-100 focus:border-cyan-500 outline-none font-mono cursor-pointer text-xs"
+                >
+                  {nodes.map(n => (
+                    <option key={n.id} value={n.id}>{n.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-slate-400 font-medium">Destination Depot</label>
+                <select
+                  value={destination}
+                  onChange={(e) => setDestination(e.target.value)}
+                  className="mt-1 w-full bg-defense-900 border border-slate-700 rounded-lg px-2.5 py-2 text-slate-100 focus:border-cyan-500 outline-none font-mono cursor-pointer text-xs"
+                >
+                  {nodes.map(n => (
+                    <option key={n.id} value={n.id}>{n.name}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div>
               <label className="text-slate-400 font-medium flex items-center justify-between">
                 <span>Cargo Priority Sensitivity (&lambda;)</span>
-                <span className="text-[10px] text-cyan-400 font-mono">Statutory Clause c</span>
+                <span className="text-[10px] text-cyan-400 font-mono">Clause c</span>
               </label>
               <select
                 value={cargoPriority}
                 onChange={(e) => setCargoPriority(e.target.value)}
-                className="mt-1 w-full bg-defense-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:border-cyan-500 outline-none font-mono cursor-pointer"
+                className="mt-1 w-full bg-defense-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:border-cyan-500 outline-none font-mono cursor-pointer text-xs"
               >
                 <option value="CRITICAL_MEDICAL">Critical Medical Cold-Chain (&lambda;=4.0 Max Safety)</option>
                 <option value="ESSENTIAL_FOOD">Essential Food & PDS Grains (&lambda;=2.0 Balanced)</option>
@@ -243,7 +304,7 @@ export default function LogisticsDispatch({
             </h3>
           </div>
           <span className="text-[10px] font-mono text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
-            Focused Mission Canvas
+            Assigned: {driver.name} ({driver.vehicle_reg})
           </span>
         </div>
 
@@ -268,7 +329,7 @@ export default function LogisticsDispatch({
               Active Monitored Convoy Telemetry (GPS Stream - Clause d)
             </h3>
             <span className="font-mono text-xs text-slate-400">
-              ID: <b className="text-slate-100">{activeVehicle?.vehicle_id || 'MED_CONVOY_01'}</b>
+              ID: <b className="text-slate-100">{activeVehicle?.vehicle_id || driver.assigned_vehicle_id}</b> &bull; Driver: <b className="text-cyan-300">{driver.name}</b>
             </span>
           </div>
 
@@ -311,7 +372,7 @@ export default function LogisticsDispatch({
           <div className="p-2.5 rounded-lg bg-defense-900 border border-slate-800">
             <div className="text-[10px] text-slate-400">SPEED</div>
             <div className="text-sm font-bold text-slate-100 mt-0.5">{activeVehicle?.speed_kmh || 42} km/h</div>
-            <div className="text-[10px] text-slate-500">Mountain Speed</div>
+            <div className="text-[10px] text-slate-500">Mountain Transit</div>
           </div>
 
           <div className="p-2.5 rounded-lg bg-defense-900 border border-slate-800">
@@ -325,12 +386,12 @@ export default function LogisticsDispatch({
           <div className="p-2.5 rounded-lg bg-defense-900 border border-slate-800">
             <div className="text-[10px] text-slate-400">ESTIMATED ETA</div>
             <div className="text-sm font-bold text-slate-100 mt-0.5">{activeVehicle?.eta_hours || 8.4} hrs</div>
-            <div className="text-[10px] text-slate-500">to Tawang Depot</div>
+            <div className="text-[10px] text-slate-500">to {activeVehicle?.destination || 'Tawang Depot'}</div>
           </div>
 
           <div className="p-2.5 rounded-lg bg-defense-900 border border-slate-800">
             <div className="text-[10px] text-slate-400">APPROACHING</div>
-            <div className="text-sm font-bold text-amber-300 mt-0.5 truncate">{activeVehicle?.next_landmark || 'Bhalukpong'}</div>
+            <div className="text-sm font-bold text-amber-300 mt-0.5 truncate">{activeVehicle?.next_landmark || 'Bhalukpong Gate'}</div>
             <div className="text-[10px] text-slate-500">Next Staging Hub</div>
           </div>
         </div>
@@ -338,9 +399,9 @@ export default function LogisticsDispatch({
         {/* Visual Progress Bar */}
         <div className="mt-3">
           <div className="flex justify-between text-[11px] font-mono text-slate-400 mb-1">
-            <span>Guwahati (Origin Depot)</span>
+            <span>{origin} (Origin Hub)</span>
             <span className="font-bold text-cyan-400">{(activeVehicle?.progress_pct || 0).toFixed(1)}% Completed</span>
-            <span>Tawang (Destination PHC)</span>
+            <span>{destination} (Destination)</span>
           </div>
           <div className="w-full h-2.5 bg-defense-900 rounded-full overflow-hidden border border-slate-800">
             <div

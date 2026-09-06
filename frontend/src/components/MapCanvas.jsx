@@ -353,6 +353,7 @@ export default function MapCanvas({
   reports = [],
   selectedSegment = null,
   onSelectSegment = () => {},
+  onSelectConvoy = null,
   activeWorkspace = 'command'
 }) {
   const [selectedCorridor, setSelectedCorridor] = useState('ALL');
@@ -960,18 +961,37 @@ export default function MapCanvas({
             key={convoy.id}
             position={[convoy.lat, convoy.lon]}
             icon={createConvoyIcon(convoy)}
+            eventHandlers={{
+              click: () => {
+                if (onSelectConvoy) onSelectConvoy(convoy);
+              }
+            }}
           >
             <Popup>
-              <div className="p-1 text-slate-900 font-sans text-xs">
-                <div className="font-bold text-cyan-800 flex items-center gap-1">
-                  🚚 {convoy.id} &bull; {convoy.cargo}
+              <div className="p-1.5 text-slate-900 font-sans text-xs min-w-[220px]">
+                <div className="font-bold text-cyan-800 flex items-center justify-between gap-1 pb-1 border-b border-slate-200">
+                  <span className="flex items-center gap-1">🚚 {convoy.id}</span>
+                  <span className="font-mono text-[10px] text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded font-bold border border-amber-300">
+                    {convoy.vehicle_reg || 'REG-PENDING'}
+                  </span>
                 </div>
                 <div className="text-[11px] text-slate-700 mt-1 space-y-0.5 font-mono">
+                  <div>Cargo: <b className="text-slate-900">{convoy.cargo}</b></div>
+                  <div>Driver: <b className="text-blue-900">{convoy.driver_name}</b> ({convoy.driver_id})</div>
+                  <div>Phone: <b className="text-slate-800">{convoy.driver_phone}</b></div>
                   <div>Priority: <b className="text-rose-700">{convoy.priority}</b></div>
                   <div>Speed: <b>{convoy.speed_kmh} km/h</b> &bull; Status: <b>{convoy.status}</b></div>
                   <div>Destination: <b>{convoy.destination}</b></div>
-                  <div>Driver: <b>{convoy.driver_name}</b></div>
                 </div>
+                {onSelectConvoy && (
+                  <button 
+                    type="button"
+                    onClick={() => onSelectConvoy(convoy)}
+                    className="mt-2 w-full py-1.5 bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-700 hover:to-blue-800 text-white rounded font-bold text-[10px] uppercase tracking-wider shadow cursor-pointer transition-all active:scale-95"
+                  >
+                    Inspect Driver & Vehicle Manifest ➔
+                  </button>
+                )}
               </div>
             </Popup>
           </Marker>
@@ -984,10 +1004,10 @@ export default function MapCanvas({
             icon={new L.DivIcon({
               className: 'live-active-convoy-pulse',
               html: `
-                <div style="display: flex; flex-direction: column; align-items: center; transform: translate(-50%, -50%);">
+                <div style="display: flex; flex-direction: column; align-items: center; transform: translate(-50%, -50%); cursor: pointer;">
                   <div style="
-                    width: 24px;
-                    height: 24px;
+                    width: 26px;
+                    height: 26px;
                     border-radius: 50%;
                     background: #3b82f6;
                     border: 3px solid #ffffff;
@@ -997,12 +1017,12 @@ export default function MapCanvas({
                     justify-content: center;
                     animation: pulse 1.2s infinite;
                   ">
-                    <span style="font-size: 11px;">🚚</span>
+                    <span style="font-size: 12px;">🚚</span>
                   </div>
                   <div style="
                     background: #1e3a8a;
                     color: #93c5fd;
-                    padding: 1px 4px;
+                    padding: 1px 5px;
                     border-radius: 4px;
                     font-size: 8px;
                     font-family: monospace;
@@ -1017,12 +1037,35 @@ export default function MapCanvas({
               iconSize: [0, 0],
               iconAnchor: [0, 0]
             })}
+            eventHandlers={{
+              click: () => {
+                if (onSelectConvoy) onSelectConvoy(activeVehicle);
+              }
+            }}
           >
             <Popup>
-              <div className="p-1 text-slate-900 font-sans text-xs">
-                <b>{activeVehicle.vehicle_id}</b> ({activeVehicle.cargo_priority})<br/>
-                Speed: {activeVehicle.speed_kmh} km/h<br/>
-                Progress: {activeVehicle.progress_pct.toFixed(1)}% ({activeVehicle.distance_covered_km.toFixed(1)} km)
+              <div className="p-1.5 text-slate-900 font-sans text-xs min-w-[220px]">
+                <div className="font-bold text-cyan-800 flex items-center justify-between gap-1 pb-1 border-b border-slate-200">
+                  <span><b>{activeVehicle.vehicle_id}</b></span>
+                  <span className="font-mono text-[10px] text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded font-bold border border-amber-300">
+                    {activeVehicle.vehicle_reg || 'AS-01-EC-9042'}
+                  </span>
+                </div>
+                <div className="text-[11px] text-slate-700 mt-1 space-y-0.5 font-mono">
+                  <div>Driver: <b className="text-blue-900">{activeVehicle.driver_name || 'Subedar R. Thapa'}</b></div>
+                  <div>Priority: <b className="text-rose-700">{activeVehicle.cargo_priority}</b></div>
+                  <div>Speed: <b>{activeVehicle.speed_kmh} km/h</b> &bull; Status: <b>{activeVehicle.status}</b></div>
+                  <div>Progress: <b>{activeVehicle.progress_pct.toFixed(1)}%</b> ({activeVehicle.distance_covered_km.toFixed(1)} km)</div>
+                </div>
+                {onSelectConvoy && (
+                  <button 
+                    type="button"
+                    onClick={() => onSelectConvoy(activeVehicle)}
+                    className="mt-2 w-full py-1.5 bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-700 hover:to-blue-800 text-white rounded font-bold text-[10px] uppercase tracking-wider shadow cursor-pointer transition-all active:scale-95"
+                  >
+                    Inspect Driver & Vehicle Manifest ➔
+                  </button>
+                )}
               </div>
             </Popup>
           </Marker>

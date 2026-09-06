@@ -11,12 +11,15 @@ import {
   DEFAULT_SEGMENTS, 
   DEFAULT_WEATHER_STATIONS, 
   DEFAULT_CORRIDOR_HEALTH, 
-  DEFAULT_DISTRICTS 
+  DEFAULT_DISTRICTS,
+  REGISTERED_DRIVERS,
+  ACTIVE_CONVOYS
 } from './data/defaultData';
 import { api } from './services/api';
 
 export default function App() {
   const [activeWorkspace, setActiveWorkspace] = useState('command');
+  const [selectedDriverId, setSelectedDriverId] = useState('DRV-014');
   const [corridorHealth, setCorridorHealth] = useState(DEFAULT_CORRIDOR_HEALTH);
   const [districts, setDistricts] = useState(DEFAULT_DISTRICTS);
   const [segments, setSegments] = useState(DEFAULT_SEGMENTS);
@@ -140,6 +143,17 @@ export default function App() {
 
   const activeAlertsCount = reports.filter(r => !r.is_resolved).length;
 
+  const currentDriver = REGISTERED_DRIVERS.find(d => d.id === selectedDriverId) || REGISTERED_DRIVERS[0];
+  const currentVehicle = ACTIVE_CONVOYS.find(v => v.driver_id === selectedDriverId || v.id === currentDriver.assigned_vehicle_id) || activeVehicle || ACTIVE_CONVOYS[0];
+
+  const handleSelectDriver = (driverId) => {
+    setSelectedDriverId(driverId);
+    const matched = ACTIVE_CONVOYS.find(v => v.driver_id === driverId);
+    if (matched) {
+      setActiveVehicle(matched);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-defense-950 text-slate-100 flex flex-col font-sans">
       {/* Top Header */}
@@ -158,7 +172,11 @@ export default function App() {
               nodes={nodes}
               segments={segments}
               activeRoute={activeRoute}
-              activeVehicle={activeVehicle}
+              activeVehicle={currentVehicle}
+              allConvoys={ACTIVE_CONVOYS}
+              drivers={REGISTERED_DRIVERS}
+              selectedDriverId={selectedDriverId}
+              onSelectDriver={handleSelectDriver}
               reports={reports}
               selectedSegment={selectedSegment}
               onSelectSegment={(seg) => setSelectedSegment(seg)}
@@ -176,7 +194,11 @@ export default function App() {
               nodes={nodes}
               segments={segments}
               activeRoute={activeRoute}
-              activeVehicle={activeVehicle}
+              activeVehicle={currentVehicle}
+              currentDriver={currentDriver}
+              drivers={REGISTERED_DRIVERS}
+              selectedDriverId={selectedDriverId}
+              onSelectDriver={handleSelectDriver}
               comparisonData={comparisonData}
               onCalculateRoute={handleCalculateRoute}
               onAdvanceVehicle={handleAdvanceVehicle}
@@ -199,14 +221,20 @@ export default function App() {
 
           {activeWorkspace === 'driver' && (
             <DriverHUD 
-              activeVehicle={activeVehicle} 
+              activeVehicle={currentVehicle}
+              currentDriver={currentDriver}
+              drivers={REGISTERED_DRIVERS}
+              selectedDriverId={selectedDriverId}
+              onSelectDriver={handleSelectDriver}
               onRerouteVehicle={handleRerouteVehicle}
             />
           )}
 
           {activeWorkspace === 'public' && (
             <PublicPortal 
-              activeVehicle={activeVehicle} 
+              activeVehicle={currentVehicle}
+              currentDriver={currentDriver}
+              allConvoys={ACTIVE_CONVOYS}
               weatherData={weatherData}
             />
           )}
