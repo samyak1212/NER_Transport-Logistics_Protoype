@@ -86,8 +86,65 @@ export default function MapCanvas({
     return '#10b981'; // Emerald
   };
 
+  const [basemap, setBasemap] = React.useState('dark');
+
+  // Basemap tile definitions (100% free, zero watermarks, zero API key needed)
+  const basemapLayers = {
+    dark: {
+      base: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+      ref: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}',
+      attr: '&copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
+      maxZoom: 16
+    },
+    satellite: {
+      base: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      ref: null,
+      attr: '&copy; Esri &mdash; Source: USGS, NASA, Esri',
+      maxZoom: 18
+    },
+    osm: {
+      base: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      ref: null,
+      attr: '&copy; OpenStreetMap contributors',
+      maxZoom: 19
+    }
+  };
+
+  const currentLayer = basemapLayers[basemap];
+
   return (
     <div className="relative w-full h-full min-h-[450px] bg-slate-950 rounded-xl overflow-hidden border border-slate-800 shadow-2xl">
+      {/* Floating Basemap Switcher Control */}
+      <div className="absolute top-3 right-3 z-[1000] glass-panel p-1 rounded-lg flex items-center gap-1 border border-slate-700/80 shadow-lg text-[11px] font-mono">
+        <button
+          type="button"
+          onClick={() => setBasemap('dark')}
+          className={`px-2.5 py-1 rounded transition-all font-semibold ${
+            basemap === 'dark' ? 'bg-cyan-500 text-white shadow-md' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
+          }`}
+        >
+          Tactical Dark
+        </button>
+        <button
+          type="button"
+          onClick={() => setBasemap('satellite')}
+          className={`px-2.5 py-1 rounded transition-all font-semibold ${
+            basemap === 'satellite' ? 'bg-cyan-500 text-white shadow-md' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
+          }`}
+        >
+          Himalayan Satellite
+        </button>
+        <button
+          type="button"
+          onClick={() => setBasemap('osm')}
+          className={`px-2.5 py-1 rounded transition-all font-semibold ${
+            basemap === 'osm' ? 'bg-cyan-500 text-white shadow-md' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
+          }`}
+        >
+          Street OSM
+        </button>
+      </div>
+
       <MapContainer
         center={mapCenter}
         zoom={mapZoom}
@@ -96,12 +153,23 @@ export default function MapCanvas({
       >
         <MapRecenter center={mapCenter} zoom={mapZoom} />
 
-        {/* Free CartoDB Dark Matter Tiles */}
+        {/* 100% Free Base Tile Layer (No Watermarks, No API Key Required) */}
         <TileLayer
-          attribution='&copy; <a href="https://carto.com/">CARTO</a> & OpenStreetMap'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-          maxZoom={18}
+          key={`base-${basemap}`}
+          attribution={currentLayer.attr}
+          url={currentLayer.base}
+          maxZoom={currentLayer.maxZoom}
         />
+
+        {/* Reference Labels Overlay (for Dark Canvas) */}
+        {currentLayer.ref && (
+          <TileLayer
+            key={`ref-${basemap}`}
+            url={currentLayer.ref}
+            maxZoom={currentLayer.maxZoom}
+            opacity={0.85}
+          />
+        )}
 
         {/* 1. Base Road Network Segments */}
         {segments.map((seg) => {
