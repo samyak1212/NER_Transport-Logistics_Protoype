@@ -8,21 +8,29 @@ import FieldOps from './components/workspaces/FieldOps';
 import DriverHUD from './components/workspaces/DriverHUD';
 import PublicPortal from './components/workspaces/PublicPortal';
 import SimulationLab from './components/workspaces/SimulationLab';
+import LandslideRainfallPanel from './components/LandslideRainfallPanel';
+import { 
+  DEFAULT_NODES, 
+  DEFAULT_SEGMENTS, 
+  DEFAULT_WEATHER_STATIONS, 
+  DEFAULT_CORRIDOR_HEALTH, 
+  DEFAULT_DISTRICTS 
+} from './data/defaultData';
 import { api } from './services/api';
 
 export default function App() {
   const [activeWorkspace, setActiveWorkspace] = useState('command');
-  const [corridorHealth, setCorridorHealth] = useState(null);
-  const [districts, setDistricts] = useState([]);
-  const [segments, setSegments] = useState([]);
+  const [corridorHealth, setCorridorHealth] = useState(DEFAULT_CORRIDOR_HEALTH);
+  const [districts, setDistricts] = useState(DEFAULT_DISTRICTS);
+  const [segments, setSegments] = useState(DEFAULT_SEGMENTS);
   const [selectedSegment, setSelectedSegment] = useState(null);
-  const [nodes, setNodes] = useState([]);
+  const [nodes, setNodes] = useState(DEFAULT_NODES);
   const [activeRoute, setActiveRoute] = useState(null);
   const [activeVehicle, setActiveVehicle] = useState(null);
   const [comparisonData, setComparisonData] = useState(null);
   const [reports, setReports] = useState([]);
   const [broMachinery, setBroMachinery] = useState([]);
-  const [weatherData, setWeatherData] = useState([]);
+  const [weatherData, setWeatherData] = useState(DEFAULT_WEATHER_STATIONS);
   const [executiveBrief, setExecutiveBrief] = useState(null);
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
   const [selectedCoordinates, setSelectedCoordinates] = useState(null);
@@ -150,9 +158,10 @@ export default function App() {
       {/* Main Content Layout */}
       <main className="flex-1 p-3 md:p-4 max-w-[1700px] w-full mx-auto space-y-4">
         {/* Top Split: Map Canvas & Geotechnical Inspector Drawer */}
-        <div className="relative w-full h-[420px] md:h-[480px] flex rounded-xl overflow-hidden border border-slate-800 shadow-2xl">
+        <div className="relative w-full h-[450px] md:h-[500px] flex rounded-xl overflow-hidden border border-slate-800 shadow-2xl">
           <div className="flex-1 h-full">
             <MapCanvas
+              nodes={nodes}
               segments={segments}
               activeRoute={activeRoute}
               activeVehicle={activeVehicle}
@@ -172,6 +181,20 @@ export default function App() {
             </div>
           )}
         </div>
+
+        {/* Real-Time Disruption Prediction, Rainfall & Lifeline Corridors (SIH Clauses b & c) */}
+        <LandslideRainfallPanel
+          weatherData={weatherData}
+          onSelectZone={(zone) => {
+            const match = segments.find(s => s.id === zone.id || s.name.toLowerCase().includes(zone.name.split(' ')[0].toLowerCase()));
+            if (match) setSelectedSegment(match);
+          }}
+          onSelectRoute={(routeType) => {
+            if (routeType === 'bypass') {
+              handleCalculateRoute('Guwahati', 'Tawang', 'CRITICAL_MEDICAL');
+            }
+          }}
+        />
 
         {/* Lower Split: Role-Tailored Workspace Views */}
         <div className="transition-all">
