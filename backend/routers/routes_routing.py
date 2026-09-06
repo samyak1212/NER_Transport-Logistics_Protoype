@@ -9,9 +9,7 @@ from backend.data.corridor_data import NODES
 router = APIRouter(prefix="/routing", tags=["AI Routing & Optimization"])
 
 
-def get_routing_engine():
-    from backend.main import app
-    return app.state.routing_engine
+from backend.dependencies import get_routing_engine
 
 
 @router.get("/nodes")

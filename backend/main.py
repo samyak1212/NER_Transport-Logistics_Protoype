@@ -45,15 +45,17 @@ if sys.stdout and hasattr(sys.stdout, "reconfigure"):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Initialize core GIS and Routing engines
+    # Startup: Initialize core GIS and Routing engines via singleton ServiceContainer
     print("[INFO] Initializing NER Logistics Intelligence Platform...")
-    routing_engine = RoutingEngine()
-    vehicle_simulator = VehicleSimulator(routing_engine)
-    field_report_service = FieldReportService(routing_engine)
+    from backend.dependencies import ServiceContainer
+    routing_engine = ServiceContainer.get_routing_engine()
+    vehicle_simulator = ServiceContainer.get_vehicle_simulator()
+    field_report_service = ServiceContainer.get_field_report_service()
 
     app.state.routing_engine = routing_engine
     app.state.vehicle_simulator = vehicle_simulator
     app.state.field_report_service = field_report_service
+    ServiceContainer.set_services(routing_engine, vehicle_simulator, field_report_service)
     print("[OK] Core GIS Graph, Risk Engine, and Convoy Telemetry Ready.")
 
     yield

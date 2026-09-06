@@ -10,10 +10,7 @@ from backend.services.routing_engine import RoutingEngine
 router = APIRouter(prefix="/corridors", tags=["Corridors & Districts"])
 
 
-def get_routing_engine():
-    # Will be injected from main.app.state.routing_engine
-    from backend.main import app
-    return app.state.routing_engine
+from backend.dependencies import get_routing_engine
 
 
 @router.get("/health", response_model=CorridorHealth)

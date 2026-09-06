@@ -9,9 +9,7 @@ from backend.services.routing_engine import RoutingEngine
 router = APIRouter(prefix="", tags=["AI Advisories & Weather"])
 
 
-def get_routing_engine():
-    from backend.main import app
-    return app.state.routing_engine
+from backend.dependencies import get_routing_engine
 
 
 @router.get("/weather/corridor")

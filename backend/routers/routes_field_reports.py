@@ -12,9 +12,7 @@ from backend.services.field_report_service import FieldReportService
 router = APIRouter(prefix="/field-reports", tags=["Field Operations & Incident Reports"])
 
 
-def get_field_service():
-    from backend.main import app
-    return app.state.field_report_service
+from backend.dependencies import get_field_service
 
 
 @router.get("", response_model=List[FieldReportResponse])

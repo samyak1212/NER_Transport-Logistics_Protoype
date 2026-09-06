@@ -8,9 +8,7 @@ from backend.services.vehicle_simulator import VehicleSimulator
 router = APIRouter(prefix="/vehicles", tags=["GPS Telemetry & Convoy Tracking"])
 
 
-def get_vehicle_simulator():
-    from backend.main import app
-    return app.state.vehicle_simulator
+from backend.dependencies import get_vehicle_simulator
 
 
 @router.get("/{vehicle_id}/telemetry", response_model=VehicleTelemetry)

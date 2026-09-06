@@ -10,9 +10,7 @@ from backend.services.field_report_service import FieldReportService
 router = APIRouter(prefix="/simulation", tags=["Simulation Lab"])
 
 
-def get_services():
-    from backend.main import app
-    return app.state.routing_engine, app.state.vehicle_simulator, app.state.field_report_service
+from backend.dependencies import get_services
 
 
 @router.post("/inject-hazard")
