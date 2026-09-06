@@ -12,7 +12,12 @@ import {
   AlertTriangle,
   CloudRain,
   Wrench,
-  Compass
+  Compass,
+  Route,
+  Clock,
+  Eye,
+  EyeOff,
+  CornerUpRight
 } from 'lucide-react';
 import { 
   DEFAULT_NODES, 
@@ -21,7 +26,8 @@ import {
   DEFAULT_WEATHER_STATIONS,
   BRO_MACHINERY_UNITS,
   ACTIVE_CONVOYS,
-  REGIONAL_CORRIDORS
+  REGIONAL_CORRIDORS,
+  CORRIDOR_DRIVING_ROUTES
 } from '../data/defaultData';
 
 // Fix standard Leaflet default icon issues in React
@@ -32,7 +38,68 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-// 1. Helper for Town Station Markers with bold visible text labels
+// 1. Google Maps Directions Waypoint Pins ('A' Start Pin, 'B' Destination Pin)
+const createGoogleWaypointIcon = (letter, label, color) => {
+  return new L.DivIcon({
+    className: 'google-maps-waypoint-marker',
+    html: `
+      <div style="display: flex; flex-direction: column; align-items: center; transform: translate(-50%, -100%); pointer-events: auto; cursor: pointer; z-index: 9999;">
+        <!-- Floating Label Tag -->
+        <div style="
+          background: rgba(15, 23, 42, 0.96);
+          color: #ffffff;
+          padding: 3px 8px;
+          border-radius: 6px;
+          font-family: system-ui, -apple-system, sans-serif;
+          font-size: 11px;
+          font-weight: 700;
+          white-space: nowrap;
+          border: 1.5px solid ${color};
+          box-shadow: 0 4px 14px rgba(0,0,0,0.85);
+          margin-bottom: 3px;
+          display: flex;
+          align-items: center;
+          gap: 5px;
+        ">
+          <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: ${color}; box-shadow: 0 0 6px ${color};"></span>
+          <span>${label}</span>
+        </div>
+        <!-- Google Circular Pinhead -->
+        <div style="
+          width: 28px;
+          height: 28px;
+          border-radius: 50%;
+          background: ${color};
+          border: 2.5px solid #ffffff;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.7);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #ffffff;
+          font-family: system-ui, -apple-system, sans-serif;
+          font-size: 14px;
+          font-weight: 900;
+          line-height: 1;
+        ">
+          ${letter}
+        </div>
+        <!-- Downward Arrow Pointer -->
+        <div style="
+          width: 0;
+          height: 0;
+          border-left: 5px solid transparent;
+          border-right: 5px solid transparent;
+          border-top: 6px solid ${color};
+          margin-top: -1px;
+        "></div>
+      </div>
+    `,
+    iconSize: [0, 0],
+    iconAnchor: [0, 0]
+  });
+};
+
+// 2. Helper for Town Station Markers with bold visible text labels
 const createStationIcon = (name, type, elevation) => {
   const isHub = type === 'SUPPLY_HUB' || type === 'FRONTIER_DESTINATION' || type === 'DISTRICT_HQ';
   const bgColor = isHub ? '#06b6d4' : '#1e293b';
@@ -69,7 +136,7 @@ const createStationIcon = (name, type, elevation) => {
   });
 };
 
-// 2. Color-Graded Rainfall Station Pill Marker
+// 3. Color-Graded Rainfall Station Pill Marker
 const createRainfallIcon = (station, rainfall_mm, color, alert_level) => {
   return new L.DivIcon({
     className: 'custom-rainfall-marker',
@@ -101,7 +168,7 @@ const createRainfallIcon = (station, rainfall_mm, color, alert_level) => {
   });
 };
 
-// 3. Custom Landslide Prediction Hazard Zone Marker
+// 4. Custom Landslide Prediction Hazard Zone Marker
 const createLandslideIcon = (prob, name) => {
   const isSevere = prob >= 75;
   const color = isSevere ? '#ef4444' : '#f59e0b';
@@ -145,7 +212,7 @@ const createLandslideIcon = (prob, name) => {
   });
 };
 
-// 4. BRO Heavy Machinery Deployment Marker
+// 5. BRO Heavy Machinery Deployment Marker
 const createMachineryIcon = (unit, type, status) => {
   const isClearing = status.includes('CLEARING') || status.includes('ACTIVE');
   const color = isClearing ? '#f59e0b' : '#38bdf8';
@@ -179,7 +246,7 @@ const createMachineryIcon = (unit, type, status) => {
   });
 };
 
-// 5. Active Convoy Fleet Marker
+// 6. Active Convoy Fleet Marker
 const createConvoyIcon = (convoy) => {
   const isMed = convoy.priority === 'CRITICAL_MEDICAL' || convoy.cargo_type === 'MEDICAL';
   const isPDS = convoy.priority === 'ESSENTIAL_FOOD' || convoy.cargo_type === 'FOOD_PDS';
@@ -217,6 +284,56 @@ const createConvoyIcon = (convoy) => {
   });
 };
 
+// Corridor Route Metadata for Google Directions View
+const CORRIDOR_ROUTE_META = {
+  CORRIDOR_NH13: {
+    originName: "Guwahati Hub",
+    destName: "Tawang Frontier Sector",
+    highwayName: "NH-13 Trans-Himalayan Highway",
+    startCoord: [26.14428, 91.73615],
+    destCoord: [27.5861, 91.8594],
+    primaryKey: "CORRIDOR_NH13",
+    primaryLabel: "via NH-13 (Bhalukpong - Sela)",
+    alternateKey: "CORRIDOR_NH13_BYPASS",
+    alternateLabel: "via BRO Kalaktang Military Bypass",
+    hasAlternate: true,
+    avgSpeed: "40 km/h"
+  },
+  CORRIDOR_NH29: {
+    originName: "Dimapur Railhead Hub",
+    destName: "Imphal Frontier Depot",
+    highwayName: "NH-29 / NH-2 Asian Highway 1",
+    startCoord: [25.9068, 93.7275],
+    destCoord: [24.8170, 93.9368],
+    primaryKey: "CORRIDOR_NH29",
+    primaryLabel: "via NH-29 (Kohima & Senapati)",
+    hasAlternate: false,
+    avgSpeed: "45 km/h"
+  },
+  CORRIDOR_NH10: {
+    originName: "Siliguri Railhead",
+    destName: "Gangtok Capital Hub",
+    highwayName: "NH-10 Himalayan Corridor",
+    startCoord: [26.7271, 88.3953],
+    destCoord: [27.3389, 88.6065],
+    primaryKey: "CORRIDOR_NH10",
+    primaryLabel: "via NH-10 (Sevoke, Teesta & Rangpo)",
+    hasAlternate: false,
+    avgSpeed: "35 km/h"
+  },
+  CORRIDOR_NH6: {
+    originName: "Guwahati Hub",
+    destName: "Agartala Border Depot",
+    highwayName: "NH-6 / NH-8 Arterial Lifeline",
+    startCoord: [26.1445, 91.7362],
+    destCoord: [23.8315, 91.2868],
+    primaryKey: "CORRIDOR_NH6",
+    primaryLabel: "via NH-6 (Shillong, Jowai & Silchar)",
+    hasAlternate: false,
+    avgSpeed: "48 km/h"
+  }
+};
+
 // Helper to center/fly map when corridor selection changes
 function MapController({ center, zoom }) {
   const map = useMap();
@@ -241,6 +358,11 @@ export default function MapCanvas({
   const [selectedCorridor, setSelectedCorridor] = useState('ALL');
   const [basemap, setBasemap] = useState('dark');
   
+  // Google Directions Highway Mode
+  const [showGoogleDirections, setShowGoogleDirections] = useState(true);
+  const [useAlternateBypass, setUseAlternateBypass] = useState(false);
+  const [focusRoadOnly, setFocusRoadOnly] = useState(false);
+
   // Layer Toggles
   const [showLifelines, setShowLifelines] = useState(true);
   const [showRainfall, setShowRainfall] = useState(true);
@@ -308,13 +430,25 @@ export default function MapCanvas({
     ? ACTIVE_CONVOYS
     : ACTIVE_CONVOYS.filter(c => c.corridor === selectedCorridor);
 
-  // Rule: Do NOT render turn-by-turn activeRoute when user is in Authority view (Command HQ)
-  // Turn-by-turn route is only for Logistics Dispatch or Driver HUD
-  const shouldRenderRoute = activeWorkspace !== 'command' && activeRoute && activeRoute.geometry_coordinates;
+  // Determine active Google Maps Highway Route to render
+  const isSpecificCorridor = selectedCorridor !== 'ALL' && CORRIDOR_ROUTE_META[selectedCorridor];
+  const activeCorridorMeta = isSpecificCorridor ? CORRIDOR_ROUTE_META[selectedCorridor] : null;
+
+  // Primary vs Alternate driving route coordinates
+  const primaryRouteData = isSpecificCorridor && CORRIDOR_DRIVING_ROUTES ? CORRIDOR_DRIVING_ROUTES[activeCorridorMeta.primaryKey] : null;
+  const alternateRouteData = (isSpecificCorridor && activeCorridorMeta.hasAlternate && CORRIDOR_DRIVING_ROUTES) 
+    ? CORRIDOR_DRIVING_ROUTES[activeCorridorMeta.alternateKey] 
+    : null;
+
+  // Active driving route coordinates to emphasize
+  const activeDrivingRouteData = useAlternateBypass && alternateRouteData ? alternateRouteData : primaryRouteData;
+
+  // Active Route from Dispatch / Driver workspace
+  const hasCustomActiveRoute = activeRoute && activeRoute.geometry_coordinates && activeRoute.geometry_coordinates.length > 0;
 
   return (
     <div className="relative w-full h-full min-h-[480px] bg-slate-950 rounded-xl overflow-hidden border border-slate-800 shadow-2xl">
-      {/* 1. Top Bar: Regional Corridor Switcher & Basemap Selector */}
+      {/* 1. Top Bar: Regional Corridor Switcher, Google Directions Toggle & Basemap Selector */}
       <div className="absolute top-3 left-3 right-3 z-[1000] flex flex-wrap items-center justify-between gap-2 pointer-events-none">
         {/* Corridor Switcher Dropdown */}
         <div className="glass-panel p-1.5 rounded-lg border border-slate-700/80 shadow-lg flex items-center gap-2 pointer-events-auto">
@@ -322,7 +456,10 @@ export default function MapCanvas({
           <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider hidden sm:inline">Corridor:</span>
           <select
             value={selectedCorridor}
-            onChange={(e) => setSelectedCorridor(e.target.value)}
+            onChange={(e) => {
+              setSelectedCorridor(e.target.value);
+              setUseAlternateBypass(false);
+            }}
             className="bg-defense-900 border border-slate-700 text-slate-100 font-mono text-xs rounded px-2 py-1 focus:outline-none focus:border-cyan-500 cursor-pointer"
           >
             {REGIONAL_CORRIDORS.map(c => (
@@ -333,35 +470,56 @@ export default function MapCanvas({
           </select>
         </div>
 
-        {/* Basemap Selector */}
-        <div className="glass-panel p-1 rounded-lg flex items-center gap-1 border border-slate-700/80 shadow-lg text-[11px] font-mono pointer-events-auto">
+        {/* Center / Right Toolbar: Google Directions View Toggle & Basemap */}
+        <div className="flex items-center gap-2 pointer-events-auto">
+          {/* Google Highway Directions Toggle */}
           <button
             type="button"
-            onClick={() => setBasemap('dark')}
-            className={`px-2.5 py-1 rounded transition-all font-semibold ${
-              basemap === 'dark' ? 'bg-cyan-500 text-white shadow-md' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
+            onClick={() => setShowGoogleDirections(!showGoogleDirections)}
+            className={`glass-panel px-3 py-1.5 rounded-lg border shadow-lg text-xs font-bold font-sans flex items-center gap-1.5 transition-all ${
+              showGoogleDirections 
+                ? 'bg-blue-600/90 border-blue-400 text-white shadow-blue-900/50' 
+                : 'bg-slate-900/90 border-slate-700 text-slate-400 hover:text-slate-200'
             }`}
+            title="Toggle Google Maps Directions Highway Geometry"
           >
-            Tactical Dark
+            <Navigation className={`w-3.5 h-3.5 ${showGoogleDirections ? 'text-white' : 'text-blue-400'}`} />
+            <span>Google Highway Route</span>
+            <span className={`px-1.5 py-0.2 text-[9px] rounded font-mono ${showGoogleDirections ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-400'}`}>
+              {showGoogleDirections ? 'ON' : 'OFF'}
+            </span>
           </button>
-          <button
-            type="button"
-            onClick={() => setBasemap('satellite')}
-            className={`px-2.5 py-1 rounded transition-all font-semibold ${
-              basemap === 'satellite' ? 'bg-cyan-500 text-white shadow-md' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
-            }`}
-          >
-            Himalayan Satellite
-          </button>
-          <button
-            type="button"
-            onClick={() => setBasemap('osm')}
-            className={`px-2.5 py-1 rounded transition-all font-semibold ${
-              basemap === 'osm' ? 'bg-cyan-500 text-white shadow-md' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
-            }`}
-          >
-            Street OSM
-          </button>
+
+          {/* Basemap Selector */}
+          <div className="glass-panel p-1 rounded-lg flex items-center gap-1 border border-slate-700/80 shadow-lg text-[11px] font-mono">
+            <button
+              type="button"
+              onClick={() => setBasemap('dark')}
+              className={`px-2.5 py-1 rounded transition-all font-semibold ${
+                basemap === 'dark' ? 'bg-cyan-500 text-white shadow-md' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
+              }`}
+            >
+              Tactical Dark
+            </button>
+            <button
+              type="button"
+              onClick={() => setBasemap('satellite')}
+              className={`px-2.5 py-1 rounded transition-all font-semibold ${
+                basemap === 'satellite' ? 'bg-cyan-500 text-white shadow-md' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
+              }`}
+            >
+              Satellite
+            </button>
+            <button
+              type="button"
+              onClick={() => setBasemap('osm')}
+              className={`px-2.5 py-1 rounded transition-all font-semibold ${
+                basemap === 'osm' ? 'bg-cyan-500 text-white shadow-md' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
+              }`}
+            >
+              Street OSM
+            </button>
+          </div>
         </div>
       </div>
 
@@ -374,7 +532,7 @@ export default function MapCanvas({
             onChange={(e) => setShowLifelines(e.target.checked)}
             className="accent-cyan-500 rounded"
           />
-          <span className="font-bold text-cyan-400">Road Lifelines</span>
+          <span className="font-bold text-cyan-400">Road Grid</span>
         </label>
 
         <label className="flex items-center gap-1.5 cursor-pointer hover:text-blue-300">
@@ -428,6 +586,21 @@ export default function MapCanvas({
           />
           <span>📍 Stations</span>
         </label>
+
+        {isSpecificCorridor && (
+          <label className="flex items-center gap-1.5 cursor-pointer text-amber-400 border-l border-slate-700 pl-2">
+            <input
+              type="checkbox"
+              checked={focusRoadOnly}
+              onChange={(e) => setFocusRoadOnly(e.target.checked)}
+              className="accent-amber-500 rounded"
+            />
+            <span className="font-bold flex items-center gap-1">
+              {focusRoadOnly ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+              Highway Focus Only
+            </span>
+          </label>
+        )}
       </div>
 
       <MapContainer
@@ -456,8 +629,8 @@ export default function MapCanvas({
           />
         )}
 
-        {/* 3. Color-Graded Rainfall Catchment Bubbles & Stations (User Request) */}
-        {showRainfall && filteredWeather.map((w, idx) => (
+        {/* 3. Color-Graded Rainfall Catchment Bubbles & Stations */}
+        {showRainfall && !focusRoadOnly && filteredWeather.map((w, idx) => (
           <React.Fragment key={`weather-${idx}`}>
             {/* Catchment Area Precipitation Circle */}
             <Circle
@@ -522,34 +695,34 @@ export default function MapCanvas({
           </React.Fragment>
         ))}
 
-        {/* 4. High-Fidelity Curved Road Segments with Status Color Grading */}
-        {showLifelines && filteredSegments.map((seg) => {
+        {/* 4. Regional Road Segments Grid (When not in pure road focus mode) */}
+        {showLifelines && !focusRoadOnly && filteredSegments.map((seg) => {
           const isSelected = selectedSegment && selectedSegment.id === seg.id;
           const isBypass = seg.corridor === 'CORRIDOR_NH13_BYPASS' || seg.id.includes('ALT');
           
-          let color = '#06b6d4'; // Cyan default
-          let weight = 4.5;
+          let color = '#06b6d4';
+          let weight = 4.0;
           let dashArray = null;
 
           if (seg.is_blocked) {
-            color = '#ef4444'; // Red Blocked
-            weight = 6;
+            color = '#ef4444';
+            weight = 5.5;
             dashArray = '8, 8';
           } else if (isBypass) {
-            color = '#f59e0b'; // Amber Bypass
-            weight = 4;
+            color = '#f59e0b';
+            weight = 3.5;
             dashArray = '6, 6';
           } else if (seg.risk_score >= 0.7) {
-            color = '#f97316'; // High Geotechnical Risk
-            weight = 5;
-          } else if (seg.risk_score >= 0.4) {
-            color = '#eab308'; // Moderate Risk
+            color = '#f97316';
             weight = 4.5;
+          } else if (seg.risk_score >= 0.4) {
+            color = '#eab308';
+            weight = 4.0;
           }
 
           if (isSelected) {
             color = '#ffffff';
-            weight = 7;
+            weight = 6.5;
           }
 
           return (
@@ -559,7 +732,7 @@ export default function MapCanvas({
               pathOptions={{
                 color: color,
                 weight: weight,
-                opacity: isSelected ? 1.0 : 0.88,
+                opacity: isSelected ? 1.0 : 0.75,
                 dashArray: dashArray,
                 lineCap: 'round',
                 lineJoin: 'round'
@@ -599,16 +772,136 @@ export default function MapCanvas({
           );
         })}
 
-        {/* 5. Dispatch Turn-by-Turn Route Highlight (Only shown when active in Dispatch/Driver mode) */}
-        {shouldRenderRoute && (
-          <Polyline
-            positions={activeRoute.geometry_coordinates}
-            pathOptions={{ color: '#38bdf8', weight: 6.5, opacity: 0.95 }}
-          />
+        {/* ========================================================================= */}
+        {/* 5. GOOGLE MAPS DIRECTIONS HIGHWAY PATH RENDERING (Turn-by-Turn Asphalt)    */}
+        {/* ========================================================================= */}
+
+        {/* Case A: Specific Corridor Selected with Pre-Cached OSRM Road Geometry */}
+        {showGoogleDirections && isSpecificCorridor && activeDrivingRouteData && (
+          <>
+            {/* If Alternate Route exists, render it first in Google Muted Grey */}
+            {activeCorridorMeta.hasAlternate && alternateRouteData && (
+              <React.Fragment key="google-alt-route">
+                {/* Grey Alternate Base Casing */}
+                <Polyline
+                  positions={useAlternateBypass ? primaryRouteData.coordinates : alternateRouteData.coordinates}
+                  pathOptions={{
+                    color: '#334155',
+                    weight: 7,
+                    opacity: 0.7,
+                    lineCap: 'round',
+                    lineJoin: 'round'
+                  }}
+                  eventHandlers={{
+                    click: () => setUseAlternateBypass(!useAlternateBypass)
+                  }}
+                />
+                {/* Grey Alternate Core Line */}
+                <Polyline
+                  positions={useAlternateBypass ? primaryRouteData.coordinates : alternateRouteData.coordinates}
+                  pathOptions={{
+                    color: '#94a3b8',
+                    weight: 4.5,
+                    opacity: 0.85,
+                    lineCap: 'round',
+                    lineJoin: 'round'
+                  }}
+                  eventHandlers={{
+                    click: () => setUseAlternateBypass(!useAlternateBypass)
+                  }}
+                >
+                  <Popup>
+                    <div className="p-1 text-slate-900 font-sans text-xs">
+                      <b className="text-slate-800">Alternate Highway Route</b>
+                      <div className="text-slate-600 text-[11px] mt-0.5">
+                        Click to switch active navigation to this detour.
+                      </div>
+                    </div>
+                  </Popup>
+                </Polyline>
+              </React.Fragment>
+            )}
+
+            {/* Google Maps Active Driving Polyline: Dual-Stroke Electric Blue */}
+            {/* Outer Dark Blue Casing */}
+            <Polyline
+              positions={activeDrivingRouteData.coordinates}
+              pathOptions={{
+                color: '#1d4ed8',
+                weight: 9,
+                opacity: 0.95,
+                lineCap: 'round',
+                lineJoin: 'round'
+              }}
+            />
+            {/* Inner Electric Blue Core */}
+            <Polyline
+              positions={activeDrivingRouteData.coordinates}
+              pathOptions={{
+                color: '#38bdf8',
+                weight: 5.5,
+                opacity: 1.0,
+                lineCap: 'round',
+                lineJoin: 'round'
+              }}
+            />
+
+            {/* Google Start Pin 'A' */}
+            <Marker
+              position={activeCorridorMeta.startCoord}
+              icon={createGoogleWaypointIcon('A', `A: ${activeCorridorMeta.originName}`, '#16a34a')}
+            />
+
+            {/* Google Destination Pin 'B' */}
+            <Marker
+              position={activeCorridorMeta.destCoord}
+              icon={createGoogleWaypointIcon('B', `B: ${activeCorridorMeta.destName}`, '#dc2626')}
+            />
+          </>
         )}
 
-        {/* 6. Predictive Landslide Hazard Hotspots (Clause b) */}
-        {showLandslides && filteredLandslides.map((zone) => (
+        {/* Case B: Dynamic Mission Route Calculated in Logistics Dispatch / Driver View */}
+        {showGoogleDirections && hasCustomActiveRoute && (
+          <>
+            {/* Outer Blue Casing */}
+            <Polyline
+              positions={activeRoute.geometry_coordinates}
+              pathOptions={{
+                color: '#1e40af',
+                weight: 9,
+                opacity: 0.95,
+                lineCap: 'round',
+                lineJoin: 'round'
+              }}
+            />
+            {/* Inner Google Electric Blue Line */}
+            <Polyline
+              positions={activeRoute.geometry_coordinates}
+              pathOptions={{
+                color: '#3b82f6',
+                weight: 5.5,
+                opacity: 1.0,
+                lineCap: 'round',
+                lineJoin: 'round'
+              }}
+            />
+
+            {/* Start Pin 'A' */}
+            <Marker
+              position={activeRoute.geometry_coordinates[0]}
+              icon={createGoogleWaypointIcon('A', `A: ${activeRoute.path_nodes ? activeRoute.path_nodes[0] : 'Origin'}`, '#16a34a')}
+            />
+
+            {/* Destination Pin 'B' */}
+            <Marker
+              position={activeRoute.geometry_coordinates[activeRoute.geometry_coordinates.length - 1]}
+              icon={createGoogleWaypointIcon('B', `B: ${activeRoute.path_nodes ? activeRoute.path_nodes[activeRoute.path_nodes.length - 1] : 'Destination'}`, '#dc2626')}
+            />
+          </>
+        )}
+
+        {/* 6. Predictive Landslide Hazard Hotspots */}
+        {showLandslides && !focusRoadOnly && filteredLandslides.map((zone) => (
           <Marker
             key={zone.id}
             position={[zone.lat, zone.lon]}
@@ -634,8 +927,8 @@ export default function MapCanvas({
           </Marker>
         ))}
 
-        {/* 7. BRO Heavy Machinery Deployment Units (Authority Resource Oversight) */}
-        {showMachinery && filteredMachinery.map((m) => (
+        {/* 7. BRO Heavy Machinery Deployment Units */}
+        {showMachinery && !focusRoadOnly && filteredMachinery.map((m) => (
           <Marker
             key={m.id}
             position={[m.lat, m.lon]}
@@ -662,7 +955,7 @@ export default function MapCanvas({
         ))}
 
         {/* 8. Regional Monitored Fleet Convoys */}
-        {showConvoys && filteredConvoys.map((convoy) => (
+        {showConvoys && !focusRoadOnly && filteredConvoys.map((convoy) => (
           <Marker
             key={convoy.id}
             position={[convoy.lat, convoy.lon]}
@@ -684,8 +977,59 @@ export default function MapCanvas({
           </Marker>
         ))}
 
-        {/* 9. Strategic Town Stations & Landmarks */}
-        {showStations && filteredNodes.filter(n => n.isKeyStation || n.isHazardZone).map((node) => (
+        {/* 9. Active Monitored Vehicle Moving Along Highway */}
+        {activeVehicle && activeVehicle.current_lat && activeVehicle.current_lon && (
+          <Marker
+            position={[activeVehicle.current_lat, activeVehicle.current_lon]}
+            icon={new L.DivIcon({
+              className: 'live-active-convoy-pulse',
+              html: `
+                <div style="display: flex; flex-direction: column; align-items: center; transform: translate(-50%, -50%);">
+                  <div style="
+                    width: 24px;
+                    height: 24px;
+                    border-radius: 50%;
+                    background: #3b82f6;
+                    border: 3px solid #ffffff;
+                    box-shadow: 0 0 20px #3b82f6;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    animation: pulse 1.2s infinite;
+                  ">
+                    <span style="font-size: 11px;">🚚</span>
+                  </div>
+                  <div style="
+                    background: #1e3a8a;
+                    color: #93c5fd;
+                    padding: 1px 4px;
+                    border-radius: 4px;
+                    font-size: 8px;
+                    font-family: monospace;
+                    font-weight: bold;
+                    margin-top: 2px;
+                    white-space: nowrap;
+                  ">
+                    GPS LIVE (${activeVehicle.progress_pct.toFixed(0)}%)
+                  </div>
+                </div>
+              `,
+              iconSize: [0, 0],
+              iconAnchor: [0, 0]
+            })}
+          >
+            <Popup>
+              <div className="p-1 text-slate-900 font-sans text-xs">
+                <b>{activeVehicle.vehicle_id}</b> ({activeVehicle.cargo_priority})<br/>
+                Speed: {activeVehicle.speed_kmh} km/h<br/>
+                Progress: {activeVehicle.progress_pct.toFixed(1)}% ({activeVehicle.distance_covered_km.toFixed(1)} km)
+              </div>
+            </Popup>
+          </Marker>
+        )}
+
+        {/* 10. Strategic Town Stations & Landmarks */}
+        {showStations && !focusRoadOnly && filteredNodes.filter(n => n.isKeyStation || n.isHazardZone).map((node) => (
           <Marker
             key={node.id}
             position={[node.lat, node.lon]}
@@ -704,6 +1048,123 @@ export default function MapCanvas({
           </Marker>
         ))}
       </MapContainer>
+
+      {/* ========================================================================= */}
+      {/* 11. FLOATING GOOGLE MAPS DIRECTIONS NAVIGATION HUD CARD                    */}
+      {/* ========================================================================= */}
+      {showGoogleDirections && isSpecificCorridor && activeDrivingRouteData && (
+        <div className="absolute bottom-4 left-4 z-[1000] max-w-sm w-[330px] bg-slate-900/95 border border-slate-700/80 backdrop-blur-md rounded-2xl p-4 shadow-2xl text-slate-100 font-sans pointer-events-auto transition-all animate-fadeIn">
+          {/* Header */}
+          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-md bg-blue-600 flex items-center justify-center text-white shadow-md">
+                <Navigation className="w-3.5 h-3.5 rotate-45" />
+              </div>
+              <span className="font-bold text-xs text-white">Google Highway Directions</span>
+            </div>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              OSRM Real Road
+            </span>
+          </div>
+
+          {/* Time & Distance Highlight */}
+          <div className="mt-3 flex items-baseline justify-between">
+            <div>
+              <div className="text-2xl font-black text-emerald-400 tracking-tight flex items-baseline gap-1">
+                <span>{Math.floor(activeDrivingRouteData.duration_hr)} hr {Math.round((activeDrivingRouteData.duration_hr % 1) * 60)} min</span>
+              </div>
+              <div className="text-xs text-slate-300 font-mono mt-0.5">
+                {activeDrivingRouteData.distance_km} km &bull; {activeCorridorMeta.avgSpeed}
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="text-[11px] font-bold text-blue-400 block">
+                {useAlternateBypass ? 'Recommended Detour' : 'Fastest Highway Route'}
+              </span>
+              <span className="text-[10px] text-slate-400 font-mono">
+                {activeDrivingRouteData.total_points.toLocaleString()} asphalt pts
+              </span>
+            </div>
+          </div>
+
+          {/* Highway Summary Badge */}
+          <div className="mt-2.5 text-xs text-slate-200 bg-slate-800/80 px-2.5 py-1.5 rounded-lg border border-slate-700/60 flex items-center gap-2">
+            <CornerUpRight className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+            <span className="truncate font-medium">
+              {useAlternateBypass ? activeCorridorMeta.alternateLabel : activeCorridorMeta.primaryLabel}
+            </span>
+          </div>
+
+          {/* Alternate Route Selector (For corridors with military bypass like NH-13) */}
+          {activeCorridorMeta.hasAlternate && (
+            <div className="mt-3 pt-2.5 border-t border-slate-800 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setUseAlternateBypass(false)}
+                className={`flex-1 py-1.5 px-2 rounded-lg text-[10px] font-bold transition-all text-center ${
+                  !useAlternateBypass 
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-900/50' 
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                }`}
+              >
+                Primary NH-13
+              </button>
+              <button
+                type="button"
+                onClick={() => setUseAlternateBypass(true)}
+                className={`flex-1 py-1.5 px-2 rounded-lg text-[10px] font-bold transition-all text-center ${
+                  useAlternateBypass 
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-900/50' 
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                }`}
+              >
+                Kalaktang Detour
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Floating Directions Card for Custom Calculated Mission Route (Dispatch View) */}
+      {showGoogleDirections && hasCustomActiveRoute && (
+        <div className="absolute bottom-4 left-4 z-[1000] max-w-sm w-[330px] bg-slate-900/95 border border-slate-700/80 backdrop-blur-md rounded-2xl p-4 shadow-2xl text-slate-100 font-sans pointer-events-auto transition-all animate-fadeIn">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-md bg-blue-600 flex items-center justify-center text-white shadow-md">
+                <Navigation className="w-3.5 h-3.5 rotate-45" />
+              </div>
+              <span className="font-bold text-xs text-white">Active Mission Navigation</span>
+            </div>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
+              {activeRoute.mode}
+            </span>
+          </div>
+
+          <div className="mt-3 flex items-baseline justify-between">
+            <div>
+              <div className="text-2xl font-black text-emerald-400 tracking-tight">
+                {Math.floor(activeRoute.total_time_hours)} hr {Math.round((activeRoute.total_time_hours % 1) * 60)} min
+              </div>
+              <div className="text-xs text-slate-300 font-mono mt-0.5">
+                {activeRoute.total_distance_km} km &bull; {activeRoute.cargo_priority}
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="text-[11px] font-bold text-cyan-400 block">
+                {activeRoute.hazard_zones_count === 0 ? 'Zero Disruptions' : `${activeRoute.hazard_zones_count} Hazards Cleared`}
+              </span>
+              <span className="text-[10px] text-slate-400 font-mono">
+                Risk: {(activeRoute.average_risk_score * 100).toFixed(0)}%
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-2 text-xs text-slate-300 bg-slate-800/80 p-2 rounded-lg border border-slate-700/60 truncate font-mono">
+            {activeRoute.path_nodes ? activeRoute.path_nodes.join(' → ') : activeRoute.summary}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

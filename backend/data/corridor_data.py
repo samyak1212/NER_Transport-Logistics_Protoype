@@ -27,3 +27,90 @@ ACTIVE_CONVOYS_DATA = [{'id': 'MED_CONVOY_01', 'cargo': 'Cold-Chain Vaccines & O
 
 # District Connectivity & Isolation Status
 DISTRICTS_DATA = [{'name': 'Kamrup Metro', 'state': 'Assam', 'status': 'ACCESSIBLE', 'active_lifelines': 2, 'blocked_roads': 0, 'priority_depot': 'Guwahati Central', 'medicine_stock_days': 28, 'food_stock_days': 45}, {'name': 'Sonitpur', 'state': 'Assam', 'status': 'ACCESSIBLE', 'active_lifelines': 2, 'blocked_roads': 0, 'priority_depot': 'Tezpur Military Base', 'medicine_stock_days': 21, 'food_stock_days': 35}, {'name': 'West Kameng', 'state': 'Arunachal Pradesh', 'status': 'DEGRADED', 'active_lifelines': 1, 'blocked_roads': 1, 'priority_depot': 'Bomdila Civil Hospital', 'medicine_stock_days': 9, 'food_stock_days': 14}, {'name': 'Tawang', 'state': 'Arunachal Pradesh', 'status': 'ISOLATED_RISK', 'active_lifelines': 1, 'blocked_roads': 1, 'priority_depot': 'Tawang Frontier Depot', 'medicine_stock_days': 5, 'food_stock_days': 8}, {'name': 'Kohima', 'state': 'Nagaland', 'status': 'DEGRADED', 'active_lifelines': 1, 'blocked_roads': 1, 'priority_depot': 'Kohima Capital Depot', 'medicine_stock_days': 8, 'food_stock_days': 12}, {'name': 'Imphal West', 'state': 'Manipur', 'status': 'ISOLATED_RISK', 'active_lifelines': 1, 'blocked_roads': 1, 'priority_depot': 'Imphal Regional Depot', 'medicine_stock_days': 4, 'food_stock_days': 7}, {'name': 'Gangtok', 'state': 'Sikkim', 'status': 'DEGRADED', 'active_lifelines': 1, 'blocked_roads': 1, 'priority_depot': 'STNM Hospital Store', 'medicine_stock_days': 7, 'food_stock_days': 10}, {'name': 'East Jaintia Hills', 'state': 'Meghalaya', 'status': 'DEGRADED', 'active_lifelines': 1, 'blocked_roads': 1, 'priority_depot': 'Khliehriat Supply Base', 'medicine_stock_days': 11, 'food_stock_days': 16}]
+
+# District Isolation Health for routes_corridors
+DISTRICTS_HEALTH = [
+    {
+        "district_name": "Tawang",
+        "state": "Arunachal Pradesh",
+        "status": "DEGRADED",
+        "primary_artery": "NH-13 (Balipara - Bomdila - Tawang)",
+        "lifeline_status": "RESTRICTED (Single-lane convoy)",
+        "active_chokepoints": 2,
+        "population_affected": 49977,
+        "last_status_check": "10 mins ago"
+    },
+    {
+        "district_name": "West Kameng",
+        "state": "Arunachal Pradesh",
+        "status": "DEGRADED",
+        "primary_artery": "NH-13 / BRO Kalaktang Bypass",
+        "lifeline_status": "RESTRICTED (Sessa Scree Slide active)",
+        "active_chokepoints": 1,
+        "population_affected": 83947,
+        "last_status_check": "5 mins ago"
+    },
+    {
+        "district_name": "Sonitpur",
+        "state": "Assam",
+        "status": "ACCESSIBLE",
+        "primary_artery": "NH-15 / NH-13",
+        "lifeline_status": "CLEAR (Plains Staging Base)",
+        "active_chokepoints": 0,
+        "population_affected": 0,
+        "last_status_check": "Just now"
+    },
+    {
+        "district_name": "Kamrup Metro",
+        "state": "Assam",
+        "status": "ACCESSIBLE",
+        "primary_artery": "NH-27 / NH-15",
+        "lifeline_status": "CLEAR (Regional Master Hub)",
+        "active_chokepoints": 0,
+        "population_affected": 0,
+        "last_status_check": "Just now"
+    },
+    {
+        "district_name": "Kohima",
+        "state": "Nagaland",
+        "status": "DEGRADED",
+        "primary_artery": "NH-29 (Dimapur - Kohima)",
+        "lifeline_status": "RESTRICTED (Paglapahar rockfall zone)",
+        "active_chokepoints": 1,
+        "population_affected": 267988,
+        "last_status_check": "15 mins ago"
+    },
+    {
+        "district_name": "Imphal West",
+        "state": "Manipur",
+        "status": "CUT_OFF",
+        "primary_artery": "NH-2 (Kohima - Imphal)",
+        "lifeline_status": "CRITICAL (Valley defile floods)",
+        "active_chokepoints": 2,
+        "population_affected": 517992,
+        "last_status_check": "12 mins ago"
+    },
+    {
+        "district_name": "Gangtok",
+        "state": "Sikkim",
+        "status": "DEGRADED",
+        "primary_artery": "NH-10 (Sevoke - Teesta - Gangtok)",
+        "lifeline_status": "RESTRICTED (Teesta River flood scour)",
+        "active_chokepoints": 1,
+        "population_affected": 281293,
+        "last_status_check": "8 mins ago"
+    },
+    {
+        "district_name": "East Jaintia Hills",
+        "state": "Meghalaya",
+        "status": "DEGRADED",
+        "primary_artery": "NH-6 (Shillong - Silchar)",
+        "lifeline_status": "RESTRICTED (Sonapur Mudflow Tunnel)",
+        "active_chokepoints": 1,
+        "population_affected": 122939,
+        "last_status_check": "20 mins ago"
+    }
+]
+
+# Alias for backwards compatibility
+BRO_MACHINERY_STATUS = BRO_MACHINERY

@@ -3,11 +3,88 @@ Risk-penalized Dijkstra pathfinding engine with cargo priority multipliers and
 side-by-side trade-off analysis.
 """
 import networkx as nx
+import urllib.request
+import json
 from typing import Dict, List, Any, Optional, Tuple
 from backend.data.corridor_data import NODES, SEGMENTS_DATA
 from backend.services.risk_engine import RiskEngine
 from backend.models.schemas import RouteResponse, RouteSegmentDetail, RouteComparisonResponse
 
+
+
+import os
+
+_OSRM_GEOMETRY_CACHE: Dict[str, List[List[float]]] = {}
+_PRELOADED_CORRIDOR_ROUTES: Dict[str, Any] = {}
+
+# Preload cached high-resolution OSRM driving routes if available
+try:
+    _cache_file = os.path.join(os.path.dirname(__file__), "..", "data", "cached_osrm_routes.json")
+    if os.path.exists(_cache_file):
+        with open(_cache_file, "r", encoding="utf-8") as f:
+            _PRELOADED_CORRIDOR_ROUTES = json.load(f)
+except Exception:
+    pass
+
+def fetch_real_highway_geometry(waypoints: List[List[float]]) -> Optional[List[List[float]]]:
+    """
+    Fetches real-world driving highway geometry from OpenStreetMap OSRM routing engine
+    so the route follows the actual asphalt road like Google Maps directions.
+    """
+    if not waypoints or len(waypoints) < 2:
+        return None
+
+    # Check against preloaded corridor driving routes first for sub-millisecond response
+    start_pt = waypoints[0]
+    end_pt = waypoints[-1]
+
+    # Guwahati -> Tawang
+    if abs(start_pt[0] - 26.14) < 0.2 and abs(end_pt[0] - 27.58) < 0.2:
+        has_kalaktang = any(abs(wp[1] - 92.08) < 0.15 for wp in waypoints)
+        corridor_key = "CORRIDOR_NH13_BYPASS" if has_kalaktang else "CORRIDOR_NH13"
+        if corridor_key in _PRELOADED_CORRIDOR_ROUTES:
+            return _PRELOADED_CORRIDOR_ROUTES[corridor_key]["coordinates"]
+
+    # Dimapur -> Imphal
+    if abs(start_pt[0] - 25.90) < 0.2 and abs(end_pt[0] - 24.81) < 0.2:
+        if "CORRIDOR_NH29" in _PRELOADED_CORRIDOR_ROUTES:
+            return _PRELOADED_CORRIDOR_ROUTES["CORRIDOR_NH29"]["coordinates"]
+
+    # Siliguri -> Gangtok
+    if abs(start_pt[0] - 26.72) < 0.2 and abs(end_pt[0] - 27.33) < 0.2:
+        if "CORRIDOR_NH10" in _PRELOADED_CORRIDOR_ROUTES:
+            return _PRELOADED_CORRIDOR_ROUTES["CORRIDOR_NH10"]["coordinates"]
+
+    # Guwahati -> Agartala
+    if abs(start_pt[0] - 26.14) < 0.2 and abs(end_pt[0] - 23.83) < 0.2:
+        if "CORRIDOR_NH6" in _PRELOADED_CORRIDOR_ROUTES:
+            return _PRELOADED_CORRIDOR_ROUTES["CORRIDOR_NH6"]["coordinates"]
+        
+    cache_key = f"{waypoints[0]}_{waypoints[-1]}_{len(waypoints)}"
+    if cache_key in _OSRM_GEOMETRY_CACHE:
+        return _OSRM_GEOMETRY_CACHE[cache_key]
+        
+    sample_nodes = waypoints
+    if len(waypoints) > 10:
+        step = max(1, len(waypoints) // 8)
+        sample_nodes = [waypoints[i] for i in range(0, len(waypoints), step)]
+        if sample_nodes[-1] != waypoints[-1]:
+            sample_nodes.append(waypoints[-1])
+            
+    coord_str = ";".join([f"{lon},{lat}" for lat, lon in sample_nodes])
+    url = f"https://router.project-osrm.org/route/v1/driving/{coord_str}?overview=full&geometries=geojson"
+    try:
+        req = urllib.request.Request(url, headers={'User-Agent': 'NERLogisticsPlatform/1.0'})
+        with urllib.request.urlopen(req, timeout=3.5) as response:
+            data = json.loads(response.read().decode())
+            if data.get("routes"):
+                raw_coords = data["routes"][0]["geometry"]["coordinates"]
+                res_coords = [[round(lat, 5), round(lon, 5)] for lon, lat in raw_coords]
+                _OSRM_GEOMETRY_CACHE[cache_key] = res_coords
+                return res_coords
+    except Exception:
+        pass
+    return None
 
 class RoutingEngine:
     """
@@ -195,6 +272,11 @@ class RoutingEngine:
             f"Hazard Zones: {hazard_zones} (Avg Risk: {avg_risk:.2f})."
         )
 
+        # Attempt to enhance with exact real-world driving geometry (like Google Maps)
+        key_waypoints = [[NODES[nid]["lat"], NODES[nid]["lon"]] for nid in path_nodes if nid in NODES]
+        real_geometry = fetch_real_highway_geometry(key_waypoints)
+        final_polyline = real_geometry if (real_geometry and len(real_geometry) > len(polyline)) else polyline
+
         return RouteResponse(
             mode=mode,
             cargo_priority=cargo_priority,
@@ -205,7 +287,8 @@ class RoutingEngine:
             path_nodes=path_nodes,
             segments=segments_detail,
             hazard_zones_count=hazard_zones,
-            polyline=polyline,
+            polyline=final_polyline,
+            geometry_coordinates=final_polyline,
             summary=summary
         )
 

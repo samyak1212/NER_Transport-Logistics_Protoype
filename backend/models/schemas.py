@@ -85,6 +85,7 @@ class RouteResponse(BaseModel):
     segments: List[RouteSegmentDetail]
     hazard_zones_count: int
     polyline: List[List[float]]
+    geometry_coordinates: Optional[List[List[float]]] = None
     summary: str
 
 
