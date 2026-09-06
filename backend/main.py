@@ -2,11 +2,20 @@
 Main FastAPI Application Entry Point for SIH Problem Statement 26002:
 AI-Based Smart Logistics and Accessibility Intelligence Platform for North Eastern Region (MDoNER).
 """
+import sys
 import os
+
+# Ensure project root and backend dir are in sys.path
+backend_dir = os.path.dirname(os.path.abspath(__file__))
+root_dir = os.path.dirname(backend_dir)
+for p in [root_dir, backend_dir]:
+    if p not in sys.path:
+        sys.path.insert(0, p)
+
 from dotenv import load_dotenv
 
 # Load environment variables from backend/.env
-dotenv_path = os.path.join(os.path.dirname(__file__), ".env")
+dotenv_path = os.path.join(backend_dir, ".env")
 load_dotenv(dotenv_path)
 
 from contextlib import asynccontextmanager
@@ -26,10 +35,18 @@ from backend.routers.routes_simulation import router as simulation_router
 from backend.routers.routes_ai import router as ai_router
 
 
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: Initialize core GIS and Routing engines
-    print("🏔️ Initializing NER Logistics Intelligence Platform...")
+    print("[INFO] Initializing NER Logistics Intelligence Platform...")
     routing_engine = RoutingEngine()
     vehicle_simulator = VehicleSimulator(routing_engine)
     field_report_service = FieldReportService(routing_engine)
@@ -37,10 +54,10 @@ async def lifespan(app: FastAPI):
     app.state.routing_engine = routing_engine
     app.state.vehicle_simulator = vehicle_simulator
     app.state.field_report_service = field_report_service
-    print("✅ Core GIS Graph, Risk Engine, and Convoy Telemetry Ready.")
+    print("[OK] Core GIS Graph, Risk Engine, and Convoy Telemetry Ready.")
 
     yield
-    print("🛑 Shutting down NER Logistics Platform.")
+    print("[STOP] Shutting down NER Logistics Platform.")
 
 
 app = FastAPI(
