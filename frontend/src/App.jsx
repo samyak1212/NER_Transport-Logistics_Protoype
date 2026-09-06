@@ -60,11 +60,8 @@ export default function App() {
       if (brief) setExecutiveBrief(brief);
       if (vTele) setActiveVehicle(vTele);
 
-      // Default route calculation if none active
-      if (!activeRoute) {
-        api.calculateRoute('Guwahati', 'Tawang', 'CRITICAL_MEDICAL', 'RISK_AWARE')
-          .then(res => setActiveRoute(res))
-          .catch(() => {});
+      // Preload baseline comparison metrics without forcing a turn-by-turn route on the map
+      if (!comparisonData) {
         api.compareRoutes('Guwahati', 'Tawang', 'CRITICAL_MEDICAL')
           .then(comp => setComparisonData(comp))
           .catch(() => {});
@@ -168,6 +165,7 @@ export default function App() {
               reports={reports}
               selectedSegment={selectedSegment}
               onSelectSegment={(seg) => setSelectedSegment(seg)}
+              activeWorkspace={activeWorkspace}
             />
           </div>
 

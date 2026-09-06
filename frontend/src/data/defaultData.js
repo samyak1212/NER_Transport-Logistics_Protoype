@@ -1,452 +1,5498 @@
 /**
- * Initial seed baseline data for the North Eastern Region logistics platform.
- * Ensures the interactive map, routes, alternate bypass, stations, and landslide
- * prediction zones render instantly with zero delay.
+ * Complete multi-corridor geospatial, topological and telemetry dataset for the
+ * North Eastern Region (NER) logistics and accessibility intelligence platform.
+ * Supports 4 major strategic arterial corridors with high-fidelity curved highway geometry.
  */
 
-export const DEFAULT_NODES = [
-  { id: "Guwahati", name: "Guwahati Central Depot", district: "Kamrup Metro", state: "Assam", elevation_m: 55.0, lat: 26.1445, lon: 91.7362, type: "SUPPLY_HUB", isKeyStation: true },
-  { id: "Mangaldai", name: "Mangaldai Staging Point", district: "Darrang", state: "Assam", elevation_m: 65.0, lat: 26.4385, lon: 92.0354, type: "TRANSIT_HUB" },
-  { id: "Tezpur", name: "Tezpur Civil & Military Supply Base", district: "Sonitpur", state: "Assam", elevation_m: 78.0, lat: 26.6528, lon: 92.7926, type: "SUPPLY_BASE", isKeyStation: true },
-  { id: "Balipara", name: "Balipara Strategic Junction", district: "Sonitpur", state: "Assam", elevation_m: 88.0, lat: 26.8211, lon: 92.8124, type: "JUNCTION", isKeyStation: true },
-  
-  // Primary Lifeline (NH-13 via Bhalukpong & Sessa)
-  { id: "Bhalukpong", name: "Bhalukpong Border Checkpost", district: "West Kameng", state: "Arunachal Pradesh", elevation_m: 215.0, lat: 27.0125, lon: 92.6514, type: "BORDER_CHECKPOST", isKeyStation: true },
-  { id: "Tippi", name: "Tippi Orchid Center Gorge", district: "West Kameng", state: "Arunachal Pradesh", elevation_m: 360.0, lat: 27.0421, lon: 92.6105, type: "TRANSIT_POINT" },
-  { id: "Sessa", name: "Sessa Scree Slide Chokepoint", district: "West Kameng", state: "Arunachal Pradesh", elevation_m: 1100.0, lat: 27.0984, lon: 92.5342, type: "HIGH_RISK_CHOKEPOINT", isHazardZone: true },
-  { id: "NagMandir", name: "Nag Mandir Mountain Cut", district: "West Kameng", state: "Arunachal Pradesh", elevation_m: 1820.0, lat: 27.1623, lon: 92.4789, type: "MOUNTAIN_CUT", isHazardZone: true },
-  { id: "Kaspi", name: "Kaspi River Defile", district: "West Kameng", state: "Arunachal Pradesh", elevation_m: 1350.0, lat: 27.2014, lon: 92.4412, type: "CHOKEPOINT", isHazardZone: true },
-  { id: "Tengapani", name: "Tengapani Valley Base", district: "West Kameng", state: "Arunachal Pradesh", elevation_m: 1450.0, lat: 27.2289, lon: 92.4215, type: "VALLEY_HUB" },
-  
-  // Southern BRO Alternate Bypass Corridor
-  { id: "Orang", name: "Orang Junction", district: "Darrang", state: "Assam", elevation_m: 72.0, lat: 26.6845, lon: 92.3421, type: "JUNCTION" },
-  { id: "Bhairabkunda", name: "Bhairabkunda Tri-Junction", district: "Udalguri", state: "Assam", elevation_m: 190.0, lat: 26.9023, lon: 92.1154, type: "BORDER_POINT" },
-  { id: "Kalaktang", name: "Kalaktang BRO Staging Post", district: "West Kameng", state: "Arunachal Pradesh", elevation_m: 1150.0, lat: 27.1234, lon: 92.1021, type: "STAGING_POST", isKeyStation: true },
-  { id: "Shergaon", name: "Shergaon Agricultural Basin", district: "West Kameng", state: "Arunachal Pradesh", elevation_m: 1950.0, lat: 27.1425, lon: 92.2614, type: "TRANSIT_POINT" },
-  { id: "Rupa", name: "Rupa Sub-Divisional Base", district: "West Kameng", state: "Arunachal Pradesh", elevation_m: 1520.0, lat: 27.2012, lon: 92.3854, type: "TRANSIT_HUB", isKeyStation: true },
-  
-  // Upper High Himalayan Lifeline to Tawang
-  { id: "Bomdila", name: "Bomdila District Headquarters", district: "West Kameng", state: "Arunachal Pradesh", elevation_m: 2415.0, lat: 27.2644, lon: 92.4241, type: "DISTRICT_HQ", isKeyStation: true },
-  { id: "MunnaCamp", name: "Munna Camp Staging Area", district: "West Kameng", state: "Arunachal Pradesh", elevation_m: 2210.0, lat: 27.3112, lon: 92.3562, type: "TRANSIT_POINT" },
-  { id: "Dirang", name: "Dirang Sub-Divisional Depot", district: "West Kameng", state: "Arunachal Pradesh", elevation_m: 1560.0, lat: 27.3578, lon: 92.2394, type: "SUB_DEPOT", isKeyStation: true },
-  { id: "Sange", name: "Sange Mountain Outpost", district: "West Kameng", state: "Arunachal Pradesh", elevation_m: 2100.0, lat: 27.4215, lon: 92.1852, type: "TRANSIT_POINT" },
-  { id: "Baisakhi", name: "Baisakhi Military Camp", district: "West Kameng", state: "Arunachal Pradesh", elevation_m: 2750.0, lat: 27.4721, lon: 92.1245, type: "MILITARY_BASE" },
-  { id: "SelaPass", name: "Sela High Mountain Pass & Tunnel (3,733m)", district: "Tawang", state: "Arunachal Pradesh", elevation_m: 3733.0, lat: 27.5034, lon: 92.1039, type: "ALPINE_PASS", isKeyStation: true, isHazardZone: true },
-  { id: "JaswantGarh", name: "Jaswant Garh Staging Post", district: "Tawang", state: "Arunachal Pradesh", elevation_m: 3050.0, lat: 27.5312, lon: 92.0514, type: "MEMORIAL_STAGING" },
-  { id: "Jang", name: "Jang Bridge & Hydro Base", district: "Tawang", state: "Arunachal Pradesh", elevation_m: 2160.0, lat: 27.5745, lon: 91.9854, type: "BRIDGE_CROSSING", isKeyStation: true },
-  { id: "Lhou", name: "Lhou Valley Checkpost", district: "Tawang", state: "Arunachal Pradesh", elevation_m: 2320.0, lat: 27.5612, lon: 91.9021, type: "TRANSIT_POINT" },
-  { id: "Tawang", name: "Tawang Civil Hospital & Frontier Depot", district: "Tawang", state: "Arunachal Pradesh", elevation_m: 3048.0, lat: 27.5861, lon: 91.8594, type: "FRONTIER_DESTINATION", isKeyStation: true }
+export const REGIONAL_CORRIDORS = [
+  {
+    "id": "ALL",
+    "name": "All Strategic Lifelines (NER Regional Overview)",
+    "states": "Arunachal, Assam, Nagaland, Manipur, Sikkim, Meghalaya, Tripura",
+    "center": [
+      26.2,
+      92.5
+    ],
+    "zoom": 7,
+    "description": "Comprehensive situational awareness of all 4 vital lifelines across the 8 North Eastern states."
+  },
+  {
+    "id": "CORRIDOR_NH13",
+    "name": "Western Arunachal Lifeline (NH-13 & BRO Bypass)",
+    "states": "Assam & Arunachal Pradesh",
+    "center": [
+      27.15,
+      92.35
+    ],
+    "zoom": 8.5,
+    "distance_km": "380 km / 415 km",
+    "description": "Guwahati -> Tezpur -> Bhalukpong -> Bomdila -> Sela Pass -> Tawang"
+  },
+  {
+    "id": "CORRIDOR_NH29",
+    "name": "Nagaland & Manipur Arterial Lifeline (NH-29 / NH-2)",
+    "states": "Assam, Nagaland & Manipur",
+    "center": [
+      25.35,
+      93.9
+    ],
+    "zoom": 8.5,
+    "distance_km": "215 km",
+    "description": "Dimapur -> Paglapahar Gorge -> Kohima -> Senapati -> Imphal"
+  },
+  {
+    "id": "CORRIDOR_NH10",
+    "name": "Sikkim Himalayan Lifeline (NH-10)",
+    "states": "West Bengal & Sikkim",
+    "center": [
+      27.05,
+      88.5
+    ],
+    "zoom": 9.5,
+    "distance_km": "114 km",
+    "description": "Siliguri -> Sevoke Coronation Bridge -> Teesta Bazaar -> Rangpo -> Gangtok"
+  },
+  {
+    "id": "CORRIDOR_NH6",
+    "name": "Meghalaya, Barak Valley & Tripura Lifeline (NH-6 / NH-8)",
+    "states": "Meghalaya, Assam & Tripura",
+    "center": [
+      24.8,
+      92.1
+    ],
+    "zoom": 8.0,
+    "distance_km": "450 km",
+    "description": "Shillong -> Jowai -> Sonapur Mudflow Tunnel -> Silchar -> Agartala"
+  }
 ];
 
-// Predictive Landslide Hazard Zones (Clause b)
+export const DEFAULT_NODES = [
+  {
+    "id": "Guwahati",
+    "name": "Guwahati Central Depot",
+    "district": "Kamrup Metro",
+    "state": "Assam",
+    "elevation_m": 55.0,
+    "lat": 26.1445,
+    "lon": 91.7362,
+    "type": "SUPPLY_HUB",
+    "corridor": "CORRIDOR_NH13",
+    "isKeyStation": true
+  },
+  {
+    "id": "Mangaldai",
+    "name": "Mangaldai Staging Point",
+    "district": "Darrang",
+    "state": "Assam",
+    "elevation_m": 65.0,
+    "lat": 26.4385,
+    "lon": 92.0354,
+    "type": "TRANSIT_HUB",
+    "corridor": "CORRIDOR_NH13"
+  },
+  {
+    "id": "Tezpur",
+    "name": "Tezpur Military & Civil Supply Base",
+    "district": "Sonitpur",
+    "state": "Assam",
+    "elevation_m": 78.0,
+    "lat": 26.6528,
+    "lon": 92.7926,
+    "type": "SUPPLY_BASE",
+    "corridor": "CORRIDOR_NH13",
+    "isKeyStation": true
+  },
+  {
+    "id": "Balipara",
+    "name": "Balipara Strategic Junction",
+    "district": "Sonitpur",
+    "state": "Assam",
+    "elevation_m": 88.0,
+    "lat": 26.8211,
+    "lon": 92.8124,
+    "type": "JUNCTION",
+    "corridor": "CORRIDOR_NH13",
+    "isKeyStation": true
+  },
+  {
+    "id": "Bhalukpong",
+    "name": "Bhalukpong Border Checkpost",
+    "district": "West Kameng",
+    "state": "Arunachal Pradesh",
+    "elevation_m": 215.0,
+    "lat": 27.0125,
+    "lon": 92.6514,
+    "type": "BORDER_CHECKPOST",
+    "corridor": "CORRIDOR_NH13",
+    "isKeyStation": true
+  },
+  {
+    "id": "Tippi",
+    "name": "Tippi Orchid Gorge",
+    "district": "West Kameng",
+    "state": "Arunachal Pradesh",
+    "elevation_m": 360.0,
+    "lat": 27.0421,
+    "lon": 92.6105,
+    "type": "TRANSIT_POINT",
+    "corridor": "CORRIDOR_NH13"
+  },
+  {
+    "id": "Sessa",
+    "name": "Sessa Scree Slide Chokepoint",
+    "district": "West Kameng",
+    "state": "Arunachal Pradesh",
+    "elevation_m": 1100.0,
+    "lat": 27.0984,
+    "lon": 92.5342,
+    "type": "HIGH_RISK_CHOKEPOINT",
+    "corridor": "CORRIDOR_NH13",
+    "isHazardZone": true,
+    "isKeyStation": true
+  },
+  {
+    "id": "NagMandir",
+    "name": "Nag Mandir Mountain Cut",
+    "district": "West Kameng",
+    "state": "Arunachal Pradesh",
+    "elevation_m": 1820.0,
+    "lat": 27.1623,
+    "lon": 92.4789,
+    "type": "MOUNTAIN_CUT",
+    "corridor": "CORRIDOR_NH13"
+  },
+  {
+    "id": "Kaspi",
+    "name": "Kaspi River Defile",
+    "district": "West Kameng",
+    "state": "Arunachal Pradesh",
+    "elevation_m": 1350.0,
+    "lat": 27.2014,
+    "lon": 92.4412,
+    "type": "CHOKEPOINT",
+    "corridor": "CORRIDOR_NH13",
+    "isHazardZone": true
+  },
+  {
+    "id": "Tengapani",
+    "name": "Tengapani Valley Base",
+    "district": "West Kameng",
+    "state": "Arunachal Pradesh",
+    "elevation_m": 1450.0,
+    "lat": 27.2289,
+    "lon": 92.4215,
+    "type": "VALLEY_HUB",
+    "corridor": "CORRIDOR_NH13"
+  },
+  {
+    "id": "Orang",
+    "name": "Orang Junction",
+    "district": "Darrang",
+    "state": "Assam",
+    "elevation_m": 72.0,
+    "lat": 26.6845,
+    "lon": 92.3421,
+    "type": "JUNCTION",
+    "corridor": "CORRIDOR_NH13_BYPASS"
+  },
+  {
+    "id": "Bhairabkunda",
+    "name": "Bhairabkunda Tri-Junction",
+    "district": "Udalguri",
+    "state": "Assam",
+    "elevation_m": 190.0,
+    "lat": 26.9023,
+    "lon": 92.1154,
+    "type": "BORDER_POINT",
+    "corridor": "CORRIDOR_NH13_BYPASS"
+  },
+  {
+    "id": "Kalaktang",
+    "name": "Kalaktang BRO Staging Post",
+    "district": "West Kameng",
+    "state": "Arunachal Pradesh",
+    "elevation_m": 1150.0,
+    "lat": 27.1234,
+    "lon": 92.1021,
+    "type": "STAGING_POST",
+    "corridor": "CORRIDOR_NH13_BYPASS",
+    "isKeyStation": true
+  },
+  {
+    "id": "Shergaon",
+    "name": "Shergaon Agricultural Basin",
+    "district": "West Kameng",
+    "state": "Arunachal Pradesh",
+    "elevation_m": 1950.0,
+    "lat": 27.1425,
+    "lon": 92.2614,
+    "type": "TRANSIT_POINT",
+    "corridor": "CORRIDOR_NH13_BYPASS"
+  },
+  {
+    "id": "Rupa",
+    "name": "Rupa Sub-Divisional Base",
+    "district": "West Kameng",
+    "state": "Arunachal Pradesh",
+    "elevation_m": 1520.0,
+    "lat": 27.2012,
+    "lon": 92.3854,
+    "type": "TRANSIT_HUB",
+    "corridor": "CORRIDOR_NH13_BYPASS",
+    "isKeyStation": true
+  },
+  {
+    "id": "Bomdila",
+    "name": "Bomdila District Headquarters",
+    "district": "West Kameng",
+    "state": "Arunachal Pradesh",
+    "elevation_m": 2415.0,
+    "lat": 27.2644,
+    "lon": 92.4241,
+    "type": "DISTRICT_HQ",
+    "corridor": "CORRIDOR_NH13",
+    "isKeyStation": true
+  },
+  {
+    "id": "MunnaCamp",
+    "name": "Munna Camp Staging Area",
+    "district": "West Kameng",
+    "state": "Arunachal Pradesh",
+    "elevation_m": 2210.0,
+    "lat": 27.3112,
+    "lon": 92.3562,
+    "type": "TRANSIT_POINT",
+    "corridor": "CORRIDOR_NH13"
+  },
+  {
+    "id": "Dirang",
+    "name": "Dirang Sub-Divisional Depot",
+    "district": "West Kameng",
+    "state": "Arunachal Pradesh",
+    "elevation_m": 1560.0,
+    "lat": 27.3578,
+    "lon": 92.2394,
+    "type": "SUB_DEPOT",
+    "corridor": "CORRIDOR_NH13",
+    "isKeyStation": true
+  },
+  {
+    "id": "Sange",
+    "name": "Sange Mountain Outpost",
+    "district": "West Kameng",
+    "state": "Arunachal Pradesh",
+    "elevation_m": 2100.0,
+    "lat": 27.4215,
+    "lon": 92.1852,
+    "type": "TRANSIT_POINT",
+    "corridor": "CORRIDOR_NH13"
+  },
+  {
+    "id": "Baisakhi",
+    "name": "Baisakhi Military Camp",
+    "district": "West Kameng",
+    "state": "Arunachal Pradesh",
+    "elevation_m": 2750.0,
+    "lat": 27.4721,
+    "lon": 92.1245,
+    "type": "MILITARY_BASE",
+    "corridor": "CORRIDOR_NH13"
+  },
+  {
+    "id": "SelaPass",
+    "name": "Sela Pass Summit & Tunnel (3,733m)",
+    "district": "Tawang",
+    "state": "Arunachal Pradesh",
+    "elevation_m": 3733.0,
+    "lat": 27.5034,
+    "lon": 92.1039,
+    "type": "ALPINE_PASS",
+    "corridor": "CORRIDOR_NH13",
+    "isHazardZone": true,
+    "isKeyStation": true
+  },
+  {
+    "id": "JaswantGarh",
+    "name": "Jaswant Garh Staging Post",
+    "district": "Tawang",
+    "state": "Arunachal Pradesh",
+    "elevation_m": 3050.0,
+    "lat": 27.5312,
+    "lon": 92.0514,
+    "type": "MEMORIAL_STAGING",
+    "corridor": "CORRIDOR_NH13"
+  },
+  {
+    "id": "Jang",
+    "name": "Jang Bridge & Hydro Base",
+    "district": "Tawang",
+    "state": "Arunachal Pradesh",
+    "elevation_m": 2160.0,
+    "lat": 27.5745,
+    "lon": 91.9854,
+    "type": "BRIDGE_CROSSING",
+    "corridor": "CORRIDOR_NH13",
+    "isKeyStation": true
+  },
+  {
+    "id": "Lhou",
+    "name": "Lhou Valley Checkpost",
+    "district": "Tawang",
+    "state": "Arunachal Pradesh",
+    "elevation_m": 2320.0,
+    "lat": 27.5612,
+    "lon": 91.9021,
+    "type": "TRANSIT_POINT",
+    "corridor": "CORRIDOR_NH13"
+  },
+  {
+    "id": "Tawang",
+    "name": "Tawang Civil Hospital & Frontier Depot",
+    "district": "Tawang",
+    "state": "Arunachal Pradesh",
+    "elevation_m": 3048.0,
+    "lat": 27.5861,
+    "lon": 91.8594,
+    "type": "FRONTIER_DESTINATION",
+    "corridor": "CORRIDOR_NH13",
+    "isKeyStation": true
+  },
+  {
+    "id": "Dimapur",
+    "name": "Dimapur Logistics Gateway & Railhead",
+    "district": "Dimapur",
+    "state": "Nagaland",
+    "elevation_m": 145.0,
+    "lat": 25.906,
+    "lon": 93.727,
+    "type": "SUPPLY_HUB",
+    "corridor": "CORRIDOR_NH29",
+    "isKeyStation": true
+  },
+  {
+    "id": "Chumukedima",
+    "name": "Chumukedima Foothill Base",
+    "district": "Chumukedima",
+    "state": "Nagaland",
+    "elevation_m": 210.0,
+    "lat": 25.82,
+    "lon": 93.774,
+    "type": "TRANSIT_HUB",
+    "corridor": "CORRIDOR_NH29"
+  },
+  {
+    "id": "Paglapahar",
+    "name": "Paglapahar Gorge Landslide Zone",
+    "district": "Chumukedima",
+    "state": "Nagaland",
+    "elevation_m": 420.0,
+    "lat": 25.765,
+    "lon": 93.842,
+    "type": "HIGH_RISK_CHOKEPOINT",
+    "corridor": "CORRIDOR_NH29",
+    "isHazardZone": true,
+    "isKeyStation": true
+  },
+  {
+    "id": "Medziphema",
+    "name": "Medziphema Staging Point",
+    "district": "Chumukedima",
+    "state": "Nagaland",
+    "elevation_m": 310.0,
+    "lat": 25.752,
+    "lon": 93.865,
+    "type": "TRANSIT_POINT",
+    "corridor": "CORRIDOR_NH29"
+  },
+  {
+    "id": "Zubza",
+    "name": "Zubza Sinking Road Defile",
+    "district": "Kohima",
+    "state": "Nagaland",
+    "elevation_m": 1120.0,
+    "lat": 25.682,
+    "lon": 94.025,
+    "type": "CHOKEPOINT",
+    "corridor": "CORRIDOR_NH29",
+    "isHazardZone": true
+  },
+  {
+    "id": "Kohima",
+    "name": "Kohima Capital Transport Depot",
+    "district": "Kohima",
+    "state": "Nagaland",
+    "elevation_m": 1444.0,
+    "lat": 25.674,
+    "lon": 94.108,
+    "type": "DISTRICT_HQ",
+    "corridor": "CORRIDOR_NH29",
+    "isKeyStation": true
+  },
+  {
+    "id": "MaoBorder",
+    "name": "Mao Inter-State Gate (Nagaland-Manipur)",
+    "district": "Senapati",
+    "state": "Manipur",
+    "elevation_m": 1780.0,
+    "lat": 25.505,
+    "lon": 94.142,
+    "type": "BORDER_CHECKPOST",
+    "corridor": "CORRIDOR_NH29",
+    "isKeyStation": true
+  },
+  {
+    "id": "Senapati",
+    "name": "Senapati Supply Point",
+    "district": "Senapati",
+    "state": "Manipur",
+    "elevation_m": 1050.0,
+    "lat": 25.265,
+    "lon": 94.015,
+    "type": "SUB_DEPOT",
+    "corridor": "CORRIDOR_NH29",
+    "isKeyStation": true
+  },
+  {
+    "id": "Kangpokpi",
+    "name": "Kangpokpi Transit Hub",
+    "district": "Kangpokpi",
+    "state": "Manipur",
+    "elevation_m": 980.0,
+    "lat": 25.148,
+    "lon": 93.972,
+    "type": "TRANSIT_HUB",
+    "corridor": "CORRIDOR_NH29"
+  },
+  {
+    "id": "Imphal",
+    "name": "Imphal Regional Hospital & Food Depot",
+    "district": "Imphal West",
+    "state": "Manipur",
+    "elevation_m": 786.0,
+    "lat": 24.817,
+    "lon": 93.9368,
+    "type": "FRONTIER_DESTINATION",
+    "corridor": "CORRIDOR_NH29",
+    "isKeyStation": true
+  },
+  {
+    "id": "Siliguri",
+    "name": "Siliguri North Bengal Logistics Hub",
+    "district": "Darjeeling",
+    "state": "West Bengal",
+    "elevation_m": 122.0,
+    "lat": 26.7271,
+    "lon": 88.3953,
+    "type": "SUPPLY_HUB",
+    "corridor": "CORRIDOR_NH10",
+    "isKeyStation": true
+  },
+  {
+    "id": "Sevoke",
+    "name": "Sevoke Coronation Bridge (Teesta River)",
+    "district": "Darjeeling",
+    "state": "West Bengal",
+    "elevation_m": 180.0,
+    "lat": 26.885,
+    "lon": 88.472,
+    "type": "BRIDGE_CROSSING",
+    "corridor": "CORRIDOR_NH10",
+    "isKeyStation": true
+  },
+  {
+    "id": "TeestaBazaar",
+    "name": "Teesta Bazaar Rockfall Zone",
+    "district": "Kalimpong",
+    "state": "West Bengal",
+    "elevation_m": 220.0,
+    "lat": 27.058,
+    "lon": 88.435,
+    "type": "HIGH_RISK_CHOKEPOINT",
+    "corridor": "CORRIDOR_NH10",
+    "isHazardZone": true,
+    "isKeyStation": true
+  },
+  {
+    "id": "Rangpo",
+    "name": "Rangpo Border Checkpost (Sikkim Gate)",
+    "district": "Pakyong",
+    "state": "Sikkim",
+    "elevation_m": 330.0,
+    "lat": 27.176,
+    "lon": 88.528,
+    "type": "BORDER_CHECKPOST",
+    "corridor": "CORRIDOR_NH10",
+    "isKeyStation": true
+  },
+  {
+    "id": "Singtam",
+    "name": "Singtam Highway Junction",
+    "district": "Gangtok",
+    "state": "Sikkim",
+    "elevation_m": 410.0,
+    "lat": 27.234,
+    "lon": 88.498,
+    "type": "JUNCTION",
+    "corridor": "CORRIDOR_NH10"
+  },
+  {
+    "id": "Gangtok",
+    "name": "Gangtok STNM Hospital & Supply Depot",
+    "district": "Gangtok",
+    "state": "Sikkim",
+    "elevation_m": 1650.0,
+    "lat": 27.3314,
+    "lon": 88.6138,
+    "type": "FRONTIER_DESTINATION",
+    "corridor": "CORRIDOR_NH10",
+    "isKeyStation": true
+  },
+  {
+    "id": "Shillong",
+    "name": "Shillong Central Civil Depot",
+    "district": "East Khasi Hills",
+    "state": "Meghalaya",
+    "elevation_m": 1525.0,
+    "lat": 25.5788,
+    "lon": 91.8933,
+    "type": "SUPPLY_HUB",
+    "corridor": "CORRIDOR_NH6",
+    "isKeyStation": true
+  },
+  {
+    "id": "Jowai",
+    "name": "Jowai District Transport Hub",
+    "district": "West Jaintia Hills",
+    "state": "Meghalaya",
+    "elevation_m": 1380.0,
+    "lat": 25.448,
+    "lon": 92.202,
+    "type": "TRANSIT_HUB",
+    "corridor": "CORRIDOR_NH6",
+    "isKeyStation": true
+  },
+  {
+    "id": "Khliehriat",
+    "name": "Khliehriat Mining Basin Chokepoint",
+    "district": "East Jaintia Hills",
+    "state": "Meghalaya",
+    "elevation_m": 1200.0,
+    "lat": 25.352,
+    "lon": 92.365,
+    "type": "TRANSIT_POINT",
+    "corridor": "CORRIDOR_NH6"
+  },
+  {
+    "id": "SonapurTunnel",
+    "name": "Sonapur Mudflow Tunnel (NH-6)",
+    "district": "East Jaintia Hills",
+    "state": "Meghalaya",
+    "elevation_m": 580.0,
+    "lat": 25.125,
+    "lon": 92.368,
+    "type": "HIGH_RISK_CHOKEPOINT",
+    "corridor": "CORRIDOR_NH6",
+    "isHazardZone": true,
+    "isKeyStation": true
+  },
+  {
+    "id": "Badarpur",
+    "name": "Badarpur Rail & Road Junction",
+    "district": "Karimganj",
+    "state": "Assam",
+    "elevation_m": 42.0,
+    "lat": 24.901,
+    "lon": 92.585,
+    "type": "JUNCTION",
+    "corridor": "CORRIDOR_NH6"
+  },
+  {
+    "id": "Silchar",
+    "name": "Silchar Barak Valley Supply Depot",
+    "district": "Cachar",
+    "state": "Assam",
+    "elevation_m": 35.0,
+    "lat": 24.8333,
+    "lon": 92.7789,
+    "type": "SUPPLY_BASE",
+    "corridor": "CORRIDOR_NH6",
+    "isKeyStation": true
+  },
+  {
+    "id": "Dharmanagar",
+    "name": "Dharmanagar North Gate",
+    "district": "North Tripura",
+    "state": "Tripura",
+    "elevation_m": 48.0,
+    "lat": 24.375,
+    "lon": 92.165,
+    "type": "TRANSIT_HUB",
+    "corridor": "CORRIDOR_NH6",
+    "isKeyStation": true
+  },
+  {
+    "id": "Agartala",
+    "name": "Agartala State Depot & GB Pant Hospital",
+    "district": "West Tripura",
+    "state": "Tripura",
+    "elevation_m": 30.0,
+    "lat": 23.8315,
+    "lon": 91.2868,
+    "type": "FRONTIER_DESTINATION",
+    "corridor": "CORRIDOR_NH6",
+    "isKeyStation": true
+  }
+];
+
 export const LANDSLIDE_PREDICTION_ZONES = [
   {
-    id: "HAZ_01",
-    name: "Sessa Scree Slide Belt (NH-13 km 114)",
-    lat: 27.0984,
-    lon: 92.5342,
-    probability_pct: 84,
-    hazard_level: "SEVERE",
-    trigger_cause: "High Slope (38.5°) + 55mm Antecedent Rainfall + Sheared Phyllite Rock",
-    srtm_slope_deg: 38.5,
-    elevation_m: 1100,
-    gsi_historical_slides: 11,
-    forecast_48h: "Extreme Slide Risk (Rainfall > 70mm forecasted)",
-    recommendation: "DIVERT TO KALAKTANG BYPASS"
+    "id": "HAZ_01",
+    "name": "Sessa Scree Slide Belt (NH-13 km 114)",
+    "corridor": "CORRIDOR_NH13",
+    "lat": 27.0984,
+    "lon": 92.5342,
+    "probability_pct": 84,
+    "hazard_level": "SEVERE",
+    "trigger_cause": "High Slope (38.5\u00b0) + 55mm Antecedent Rain + Sheared Phyllite",
+    "srtm_slope_deg": 38.5,
+    "elevation_m": 1100,
+    "gsi_historical_slides": 11,
+    "forecast_48h": "Extreme Slide Risk (Rainfall > 70mm forecasted)",
+    "recommendation": "DIVERT TO BRO KALAKTANG BYPASS"
   },
   {
-    id: "HAZ_02",
-    name: "Bhalukpong River Cut & Gorge (NH-13 km 88)",
-    lat: 27.0289,
-    lon: 92.6310,
-    probability_pct: 58,
-    hazard_level: "MODERATE",
-    trigger_cause: "Kameng River Toe Erosion + Siwalik Sandstone Scouring",
-    srtm_slope_deg: 26.8,
-    elevation_m: 360,
-    gsi_historical_slides: 4,
-    forecast_48h: "Intermittent Mudflows during heavy downpours",
-    recommendation: "ESCORT HEAVY VEHICLES"
+    "id": "HAZ_02",
+    "name": "Bhalukpong River Gorge (NH-13 km 88)",
+    "corridor": "CORRIDOR_NH13",
+    "lat": 27.0289,
+    "lon": 92.631,
+    "probability_pct": 58,
+    "hazard_level": "MODERATE",
+    "trigger_cause": "Kameng River Toe Erosion + Siwalik Sandstone Scouring",
+    "srtm_slope_deg": 26.8,
+    "elevation_m": 360,
+    "gsi_historical_slides": 4,
+    "forecast_48h": "Intermittent Mudflows during heavy downpours",
+    "recommendation": "ESCORT HEAVY VEHICLES"
   },
   {
-    id: "HAZ_03",
-    name: "Nag Mandir Cut & Hairpin Escarpment",
-    lat: 27.1623,
-    lon: 92.4789,
-    probability_pct: 68,
-    hazard_level: "HIGH",
-    trigger_cause: "Steep Rockface (34.2°) + Carbonaceous Shale Sliding",
-    srtm_slope_deg: 34.2,
-    elevation_m: 1820,
-    gsi_historical_slides: 8,
-    forecast_48h: "Boulder fall alert during night hours",
-    recommendation: "ONE-LANE RESTRICTED ACCESS"
+    "id": "HAZ_03",
+    "name": "Kaspi River Defile Chokepoint (NH-13 km 142)",
+    "corridor": "CORRIDOR_NH13",
+    "lat": 27.2014,
+    "lon": 92.4412,
+    "probability_pct": 62,
+    "hazard_level": "HIGH",
+    "trigger_cause": "River flash flood scouring road foundation",
+    "srtm_slope_deg": 29.4,
+    "elevation_m": 1350,
+    "gsi_historical_slides": 5,
+    "forecast_48h": "Waterlogging & Road subsidence warning",
+    "recommendation": "SPEED RESTRICTION 20 KM/H"
   },
   {
-    id: "HAZ_04",
-    name: "Kaspi River Defile Chokepoint",
-    lat: 27.2014,
-    lon: 92.4412,
-    probability_pct: 62,
-    hazard_level: "HIGH",
-    trigger_cause: "River flash flood scouring road foundation",
-    srtm_slope_deg: 29.4,
-    elevation_m: 1350,
-    gsi_historical_slides: 5,
-    forecast_48h: "Waterlogging & Road subsidence warning",
-    recommendation: "SPEED RESTRICTION 20 KM/H"
+    "id": "HAZ_04",
+    "name": "Sela Alpine Pass Scree (NH-13 km 285)",
+    "corridor": "CORRIDOR_NH13",
+    "lat": 27.5034,
+    "lon": 92.1039,
+    "probability_pct": 76,
+    "hazard_level": "HIGH",
+    "trigger_cause": "Freeze-Thaw Rock Splitting + Glacial Moraine Thaw",
+    "srtm_slope_deg": 36.5,
+    "elevation_m": 3733,
+    "gsi_historical_slides": 8,
+    "forecast_48h": "Snow-slush & Icing risk on summit switchbacks",
+    "recommendation": "UTILIZE SELA TUNNEL BYPASS"
   },
   {
-    id: "HAZ_05",
-    name: "Sela Pass Summit & Alpine Scree (13,700 ft)",
-    lat: 27.5034,
-    lon: 92.1039,
-    probability_pct: 76,
-    hazard_level: "HIGH",
-    trigger_cause: "Freeze-Thaw Rock Splitting + Dense Freezing Mist + Glacial Moraine",
-    srtm_slope_deg: 36.5,
-    elevation_m: 3733,
-    gsi_historical_slides: 8,
-    forecast_48h: "Snow-slush & Icing risk on summit switchbacks",
-    recommendation: "UTILIZE SELA TUNNEL BYPASS"
+    "id": "HAZ_05",
+    "name": "Paglapahar Gorge Mudslide Chokepoint (NH-29 km 32)",
+    "corridor": "CORRIDOR_NH29",
+    "lat": 25.765,
+    "lon": 93.842,
+    "probability_pct": 88,
+    "hazard_level": "SEVERE",
+    "trigger_cause": "Barail Sandstone Shear Failures + Chathe River Scouring",
+    "srtm_slope_deg": 42.0,
+    "elevation_m": 420,
+    "gsi_historical_slides": 14,
+    "forecast_48h": "Imminent rockfall risk during 48h rain event",
+    "recommendation": "HALT MULTI-AXLE VEHICLES AT CHUMUKEDIMA"
+  },
+  {
+    "id": "HAZ_06",
+    "name": "Teesta Bazaar Rockfall Zone (NH-10 km 48)",
+    "corridor": "CORRIDOR_NH10",
+    "lat": 27.058,
+    "lon": 88.435,
+    "probability_pct": 85,
+    "hazard_level": "SEVERE",
+    "trigger_cause": "Teesta River Spate + Daling Phyllite Cliff Collapse",
+    "srtm_slope_deg": 44.0,
+    "elevation_m": 220,
+    "gsi_historical_slides": 16,
+    "forecast_48h": "High probability of complete corridor severance",
+    "recommendation": "DIVERT GANGTOK TRAFFIC VIA LAVA-ALGARAH"
+  },
+  {
+    "id": "HAZ_07",
+    "name": "Sonapur Mudflow Tunnel Chokepoint (NH-6 km 142)",
+    "corridor": "CORRIDOR_NH6",
+    "lat": 25.125,
+    "lon": 92.368,
+    "probability_pct": 92,
+    "hazard_level": "SEVERE",
+    "trigger_cause": "Extreme Jaintia Monsoon (61mm) + Massive Coal Mine Siltation",
+    "srtm_slope_deg": 46.0,
+    "elevation_m": 580,
+    "gsi_historical_slides": 18,
+    "forecast_48h": "Debris blockage expected at tunnel mouth",
+    "recommendation": "DEPLOY BRO PROJECT PUSHPAK HEAVY DOZERS"
   }
 ];
 
-// Complete segments dataset connecting nodes
 export const DEFAULT_SEGMENTS = [
-  // Plains Sector (Assam)
   {
-    id: "SEG_01",
-    name: "Guwahati -> Mangaldai (NH-15)",
-    corridor: "PRIMARY_NH13",
-    source: "Guwahati",
-    target: "Mangaldai",
-    distance_km: 68.0,
-    base_speed_kmh: 65.0,
-    district: "Kamrup Metro / Darrang",
-    risk_score: 0.12,
-    risk_level: "LOW",
-    is_blocked: false,
-    geotechnical: { slope_deg: 3.2, elevation_m: 60.0, gsi_landslide_history: 0, rainfall_intensity_mm: 18.0, rock_formation: "Alluvial Floodplain" },
-    coordinates: [[26.1445, 91.7362], [26.2801, 91.8905], [26.4385, 92.0354]]
+    "id": "SEG_01",
+    "name": "Guwahati -> Mangaldai (NH-15)",
+    "corridor": "CORRIDOR_NH13",
+    "source": "Guwahati",
+    "target": "Mangaldai",
+    "distance_km": 68.0,
+    "base_speed_kmh": 65.0,
+    "district": "Kamrup Metro / Darrang",
+    "risk_score": 0.12,
+    "risk_level": "LOW",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 3.2,
+      "elevation_m": 60.0,
+      "gsi_landslide_history": 0,
+      "rainfall_intensity_mm": 18.0,
+      "rock_formation": "Alluvial Floodplain"
+    },
+    "coordinates": [
+      [
+        26.1445,
+        91.7362
+      ],
+      [
+        26.15855,
+        91.74916
+      ],
+      [
+        26.16775,
+        91.7665
+      ],
+      [
+        26.18535,
+        91.77626
+      ],
+      [
+        26.19325,
+        91.79476
+      ],
+      [
+        26.20955,
+        91.80569
+      ],
+      [
+        26.221,
+        91.821
+      ],
+      [
+        26.22952,
+        91.83372
+      ],
+      [
+        26.24301,
+        91.8422
+      ],
+      [
+        26.24788,
+        91.85802
+      ],
+      [
+        26.26271,
+        91.86537
+      ],
+      [
+        26.26892,
+        91.88005
+      ],
+      [
+        26.2801,
+        91.8905
+      ],
+      [
+        26.29708,
+        91.90328
+      ],
+      [
+        26.30972,
+        91.92093
+      ],
+      [
+        26.32988,
+        91.93014
+      ],
+      [
+        26.34135,
+        91.9491
+      ],
+      [
+        26.36035,
+        91.95961
+      ],
+      [
+        26.375,
+        91.975
+      ],
+      [
+        26.38438,
+        91.98633
+      ],
+      [
+        26.39826,
+        91.99294
+      ],
+      [
+        26.40434,
+        92.00774
+      ],
+      [
+        26.41942,
+        92.01307
+      ],
+      [
+        26.42671,
+        92.0266
+      ],
+      [
+        26.4385,
+        92.0354
+      ]
+    ]
   },
   {
-    id: "SEG_02",
-    name: "Mangaldai -> Tezpur (NH-15)",
-    corridor: "PRIMARY_NH13",
-    source: "Mangaldai",
-    target: "Tezpur",
-    distance_km: 84.0,
-    base_speed_kmh: 60.0,
-    district: "Darrang / Sonitpur",
-    risk_score: 0.14,
-    risk_level: "LOW",
-    is_blocked: false,
-    geotechnical: { slope_deg: 4.1, elevation_m: 72.0, gsi_landslide_history: 0, rainfall_intensity_mm: 22.0, rock_formation: "Alluvial Floodplain" },
-    coordinates: [[26.4385, 92.0354], [26.5412, 92.4125], [26.6528, 92.7926]]
+    "id": "SEG_02",
+    "name": "Mangaldai -> Tezpur (NH-15)",
+    "corridor": "CORRIDOR_NH13",
+    "source": "Mangaldai",
+    "target": "Tezpur",
+    "distance_km": 84.0,
+    "base_speed_kmh": 60.0,
+    "district": "Darrang / Sonitpur",
+    "risk_score": 0.14,
+    "risk_level": "LOW",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 4.1,
+      "elevation_m": 72.0,
+      "gsi_landslide_history": 0,
+      "rainfall_intensity_mm": 22.0,
+      "rock_formation": "Alluvial Floodplain"
+    },
+    "coordinates": [
+      [
+        26.4385,
+        92.0354
+      ],
+      [
+        26.44794,
+        92.06489
+      ],
+      [
+        26.45107,
+        92.09603
+      ],
+      [
+        26.46514,
+        92.12432
+      ],
+      [
+        26.46657,
+        92.15589
+      ],
+      [
+        26.47894,
+        92.18463
+      ],
+      [
+        26.485,
+        92.215
+      ],
+      [
+        26.49268,
+        92.2484
+      ],
+      [
+        26.50665,
+        92.28
+      ],
+      [
+        26.50973,
+        92.31471
+      ],
+      [
+        26.52538,
+        92.34584
+      ],
+      [
+        26.53015,
+        92.38006
+      ],
+      [
+        26.5412,
+        92.4125
+      ],
+      [
+        26.55302,
+        92.44744
+      ],
+      [
+        26.55855,
+        92.48417
+      ],
+      [
+        26.57496,
+        92.51779
+      ],
+      [
+        26.57882,
+        92.555
+      ],
+      [
+        26.59355,
+        92.5891
+      ],
+      [
+        26.602,
+        92.625
+      ],
+      [
+        26.60879,
+        92.65344
+      ],
+      [
+        26.62183,
+        92.67999
+      ],
+      [
+        26.62405,
+        92.70982
+      ],
+      [
+        26.63877,
+        92.73585
+      ],
+      [
+        26.64266,
+        92.76517
+      ],
+      [
+        26.6528,
+        92.7926
+      ]
+    ]
   },
   {
-    id: "SEG_03",
-    name: "Tezpur -> Balipara Junction (NH-13)",
-    corridor: "PRIMARY_NH13",
-    source: "Tezpur",
-    target: "Balipara",
-    distance_km: 22.0,
-    base_speed_kmh: 55.0,
-    district: "Sonitpur",
-    risk_score: 0.16,
-    risk_level: "LOW",
-    is_blocked: false,
-    geotechnical: { slope_deg: 5.0, elevation_m: 85.0, gsi_landslide_history: 0, rainfall_intensity_mm: 24.0, rock_formation: "Tertiary Piedmont" },
-    coordinates: [[26.6528, 92.7926], [26.7410, 92.8050], [26.8211, 92.8124]]
-  },
-
-  // Primary Lifeline: Bhalukpong & Sessa Landslide Sector
-  {
-    id: "SEG_04",
-    name: "Balipara -> Bhalukpong Border (NH-13)",
-    corridor: "PRIMARY_NH13",
-    source: "Balipara",
-    target: "Bhalukpong",
-    distance_km: 34.0,
-    base_speed_kmh: 45.0,
-    district: "Sonitpur / West Kameng",
-    risk_score: 0.38,
-    risk_level: "MODERATE",
-    is_blocked: false,
-    geotechnical: { slope_deg: 14.5, elevation_m: 215.0, gsi_landslide_history: 2, rainfall_intensity_mm: 35.0, rock_formation: "Siwalik Sandstone" },
-    coordinates: [[26.8211, 92.8124], [26.9145, 92.7312], [27.0125, 92.6514]]
-  },
-  {
-    id: "SEG_05",
-    name: "Bhalukpong -> Tippi Gorge (NH-13)",
-    corridor: "PRIMARY_NH13",
-    source: "Bhalukpong",
-    target: "Tippi",
-    distance_km: 14.0,
-    base_speed_kmh: 35.0,
-    district: "West Kameng",
-    risk_score: 0.58,
-    risk_level: "MODERATE",
-    is_blocked: false,
-    geotechnical: { slope_deg: 26.8, elevation_m: 360.0, gsi_landslide_history: 4, rainfall_intensity_mm: 42.0, rock_formation: "Sheared Phyllite" },
-    coordinates: [[27.0125, 92.6514], [27.0289, 92.6310], [27.0421, 92.6105]]
-  },
-  {
-    id: "SEG_06",
-    name: "Tippi -> Sessa Scree Slide Belt (NH-13)",
-    corridor: "PRIMARY_NH13",
-    source: "Tippi",
-    target: "Sessa",
-    distance_km: 18.0,
-    base_speed_kmh: 28.0,
-    district: "West Kameng",
-    risk_score: 0.84,
-    risk_level: "HIGH",
-    is_blocked: true,
-    blockage_reason: "Active Scree Landslide & Boulder Fall (BRO Clearance Underway)",
-    geotechnical: { slope_deg: 38.5, elevation_m: 1100.0, gsi_landslide_history: 11, rainfall_intensity_mm: 55.0, rock_formation: "Unconsolidated Scree & Weathered Schist" },
-    coordinates: [[27.0421, 92.6105], [27.0684, 92.5714], [27.0984, 92.5342]]
-  },
-  {
-    id: "SEG_07",
-    name: "Sessa -> Nag Mandir Cut (NH-13)",
-    corridor: "PRIMARY_NH13",
-    source: "Sessa",
-    target: "NagMandir",
-    distance_km: 21.0,
-    base_speed_kmh: 30.0,
-    district: "West Kameng",
-    risk_score: 0.68,
-    risk_level: "HIGH",
-    is_blocked: false,
-    geotechnical: { slope_deg: 34.2, elevation_m: 1820.0, gsi_landslide_history: 8, rainfall_intensity_mm: 48.0, rock_formation: "Carbonaceous Shale" },
-    coordinates: [[27.0984, 92.5342], [27.1321, 92.5012], [27.1623, 92.4789]]
-  },
-  {
-    id: "SEG_08",
-    name: "Nag Mandir -> Kaspi Defile (NH-13)",
-    corridor: "PRIMARY_NH13",
-    source: "NagMandir",
-    target: "Kaspi",
-    distance_km: 16.0,
-    base_speed_kmh: 32.0,
-    district: "West Kameng",
-    risk_score: 0.62,
-    risk_level: "HIGH",
-    is_blocked: false,
-    geotechnical: { slope_deg: 29.4, elevation_m: 1350.0, gsi_landslide_history: 5, rainfall_intensity_mm: 40.0, rock_formation: "Weathered Biotite Gneiss" },
-    coordinates: [[27.1623, 92.4789], [27.1812, 92.4587], [27.2014, 92.4412]]
-  },
-  {
-    id: "SEG_09",
-    name: "Kaspi -> Tengapani -> Bomdila (NH-13)",
-    corridor: "PRIMARY_NH13",
-    source: "Kaspi",
-    target: "Bomdila",
-    distance_km: 25.0,
-    base_speed_kmh: 32.0,
-    district: "West Kameng",
-    risk_score: 0.44,
-    risk_level: "MODERATE",
-    is_blocked: false,
-    geotechnical: { slope_deg: 24.1, elevation_m: 2415.0, gsi_landslide_history: 3, rainfall_intensity_mm: 32.0, rock_formation: "Bomdila Gneissic Complex" },
-    coordinates: [[27.2014, 92.4412], [27.2289, 92.4215], [27.2644, 92.4241]]
-  },
-
-  // Southern BRO Alternate Bypass Corridor (Kalaktang Highway - Bypasses Sessa landslides)
-  {
-    id: "SEG_ALT_01",
-    name: "Balipara -> Orang Junction (Southern Bypass)",
-    corridor: "ALTERNATE_BYPASS",
-    source: "Balipara",
-    target: "Orang",
-    distance_km: 42.0,
-    base_speed_kmh: 60.0,
-    district: "Sonitpur / Darrang",
-    risk_score: 0.12,
-    risk_level: "LOW",
-    is_blocked: false,
-    geotechnical: { slope_deg: 3.8, elevation_m: 72.0, gsi_landslide_history: 0, rainfall_intensity_mm: 20.0, rock_formation: "Alluvium" },
-    coordinates: [[26.8211, 92.8124], [26.7541, 92.5812], [26.6845, 92.3421]]
+    "id": "SEG_03",
+    "name": "Tezpur -> Balipara Junction (NH-13)",
+    "corridor": "CORRIDOR_NH13",
+    "source": "Tezpur",
+    "target": "Balipara",
+    "distance_km": 22.0,
+    "base_speed_kmh": 55.0,
+    "district": "Sonitpur",
+    "risk_score": 0.16,
+    "risk_level": "LOW",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 5.0,
+      "elevation_m": 85.0,
+      "gsi_landslide_history": 0,
+      "rainfall_intensity_mm": 24.0,
+      "rock_formation": "Tertiary Piedmont"
+    },
+    "coordinates": [
+      [
+        26.6528,
+        92.7926
+      ],
+      [
+        26.66283,
+        92.79176
+      ],
+      [
+        26.67226,
+        92.79742
+      ],
+      [
+        26.68272,
+        92.79181
+      ],
+      [
+        26.69199,
+        92.79922
+      ],
+      [
+        26.70229,
+        92.79536
+      ],
+      [
+        26.712,
+        92.798
+      ],
+      [
+        26.72051,
+        92.80139
+      ],
+      [
+        26.73023,
+        92.79835
+      ],
+      [
+        26.73785,
+        92.80644
+      ],
+      [
+        26.7479,
+        92.80169
+      ],
+      [
+        26.75584,
+        92.80805
+      ],
+      [
+        26.765,
+        92.808
+      ],
+      [
+        26.77449,
+        92.80699
+      ],
+      [
+        26.78346,
+        92.81249
+      ],
+      [
+        26.79332,
+        92.80671
+      ],
+      [
+        26.80216,
+        92.81396
+      ],
+      [
+        26.81189,
+        92.80992
+      ],
+      [
+        26.8211,
+        92.8124
+      ]
+    ]
   },
   {
-    id: "SEG_ALT_02",
-    name: "Orang -> Bhairabkunda Tri-Junction (Southern Bypass)",
-    corridor: "ALTERNATE_BYPASS",
-    source: "Orang",
-    target: "Bhairabkunda",
-    distance_km: 36.0,
-    base_speed_kmh: 50.0,
-    district: "Udalguri",
-    risk_score: 0.18,
-    risk_level: "LOW",
-    is_blocked: false,
-    geotechnical: { slope_deg: 7.2, elevation_m: 190.0, gsi_landslide_history: 0, rainfall_intensity_mm: 25.0, rock_formation: "Bouldery Piedmont" },
-    coordinates: [[26.6845, 92.3421], [26.7912, 92.2214], [26.9023, 92.1154]]
+    "id": "SEG_04",
+    "name": "Balipara -> Bhalukpong Border (NH-13)",
+    "corridor": "CORRIDOR_NH13",
+    "source": "Balipara",
+    "target": "Bhalukpong",
+    "distance_km": 34.0,
+    "base_speed_kmh": 45.0,
+    "district": "Sonitpur / West Kameng",
+    "risk_score": 0.38,
+    "risk_level": "MODERATE",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 14.5,
+      "elevation_m": 215.0,
+      "gsi_landslide_history": 2,
+      "rainfall_intensity_mm": 35.0,
+      "rock_formation": "Siwalik Sandstone"
+    },
+    "coordinates": [
+      [
+        26.8211,
+        92.8124
+      ],
+      [
+        26.82839,
+        92.80322
+      ],
+      [
+        26.84013,
+        92.79882
+      ],
+      [
+        26.84416,
+        92.78614
+      ],
+      [
+        26.8571,
+        92.78302
+      ],
+      [
+        26.86232,
+        92.77162
+      ],
+      [
+        26.872,
+        92.765
+      ],
+      [
+        26.88207,
+        92.7574
+      ],
+      [
+        26.88752,
+        92.74519
+      ],
+      [
+        26.90097,
+        92.74097
+      ],
+      [
+        26.90519,
+        92.72752
+      ],
+      [
+        26.9174,
+        92.72207
+      ],
+      [
+        26.925,
+        92.712
+      ],
+      [
+        26.93235,
+        92.70489
+      ],
+      [
+        26.94337,
+        92.70317
+      ],
+      [
+        26.94803,
+        92.69211
+      ],
+      [
+        26.96004,
+        92.69184
+      ],
+      [
+        26.96568,
+        92.68222
+      ],
+      [
+        26.975,
+        92.678
+      ],
+      [
+        26.98226,
+        92.67499
+      ],
+      [
+        26.98575,
+        92.66666
+      ],
+      [
+        26.99577,
+        92.66755
+      ],
+      [
+        26.99825,
+        92.65779
+      ],
+      [
+        27.00726,
+        92.65726
+      ],
+      [
+        27.0125,
+        92.6514
+      ]
+    ]
   },
   {
-    id: "SEG_ALT_03",
-    name: "Bhairabkunda -> Kalaktang (BRO Road)",
-    corridor: "ALTERNATE_BYPASS",
-    source: "Bhairabkunda",
-    target: "Kalaktang",
-    distance_km: 48.0,
-    base_speed_kmh: 40.0,
-    district: "West Kameng",
-    risk_score: 0.26,
-    risk_level: "LOW",
-    is_blocked: false,
-    geotechnical: { slope_deg: 16.8, elevation_m: 1150.0, gsi_landslide_history: 1, rainfall_intensity_mm: 28.0, rock_formation: "Stable Quartzite & Gneiss" },
-    coordinates: [[26.9023, 92.1154], [27.0124, 92.1087], [27.1234, 92.1021]]
+    "id": "SEG_05",
+    "name": "Bhalukpong -> Tippi Orchid Gorge (NH-13)",
+    "corridor": "CORRIDOR_NH13",
+    "source": "Bhalukpong",
+    "target": "Tippi",
+    "distance_km": 14.0,
+    "base_speed_kmh": 38.0,
+    "district": "West Kameng",
+    "risk_score": 0.54,
+    "risk_level": "MODERATE",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 22.0,
+      "elevation_m": 360.0,
+      "gsi_landslide_history": 3,
+      "rainfall_intensity_mm": 40.0,
+      "rock_formation": "Kameng Defile Schist"
+    },
+    "coordinates": [
+      [
+        27.0125,
+        92.6514
+      ],
+      [
+        27.01247,
+        92.64834
+      ],
+      [
+        27.01783,
+        92.64898
+      ],
+      [
+        27.01386,
+        92.64322
+      ],
+      [
+        27.02067,
+        92.64485
+      ],
+      [
+        27.01814,
+        92.64008
+      ],
+      [
+        27.021,
+        92.639
+      ],
+      [
+        27.02356,
+        92.6389
+      ],
+      [
+        27.02148,
+        92.6342
+      ],
+      [
+        27.02744,
+        92.63746
+      ],
+      [
+        27.02411,
+        92.63154
+      ],
+      [
+        27.02883,
+        92.63356
+      ],
+      [
+        27.0289,
+        92.631
+      ],
+      [
+        27.02847,
+        92.62852
+      ],
+      [
+        27.03344,
+        92.6297
+      ],
+      [
+        27.02905,
+        92.62454
+      ],
+      [
+        27.03548,
+        92.6267
+      ],
+      [
+        27.03253,
+        92.62252
+      ],
+      [
+        27.035,
+        92.622
+      ],
+      [
+        27.03767,
+        92.621
+      ],
+      [
+        27.03479,
+        92.61657
+      ],
+      [
+        27.04153,
+        92.61809
+      ],
+      [
+        27.03715,
+        92.61274
+      ],
+      [
+        27.04241,
+        92.61334
+      ],
+      [
+        27.0421,
+        92.6105
+      ]
+    ]
   },
   {
-    id: "SEG_ALT_04",
-    name: "Kalaktang -> Shergaon -> Rupa (BRO Road)",
-    corridor: "ALTERNATE_BYPASS",
-    source: "Kalaktang",
-    target: "Rupa",
-    distance_km: 45.0,
-    base_speed_kmh: 38.0,
-    district: "West Kameng",
-    risk_score: 0.28,
-    risk_level: "LOW",
-    is_blocked: false,
-    geotechnical: { slope_deg: 18.2, elevation_m: 1520.0, gsi_landslide_history: 1, rainfall_intensity_mm: 30.0, rock_formation: "Granitic Intrusives" },
-    coordinates: [[27.1234, 92.1021], [27.1425, 92.2614], [27.2012, 92.3854]]
+    "id": "SEG_06",
+    "name": "Tippi -> Sessa Scree Belt (NH-13)",
+    "corridor": "CORRIDOR_NH13",
+    "source": "Tippi",
+    "target": "Sessa",
+    "distance_km": 18.0,
+    "base_speed_kmh": 32.0,
+    "district": "West Kameng",
+    "risk_score": 0.84,
+    "risk_level": "CRITICAL",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 38.5,
+      "elevation_m": 1100.0,
+      "gsi_landslide_history": 11,
+      "rainfall_intensity_mm": 55.0,
+      "rock_formation": "Sheared Phyllite & Scree"
+    },
+    "coordinates": [
+      [
+        27.0421,
+        92.6105
+      ],
+      [
+        27.04342,
+        92.60628
+      ],
+      [
+        27.0497,
+        92.60631
+      ],
+      [
+        27.0474,
+        92.59897
+      ],
+      [
+        27.055,
+        92.60014
+      ],
+      [
+        27.05402,
+        92.59394
+      ],
+      [
+        27.058,
+        92.592
+      ],
+      [
+        27.06179,
+        92.58947
+      ],
+      [
+        27.06014,
+        92.58332
+      ],
+      [
+        27.06791,
+        92.58344
+      ],
+      [
+        27.06481,
+        92.57632
+      ],
+      [
+        27.07112,
+        92.57547
+      ],
+      [
+        27.072,
+        92.571
+      ],
+      [
+        27.0729,
+        92.56666
+      ],
+      [
+        27.07915,
+        92.56607
+      ],
+      [
+        27.07613,
+        92.55899
+      ],
+      [
+        27.08382,
+        92.5594
+      ],
+      [
+        27.08223,
+        92.55333
+      ],
+      [
+        27.086,
+        92.551
+      ],
+      [
+        27.08947,
+        92.54924
+      ],
+      [
+        27.08769,
+        92.5436
+      ],
+      [
+        27.09502,
+        92.54468
+      ],
+      [
+        27.09183,
+        92.538
+      ],
+      [
+        27.09774,
+        92.53804
+      ],
+      [
+        27.0984,
+        92.5342
+      ]
+    ]
   },
   {
-    id: "SEG_ALT_05",
-    name: "Rupa -> Bomdila Junction (BRO Road)",
-    corridor: "ALTERNATE_BYPASS",
-    source: "Rupa",
-    target: "Bomdila",
-    distance_km: 16.0,
-    base_speed_kmh: 35.0,
-    district: "West Kameng",
-    risk_score: 0.24,
-    risk_level: "LOW",
-    is_blocked: false,
-    geotechnical: { slope_deg: 15.4, elevation_m: 2415.0, gsi_landslide_history: 1, rainfall_intensity_mm: 30.0, rock_formation: "Gneiss" },
-    coordinates: [[27.2012, 92.3854], [27.2345, 92.4089], [27.2644, 92.4241]]
+    "id": "SEG_07",
+    "name": "Sessa -> Nag Mandir Mountain Cut (NH-13)",
+    "corridor": "CORRIDOR_NH13",
+    "source": "Sessa",
+    "target": "NagMandir",
+    "distance_km": 16.0,
+    "base_speed_kmh": 28.0,
+    "district": "West Kameng",
+    "risk_score": 0.68,
+    "risk_level": "HIGH",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 34.2,
+      "elevation_m": 1820.0,
+      "gsi_landslide_history": 8,
+      "rainfall_intensity_mm": 48.0,
+      "rock_formation": "Carbonaceous Shale"
+    },
+    "coordinates": [
+      [
+        27.0984,
+        92.5342
+      ],
+      [
+        27.10055,
+        92.53015
+      ],
+      [
+        27.10686,
+        92.53114
+      ],
+      [
+        27.10597,
+        92.5234
+      ],
+      [
+        27.1134,
+        92.52574
+      ],
+      [
+        27.11362,
+        92.51935
+      ],
+      [
+        27.118,
+        92.518
+      ],
+      [
+        27.12203,
+        92.51661
+      ],
+      [
+        27.12159,
+        92.51046
+      ],
+      [
+        27.1289,
+        92.51255
+      ],
+      [
+        27.12726,
+        92.50513
+      ],
+      [
+        27.13337,
+        92.50594
+      ],
+      [
+        27.135,
+        92.502
+      ],
+      [
+        27.13656,
+        92.49848
+      ],
+      [
+        27.14224,
+        92.50002
+      ],
+      [
+        27.14079,
+        92.49278
+      ],
+      [
+        27.14758,
+        92.49569
+      ],
+      [
+        27.14723,
+        92.48981
+      ],
+      [
+        27.151,
+        92.489
+      ],
+      [
+        27.15405,
+        92.48862
+      ],
+      [
+        27.15275,
+        92.48337
+      ],
+      [
+        27.15898,
+        92.48656
+      ],
+      [
+        27.15651,
+        92.48001
+      ],
+      [
+        27.16158,
+        92.48189
+      ],
+      [
+        27.1623,
+        92.4789
+      ]
+    ]
   },
-
-  // High Mountain Sector (Bomdila to Tawang)
   {
-    id: "SEG_10",
-    name: "Bomdila -> Dirang Valley (NH-13)",
-    corridor: "PRIMARY_NH13",
-    source: "Bomdila",
-    target: "Dirang",
-    distance_km: 42.0,
-    base_speed_kmh: 35.0,
-    district: "West Kameng",
-    risk_score: 0.36,
-    risk_level: "MODERATE",
-    is_blocked: false,
-    geotechnical: { slope_deg: 22.5, elevation_m: 1560.0, gsi_landslide_history: 3, rainfall_intensity_mm: 34.0, rock_formation: "Dirang Schist" },
-    coordinates: [[27.2644, 92.4241], [27.3112, 92.3562], [27.3578, 92.2394]]
+    "id": "SEG_08",
+    "name": "Nag Mandir -> Kaspi River Defile (NH-13)",
+    "corridor": "CORRIDOR_NH13",
+    "source": "NagMandir",
+    "target": "Kaspi",
+    "distance_km": 12.0,
+    "base_speed_kmh": 30.0,
+    "district": "West Kameng",
+    "risk_score": 0.62,
+    "risk_level": "HIGH",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 29.4,
+      "elevation_m": 1350.0,
+      "gsi_landslide_history": 5,
+      "rainfall_intensity_mm": 42.0,
+      "rock_formation": "Crushed Quartzite"
+    },
+    "coordinates": [
+      [
+        27.1623,
+        92.4789
+      ],
+      [
+        27.16306,
+        92.4758
+      ],
+      [
+        27.16827,
+        92.47748
+      ],
+      [
+        27.16576,
+        92.47089
+      ],
+      [
+        27.17217,
+        92.47385
+      ],
+      [
+        27.17086,
+        92.46854
+      ],
+      [
+        27.174,
+        92.468
+      ],
+      [
+        27.17729,
+        92.46702
+      ],
+      [
+        27.17577,
+        92.46161
+      ],
+      [
+        27.18257,
+        92.46387
+      ],
+      [
+        27.17977,
+        92.45728
+      ],
+      [
+        27.18529,
+        92.45835
+      ],
+      [
+        27.186,
+        92.455
+      ],
+      [
+        27.1874,
+        92.4514
+      ],
+      [
+        27.19316,
+        92.45266
+      ],
+      [
+        27.19136,
+        92.44549
+      ],
+      [
+        27.19829,
+        92.44806
+      ],
+      [
+        27.19767,
+        92.4422
+      ],
+      [
+        27.2014,
+        92.4412
+      ]
+    ]
   },
   {
-    id: "SEG_11",
-    name: "Dirang -> Sange -> Baisakhi (NH-13)",
-    corridor: "PRIMARY_NH13",
-    source: "Dirang",
-    target: "Baisakhi",
-    distance_km: 36.0,
-    base_speed_kmh: 28.0,
-    district: "West Kameng",
-    risk_score: 0.54,
-    risk_level: "MODERATE",
-    is_blocked: false,
-    geotechnical: { slope_deg: 31.2, elevation_m: 2750.0, gsi_landslide_history: 6, rainfall_intensity_mm: 45.0, rock_formation: "Granite & Metamorphic" },
-    coordinates: [[27.3578, 92.2394], [27.4215, 92.1852], [27.4721, 92.1245]]
+    "id": "SEG_09",
+    "name": "Kaspi -> Tengapani -> Bomdila HQ (NH-13)",
+    "corridor": "CORRIDOR_NH13",
+    "source": "Kaspi",
+    "target": "Bomdila",
+    "distance_km": 25.0,
+    "base_speed_kmh": 32.0,
+    "district": "West Kameng",
+    "risk_score": 0.45,
+    "risk_level": "MODERATE",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 24.1,
+      "elevation_m": 2415.0,
+      "gsi_landslide_history": 3,
+      "rainfall_intensity_mm": 32.0,
+      "rock_formation": "Bomdila Gneissic Complex"
+    },
+    "coordinates": [
+      [
+        27.2014,
+        92.4412
+      ],
+      [
+        27.20325,
+        92.43801
+      ],
+      [
+        27.20852,
+        92.44038
+      ],
+      [
+        27.20787,
+        92.43312
+      ],
+      [
+        27.21405,
+        92.43698
+      ],
+      [
+        27.21432,
+        92.43121
+      ],
+      [
+        27.218,
+        92.431
+      ],
+      [
+        27.22097,
+        92.43074
+      ],
+      [
+        27.21964,
+        92.42555
+      ],
+      [
+        27.22575,
+        92.42889
+      ],
+      [
+        27.22328,
+        92.42238
+      ],
+      [
+        27.22823,
+        92.4244
+      ],
+      [
+        27.2289,
+        92.4215
+      ],
+      [
+        27.23217,
+        92.41992
+      ],
+      [
+        27.23511,
+        92.42486
+      ],
+      [
+        27.23863,
+        92.4185
+      ],
+      [
+        27.24147,
+        92.42519
+      ],
+      [
+        27.24491,
+        92.42059
+      ],
+      [
+        27.248,
+        92.4225
+      ],
+      [
+        27.25056,
+        92.42451
+      ],
+      [
+        27.25376,
+        92.42002
+      ],
+      [
+        27.25586,
+        92.42678
+      ],
+      [
+        27.25923,
+        92.42055
+      ],
+      [
+        27.2615,
+        92.42558
+      ],
+      [
+        27.2644,
+        92.4241
+      ]
+    ]
   },
   {
-    id: "SEG_12",
-    name: "Baisakhi -> Sela Pass & Tunnel (3,733m Summit)",
-    corridor: "PRIMARY_NH13",
-    source: "Baisakhi",
-    target: "SelaPass",
-    distance_km: 18.0,
-    base_speed_kmh: 24.0,
-    district: "Tawang",
-    risk_score: 0.76,
-    risk_level: "HIGH",
-    is_blocked: false,
-    geotechnical: { slope_deg: 36.5, elevation_m: 3733.0, gsi_landslide_history: 8, rainfall_intensity_mm: 56.5, rock_formation: "High-Alpine Glacial Moraine" },
-    coordinates: [[27.4721, 92.1245], [27.4889, 92.1123], [27.5034, 92.1039]]
+    "id": "SEG_10",
+    "name": "Bomdila -> Munna Camp (NH-13)",
+    "corridor": "CORRIDOR_NH13",
+    "source": "Bomdila",
+    "target": "MunnaCamp",
+    "distance_km": 15.0,
+    "base_speed_kmh": 30.0,
+    "district": "West Kameng",
+    "risk_score": 0.42,
+    "risk_level": "MODERATE",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 22.5,
+      "elevation_m": 2210.0,
+      "gsi_landslide_history": 2,
+      "rainfall_intensity_mm": 28.0,
+      "rock_formation": "Gneissic Bedrock"
+    },
+    "coordinates": [
+      [
+        27.2644,
+        92.4241
+      ],
+      [
+        27.26569,
+        92.41881
+      ],
+      [
+        27.27249,
+        92.41703
+      ],
+      [
+        27.26975,
+        92.40917
+      ],
+      [
+        27.27802,
+        92.40833
+      ],
+      [
+        27.27676,
+        92.40141
+      ],
+      [
+        27.281,
+        92.398
+      ],
+      [
+        27.28477,
+        92.39567
+      ],
+      [
+        27.28318,
+        92.3896
+      ],
+      [
+        27.29087,
+        92.39001
+      ],
+      [
+        27.28785,
+        92.38293
+      ],
+      [
+        27.2941,
+        92.38234
+      ],
+      [
+        27.295,
+        92.378
+      ],
+      [
+        27.2963,
+        92.37332
+      ],
+      [
+        27.30283,
+        92.37254
+      ],
+      [
+        27.30029,
+        92.36501
+      ],
+      [
+        27.30823,
+        92.36527
+      ],
+      [
+        27.3071,
+        92.35879
+      ],
+      [
+        27.3112,
+        92.3562
+      ]
+    ]
   },
   {
-    id: "SEG_13",
-    name: "Sela Pass -> Jaswant Garh (NH-13)",
-    corridor: "PRIMARY_NH13",
-    source: "SelaPass",
-    target: "JaswantGarh",
-    distance_km: 16.0,
-    base_speed_kmh: 26.0,
-    district: "Tawang",
-    risk_score: 0.48,
-    risk_level: "MODERATE",
-    is_blocked: false,
-    geotechnical: { slope_deg: 28.4, elevation_m: 3050.0, gsi_landslide_history: 4, rainfall_intensity_mm: 38.0, rock_formation: "Gneissic Bedrock" },
-    coordinates: [[27.5034, 92.1039], [27.5187, 92.0784], [27.5312, 92.0514]]
+    "id": "SEG_11",
+    "name": "Munna Camp -> Dirang Sub-Depot (NH-13)",
+    "corridor": "CORRIDOR_NH13",
+    "source": "MunnaCamp",
+    "target": "Dirang",
+    "distance_km": 28.0,
+    "base_speed_kmh": 35.0,
+    "district": "West Kameng",
+    "risk_score": 0.35,
+    "risk_level": "MODERATE",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 19.8,
+      "elevation_m": 1560.0,
+      "gsi_landslide_history": 2,
+      "rainfall_intensity_mm": 25.0,
+      "rock_formation": "Dirang Schist"
+    },
+    "coordinates": [
+      [
+        27.3112,
+        92.3562
+      ],
+      [
+        27.31238,
+        92.34867
+      ],
+      [
+        27.31961,
+        92.34361
+      ],
+      [
+        27.31636,
+        92.33428
+      ],
+      [
+        27.32521,
+        92.32988
+      ],
+      [
+        27.32358,
+        92.32121
+      ],
+      [
+        27.328,
+        92.315
+      ],
+      [
+        27.33197,
+        92.30945
+      ],
+      [
+        27.32983,
+        92.30159
+      ],
+      [
+        27.33827,
+        92.29774
+      ],
+      [
+        27.3345,
+        92.28926
+      ],
+      [
+        27.3413,
+        92.28479
+      ],
+      [
+        27.342,
+        92.278
+      ],
+      [
+        27.34301,
+        92.2709
+      ],
+      [
+        27.35007,
+        92.26628
+      ],
+      [
+        27.34666,
+        92.25737
+      ],
+      [
+        27.35534,
+        92.25341
+      ],
+      [
+        27.35355,
+        92.24517
+      ],
+      [
+        27.3578,
+        92.2394
+      ]
+    ]
   },
   {
-    id: "SEG_14",
-    name: "Jaswant Garh -> Jang Bridge & Falls (NH-13)",
-    corridor: "PRIMARY_NH13",
-    source: "JaswantGarh",
-    target: "Jang",
-    distance_km: 24.0,
-    base_speed_kmh: 30.0,
-    district: "Tawang",
-    risk_score: 0.52,
-    risk_level: "MODERATE",
-    is_blocked: false,
-    geotechnical: { slope_deg: 25.0, elevation_m: 2160.0, gsi_landslide_history: 5, rainfall_intensity_mm: 44.0, rock_formation: "Torrential River Gorge Escarpment" },
-    coordinates: [[27.5312, 92.0514], [27.5521, 92.0189], [27.5745, 91.9854]]
+    "id": "SEG_12",
+    "name": "Dirang -> Sela Pass Alpine Summit (NH-13)",
+    "corridor": "CORRIDOR_NH13",
+    "source": "Dirang",
+    "target": "SelaPass",
+    "distance_km": 42.0,
+    "base_speed_kmh": 24.0,
+    "district": "West Kameng / Tawang",
+    "risk_score": 0.76,
+    "risk_level": "HIGH",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 36.5,
+      "elevation_m": 3733.0,
+      "gsi_landslide_history": 8,
+      "rainfall_intensity_mm": 56.5,
+      "rock_formation": "Glacial Moraine & High Altitude Scree"
+    },
+    "coordinates": [
+      [
+        27.3578,
+        92.2394
+      ],
+      [
+        27.3622,
+        92.23334
+      ],
+      [
+        27.37084,
+        92.23224
+      ],
+      [
+        27.37212,
+        92.22254
+      ],
+      [
+        27.3819,
+        92.22277
+      ],
+      [
+        27.38433,
+        92.2144
+      ],
+      [
+        27.391,
+        92.211
+      ],
+      [
+        27.39721,
+        92.20804
+      ],
+      [
+        27.39921,
+        92.20009
+      ],
+      [
+        27.40851,
+        92.20077
+      ],
+      [
+        27.40938,
+        92.19149
+      ],
+      [
+        27.41755,
+        92.19084
+      ],
+      [
+        27.4215,
+        92.1852
+      ],
+      [
+        27.42528,
+        92.17834
+      ],
+      [
+        27.43393,
+        92.17582
+      ],
+      [
+        27.43414,
+        92.16577
+      ],
+      [
+        27.4441,
+        92.16442
+      ],
+      [
+        27.44561,
+        92.15554
+      ],
+      [
+        27.452,
+        92.151
+      ],
+      [
+        27.45674,
+        92.14764
+      ],
+      [
+        27.45629,
+        92.14033
+      ],
+      [
+        27.46484,
+        92.13987
+      ],
+      [
+        27.46299,
+        92.1315
+      ],
+      [
+        27.47014,
+        92.12997
+      ],
+      [
+        27.4721,
+        92.1245
+      ],
+      [
+        27.47428,
+        92.12096
+      ],
+      [
+        27.48007,
+        92.12286
+      ],
+      [
+        27.47962,
+        92.11533
+      ],
+      [
+        27.48637,
+        92.11869
+      ],
+      [
+        27.48688,
+        92.11262
+      ],
+      [
+        27.491,
+        92.112
+      ],
+      [
+        27.49402,
+        92.11212
+      ],
+      [
+        27.49348,
+        92.10676
+      ],
+      [
+        27.49911,
+        92.11088
+      ],
+      [
+        27.49761,
+        92.10406
+      ],
+      [
+        27.50229,
+        92.10672
+      ],
+      [
+        27.5034,
+        92.1039
+      ]
+    ]
   },
   {
-    id: "SEG_15",
-    name: "Jang -> Lhou Checkpost -> Tawang Civil Hospital",
-    corridor: "PRIMARY_NH13",
-    source: "Jang",
-    target: "Tawang",
-    distance_km: 34.0,
-    base_speed_kmh: 32.0,
-    district: "Tawang",
-    risk_score: 0.35,
-    risk_level: "MODERATE",
-    is_blocked: false,
-    geotechnical: { slope_deg: 21.8, elevation_m: 3048.0, gsi_landslide_history: 2, rainfall_intensity_mm: 30.0, rock_formation: "Tawang Metamorphic Formation" },
-    coordinates: [[27.5745, 91.9854], [27.5612, 91.9021], [27.5861, 91.8594]]
+    "id": "SEG_13",
+    "name": "Sela Pass -> Jaswant Garh (NH-13)",
+    "corridor": "CORRIDOR_NH13",
+    "source": "SelaPass",
+    "target": "JaswantGarh",
+    "distance_km": 16.0,
+    "base_speed_kmh": 26.0,
+    "district": "Tawang",
+    "risk_score": 0.48,
+    "risk_level": "MODERATE",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 28.4,
+      "elevation_m": 3050.0,
+      "gsi_landslide_history": 4,
+      "rainfall_intensity_mm": 38.0,
+      "rock_formation": "Gneissic Bedrock"
+    },
+    "coordinates": [
+      [
+        27.5034,
+        92.1039
+      ],
+      [
+        27.50364,
+        92.09989
+      ],
+      [
+        27.50958,
+        92.09908
+      ],
+      [
+        27.50565,
+        92.09274
+      ],
+      [
+        27.51311,
+        92.09278
+      ],
+      [
+        27.51071,
+        92.08729
+      ],
+      [
+        27.514,
+        92.085
+      ],
+      [
+        27.51692,
+        92.08291
+      ],
+      [
+        27.51392,
+        92.07804
+      ],
+      [
+        27.52117,
+        92.07799
+      ],
+      [
+        27.51659,
+        92.07238
+      ],
+      [
+        27.52225,
+        92.07158
+      ],
+      [
+        27.522,
+        92.068
+      ],
+      [
+        27.522,
+        92.06439
+      ],
+      [
+        27.52772,
+        92.06394
+      ],
+      [
+        27.52354,
+        92.058
+      ],
+      [
+        27.53078,
+        92.0584
+      ],
+      [
+        27.52814,
+        92.05332
+      ],
+      [
+        27.5312,
+        92.0514
+      ]
+    ]
+  },
+  {
+    "id": "SEG_14",
+    "name": "Jaswant Garh -> Jang Bridge & Falls (NH-13)",
+    "corridor": "CORRIDOR_NH13",
+    "source": "JaswantGarh",
+    "target": "Jang",
+    "distance_km": 24.0,
+    "base_speed_kmh": 30.0,
+    "district": "Tawang",
+    "risk_score": 0.52,
+    "risk_level": "MODERATE",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 25.0,
+      "elevation_m": 2160.0,
+      "gsi_landslide_history": 5,
+      "rainfall_intensity_mm": 44.0,
+      "rock_formation": "Torrential River Gorge Escarpment"
+    },
+    "coordinates": [
+      [
+        27.5312,
+        92.0514
+      ],
+      [
+        27.53205,
+        92.04702
+      ],
+      [
+        27.53831,
+        92.0463
+      ],
+      [
+        27.5352,
+        92.03924
+      ],
+      [
+        27.54291,
+        92.0395
+      ],
+      [
+        27.54125,
+        92.03342
+      ],
+      [
+        27.545,
+        92.031
+      ],
+      [
+        27.5491,
+        92.02817
+      ],
+      [
+        27.54785,
+        92.0216
+      ],
+      [
+        27.55587,
+        92.0215
+      ],
+      [
+        27.55318,
+        92.01394
+      ],
+      [
+        27.55977,
+        92.01283
+      ],
+      [
+        27.561,
+        92.008
+      ],
+      [
+        27.56175,
+        92.00334
+      ],
+      [
+        27.5681,
+        92.00202
+      ],
+      [
+        27.56475,
+        91.99491
+      ],
+      [
+        27.5726,
+        91.99449
+      ],
+      [
+        27.57075,
+        91.98827
+      ],
+      [
+        27.5745,
+        91.9854
+      ]
+    ]
+  },
+  {
+    "id": "SEG_15",
+    "name": "Jang -> Lhou -> Tawang Civil Hospital (NH-13)",
+    "corridor": "CORRIDOR_NH13",
+    "source": "Jang",
+    "target": "Tawang",
+    "distance_km": 34.0,
+    "base_speed_kmh": 32.0,
+    "district": "Tawang",
+    "risk_score": 0.35,
+    "risk_level": "MODERATE",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 21.8,
+      "elevation_m": 3048.0,
+      "gsi_landslide_history": 2,
+      "rainfall_intensity_mm": 30.0,
+      "rock_formation": "Tawang Metamorphic Formation"
+    },
+    "coordinates": [
+      [
+        27.5745,
+        91.9854
+      ],
+      [
+        27.57169,
+        91.97894
+      ],
+      [
+        27.57533,
+        91.97145
+      ],
+      [
+        27.56779,
+        91.96576
+      ],
+      [
+        27.57316,
+        91.95799
+      ],
+      [
+        27.56736,
+        91.95201
+      ],
+      [
+        27.568,
+        91.945
+      ],
+      [
+        27.5686,
+        91.93758
+      ],
+      [
+        27.56274,
+        91.93117
+      ],
+      [
+        27.56806,
+        91.923
+      ],
+      [
+        27.56047,
+        91.91687
+      ],
+      [
+        27.56406,
+        91.90898
+      ],
+      [
+        27.5612,
+        91.9021
+      ],
+      [
+        27.562,
+        91.89735
+      ],
+      [
+        27.5684,
+        91.89595
+      ],
+      [
+        27.5651,
+        91.88876
+      ],
+      [
+        27.573,
+        91.88825
+      ],
+      [
+        27.5712,
+        91.88195
+      ],
+      [
+        27.575,
+        91.879
+      ],
+      [
+        27.57837,
+        91.8766
+      ],
+      [
+        27.57606,
+        91.87097
+      ],
+      [
+        27.5836,
+        91.87092
+      ],
+      [
+        27.57976,
+        91.86444
+      ],
+      [
+        27.58577,
+        91.86353
+      ],
+      [
+        27.5861,
+        91.8594
+      ]
+    ]
+  },
+  {
+    "id": "SEG_ALT_01",
+    "name": "Balipara -> Orang Junction",
+    "corridor": "CORRIDOR_NH13_BYPASS",
+    "source": "Balipara",
+    "target": "Orang",
+    "distance_km": 42.0,
+    "base_speed_kmh": 60.0,
+    "district": "Sonitpur / Darrang",
+    "risk_score": 0.12,
+    "risk_level": "LOW",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 3.8,
+      "elevation_m": 72.0,
+      "gsi_landslide_history": 0,
+      "rainfall_intensity_mm": 20.0,
+      "rock_formation": "Alluvium"
+    },
+    "coordinates": [
+      [
+        26.8211,
+        92.8124
+      ],
+      [
+        26.81173,
+        92.78598
+      ],
+      [
+        26.80865,
+        92.75777
+      ],
+      [
+        26.79468,
+        92.73266
+      ],
+      [
+        26.79328,
+        92.70397
+      ],
+      [
+        26.781,
+        92.67838
+      ],
+      [
+        26.775,
+        92.651
+      ],
+      [
+        26.76766,
+        92.62279
+      ],
+      [
+        26.75412,
+        92.5966
+      ],
+      [
+        26.75133,
+        92.56692
+      ],
+      [
+        26.73612,
+        92.54127
+      ],
+      [
+        26.73166,
+        92.51213
+      ],
+      [
+        26.721,
+        92.485
+      ],
+      [
+        26.71322,
+        92.46162
+      ],
+      [
+        26.71177,
+        92.43662
+      ],
+      [
+        26.69936,
+        92.41442
+      ],
+      [
+        26.6996,
+        92.38898
+      ],
+      [
+        26.68889,
+        92.36635
+      ],
+      [
+        26.6845,
+        92.3421
+      ]
+    ]
+  },
+  {
+    "id": "SEG_ALT_02",
+    "name": "Orang -> Bhairabkunda Tri-Junction",
+    "corridor": "CORRIDOR_NH13_BYPASS",
+    "source": "Orang",
+    "target": "Bhairabkunda",
+    "distance_km": 36.0,
+    "base_speed_kmh": 50.0,
+    "district": "Udalguri",
+    "risk_score": 0.15,
+    "risk_level": "LOW",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 7.2,
+      "elevation_m": 190.0,
+      "gsi_landslide_history": 0,
+      "rainfall_intensity_mm": 25.0,
+      "rock_formation": "Bouldery Piedmont"
+    },
+    "coordinates": [
+      [
+        26.6845,
+        92.3421
+      ],
+      [
+        26.69496,
+        92.32807
+      ],
+      [
+        26.71024,
+        92.31845
+      ],
+      [
+        26.71717,
+        92.30119
+      ],
+      [
+        26.73374,
+        92.29275
+      ],
+      [
+        26.74196,
+        92.27667
+      ],
+      [
+        26.755,
+        92.265
+      ],
+      [
+        26.76909,
+        92.25288
+      ],
+      [
+        26.77848,
+        92.23623
+      ],
+      [
+        26.79602,
+        92.22743
+      ],
+      [
+        26.80415,
+        92.20956
+      ],
+      [
+        26.82043,
+        92.19955
+      ],
+      [
+        26.832,
+        92.185
+      ],
+      [
+        26.84249,
+        92.17216
+      ],
+      [
+        26.85757,
+        92.16395
+      ],
+      [
+        26.86469,
+        92.14771
+      ],
+      [
+        26.881,
+        92.14075
+      ],
+      [
+        26.88935,
+        92.12576
+      ],
+      [
+        26.9023,
+        92.1154
+      ]
+    ]
+  },
+  {
+    "id": "SEG_ALT_03",
+    "name": "Bhairabkunda -> Kalaktang BRO Staging Post",
+    "corridor": "CORRIDOR_NH13_BYPASS",
+    "source": "Bhairabkunda",
+    "target": "Kalaktang",
+    "distance_km": 38.0,
+    "base_speed_kmh": 40.0,
+    "district": "Udalguri / West Kameng",
+    "risk_score": 0.22,
+    "risk_level": "LOW",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 14.5,
+      "elevation_m": 1150.0,
+      "gsi_landslide_history": 1,
+      "rainfall_intensity_mm": 28.0,
+      "rock_formation": "Granite & Stable Gneiss"
+    },
+    "coordinates": [
+      [
+        26.9023,
+        92.1154
+      ],
+      [
+        26.91426,
+        92.11259
+      ],
+      [
+        26.9268,
+        92.11629
+      ],
+      [
+        26.93834,
+        92.10871
+      ],
+      [
+        26.95103,
+        92.11415
+      ],
+      [
+        26.96273,
+        92.10832
+      ],
+      [
+        26.975,
+        92.109
+      ],
+      [
+        26.98792,
+        92.11008
+      ],
+      [
+        27.00051,
+        92.10464
+      ],
+      [
+        27.01368,
+        92.1105
+      ],
+      [
+        27.02618,
+        92.10331
+      ],
+      [
+        27.03926,
+        92.10741
+      ],
+      [
+        27.052,
+        92.105
+      ],
+      [
+        27.06383,
+        92.10277
+      ],
+      [
+        27.07592,
+        92.10706
+      ],
+      [
+        27.08756,
+        92.10005
+      ],
+      [
+        27.09972,
+        92.1061
+      ],
+      [
+        27.11143,
+        92.10083
+      ],
+      [
+        27.1234,
+        92.1021
+      ]
+    ]
+  },
+  {
+    "id": "SEG_ALT_04",
+    "name": "Kalaktang -> Shergaon Basin",
+    "corridor": "CORRIDOR_NH13_BYPASS",
+    "source": "Kalaktang",
+    "target": "Shergaon",
+    "distance_km": 32.0,
+    "base_speed_kmh": 38.0,
+    "district": "West Kameng",
+    "risk_score": 0.25,
+    "risk_level": "LOW",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 16.8,
+      "elevation_m": 1950.0,
+      "gsi_landslide_history": 1,
+      "rainfall_intensity_mm": 26.0,
+      "rock_formation": "Massive Quartzite"
+    },
+    "coordinates": [
+      [
+        27.1234,
+        92.1021
+      ],
+      [
+        27.12656,
+        92.11064
+      ],
+      [
+        27.12327,
+        92.12022
+      ],
+      [
+        27.13115,
+        92.12799
+      ],
+      [
+        27.12614,
+        92.13785
+      ],
+      [
+        27.13229,
+        92.1459
+      ],
+      [
+        27.132,
+        92.155
+      ],
+      [
+        27.13126,
+        92.16452
+      ],
+      [
+        27.13701,
+        92.17334
+      ],
+      [
+        27.13152,
+        92.18337
+      ],
+      [
+        27.13901,
+        92.19201
+      ],
+      [
+        27.13526,
+        92.20185
+      ],
+      [
+        27.138,
+        92.211
+      ],
+      [
+        27.14049,
+        92.21924
+      ],
+      [
+        27.13648,
+        92.22807
+      ],
+      [
+        27.14374,
+        92.23589
+      ],
+      [
+        27.13798,
+        92.24487
+      ],
+      [
+        27.14349,
+        92.25284
+      ],
+      [
+        27.1425,
+        92.2614
+      ]
+    ]
+  },
+  {
+    "id": "SEG_ALT_05",
+    "name": "Shergaon -> Rupa Sub-Divisional Base",
+    "corridor": "CORRIDOR_NH13_BYPASS",
+    "source": "Shergaon",
+    "target": "Rupa",
+    "distance_km": 26.0,
+    "base_speed_kmh": 42.0,
+    "district": "West Kameng",
+    "risk_score": 0.2,
+    "risk_level": "LOW",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 12.0,
+      "elevation_m": 1520.0,
+      "gsi_landslide_history": 0,
+      "rainfall_intensity_mm": 22.0,
+      "rock_formation": "Metamorphic Basin"
+    },
+    "coordinates": [
+      [
+        27.1425,
+        92.2614
+      ],
+      [
+        27.14738,
+        92.2692
+      ],
+      [
+        27.14617,
+        92.27936
+      ],
+      [
+        27.15552,
+        92.28544
+      ],
+      [
+        27.15267,
+        92.29622
+      ],
+      [
+        27.16038,
+        92.30294
+      ],
+      [
+        27.162,
+        92.312
+      ],
+      [
+        27.16429,
+        92.31999
+      ],
+      [
+        27.17234,
+        92.3249
+      ],
+      [
+        27.17041,
+        92.33515
+      ],
+      [
+        27.18001,
+        92.33924
+      ],
+      [
+        27.17962,
+        92.34866
+      ],
+      [
+        27.185,
+        92.355
+      ],
+      [
+        27.18924,
+        92.35924
+      ],
+      [
+        27.18773,
+        92.36656
+      ],
+      [
+        27.19619,
+        92.36855
+      ],
+      [
+        27.19313,
+        92.37669
+      ],
+      [
+        27.20004,
+        92.37951
+      ],
+      [
+        27.2012,
+        92.3854
+      ]
+    ]
+  },
+  {
+    "id": "SEG_ALT_06",
+    "name": "Rupa -> Bomdila Connect (NH-13)",
+    "corridor": "CORRIDOR_NH13_BYPASS",
+    "source": "Rupa",
+    "target": "Bomdila",
+    "distance_km": 16.0,
+    "base_speed_kmh": 35.0,
+    "district": "West Kameng",
+    "risk_score": 0.28,
+    "risk_level": "LOW",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 15.0,
+      "elevation_m": 2415.0,
+      "gsi_landslide_history": 1,
+      "rainfall_intensity_mm": 25.0,
+      "rock_formation": "Bomdila Gneiss"
+    },
+    "coordinates": [
+      [
+        27.2012,
+        92.3854
+      ],
+      [
+        27.20599,
+        92.38595
+      ],
+      [
+        27.20772,
+        92.39228
+      ],
+      [
+        27.21474,
+        92.38861
+      ],
+      [
+        27.21565,
+        92.39648
+      ],
+      [
+        27.22185,
+        92.39435
+      ],
+      [
+        27.225,
+        92.398
+      ],
+      [
+        27.22792,
+        92.40183
+      ],
+      [
+        27.23424,
+        92.40008
+      ],
+      [
+        27.23468,
+        92.40799
+      ],
+      [
+        27.24191,
+        92.40474
+      ],
+      [
+        27.24326,
+        92.41116
+      ],
+      [
+        27.248,
+        92.412
+      ],
+      [
+        27.25177,
+        92.41261
+      ],
+      [
+        27.25167,
+        92.41847
+      ],
+      [
+        27.25828,
+        92.41523
+      ],
+      [
+        27.25713,
+        92.42251
+      ],
+      [
+        27.26271,
+        92.42068
+      ],
+      [
+        27.2644,
+        92.4241
+      ]
+    ]
+  },
+  {
+    "id": "SEG_29_01",
+    "name": "Dimapur Gateway -> Chumukedima (NH-29)",
+    "corridor": "CORRIDOR_NH29",
+    "source": "Dimapur",
+    "target": "Chumukedima",
+    "distance_km": 14.0,
+    "base_speed_kmh": 55.0,
+    "district": "Dimapur / Chumukedima",
+    "risk_score": 0.18,
+    "risk_level": "LOW",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 6.2,
+      "elevation_m": 210.0,
+      "gsi_landslide_history": 0,
+      "rainfall_intensity_mm": 22.0,
+      "rock_formation": "Alluvial Piedmont"
+    },
+    "coordinates": [
+      [
+        25.906,
+        93.727
+      ],
+      [
+        25.89996,
+        93.73206
+      ],
+      [
+        25.89095,
+        93.7313
+      ],
+      [
+        25.8871,
+        93.74062
+      ],
+      [
+        25.87728,
+        93.7383
+      ],
+      [
+        25.87263,
+        93.74606
+      ],
+      [
+        25.865,
+        93.748
+      ],
+      [
+        25.85662,
+        93.75082
+      ],
+      [
+        25.85152,
+        93.75929
+      ],
+      [
+        25.84075,
+        93.75797
+      ],
+      [
+        25.83652,
+        93.76796
+      ],
+      [
+        25.82662,
+        93.76815
+      ],
+      [
+        25.82,
+        93.774
+      ]
+    ]
+  },
+  {
+    "id": "SEG_29_02",
+    "name": "Chumukedima -> Paglapahar Gorge Chokepoint (NH-29)",
+    "corridor": "CORRIDOR_NH29",
+    "source": "Chumukedima",
+    "target": "Paglapahar",
+    "distance_km": 16.0,
+    "base_speed_kmh": 30.0,
+    "district": "Chumukedima",
+    "risk_score": 0.88,
+    "risk_level": "CRITICAL",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 42.0,
+      "elevation_m": 420.0,
+      "gsi_landslide_history": 14,
+      "rainfall_intensity_mm": 48.0,
+      "rock_formation": "Disrupive Barail Sandstone Cliff"
+    },
+    "coordinates": [
+      [
+        25.82,
+        93.774
+      ],
+      [
+        25.8172,
+        93.78027
+      ],
+      [
+        25.80931,
+        93.78243
+      ],
+      [
+        25.81022,
+        93.7917
+      ],
+      [
+        25.80097,
+        93.79276
+      ],
+      [
+        25.80053,
+        93.80093
+      ],
+      [
+        25.795,
+        93.805
+      ],
+      [
+        25.79083,
+        93.8072
+      ],
+      [
+        25.79164,
+        93.81363
+      ],
+      [
+        25.78383,
+        93.81273
+      ],
+      [
+        25.78598,
+        93.8203
+      ],
+      [
+        25.7795,
+        93.82053
+      ],
+      [
+        25.778,
+        93.825
+      ],
+      [
+        25.77722,
+        93.8289
+      ],
+      [
+        25.77126,
+        93.82883
+      ],
+      [
+        25.77428,
+        93.83563
+      ],
+      [
+        25.76693,
+        93.83449
+      ],
+      [
+        25.76856,
+        93.84023
+      ],
+      [
+        25.765,
+        93.842
+      ]
+    ]
+  },
+  {
+    "id": "SEG_29_03",
+    "name": "Paglapahar -> Medziphema (NH-29)",
+    "corridor": "CORRIDOR_NH29",
+    "source": "Paglapahar",
+    "target": "Medziphema",
+    "distance_km": 12.0,
+    "base_speed_kmh": 35.0,
+    "district": "Chumukedima",
+    "risk_score": 0.45,
+    "risk_level": "MODERATE",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 18.5,
+      "elevation_m": 310.0,
+      "gsi_landslide_history": 3,
+      "rainfall_intensity_mm": 30.0,
+      "rock_formation": "Tertiary Sandstone"
+    },
+    "coordinates": [
+      [
+        25.765,
+        93.842
+      ],
+      [
+        25.76534,
+        93.84488
+      ],
+      [
+        25.76005,
+        93.84447
+      ],
+      [
+        25.76452,
+        93.84976
+      ],
+      [
+        25.75772,
+        93.84847
+      ],
+      [
+        25.76068,
+        93.85288
+      ],
+      [
+        25.758,
+        93.854
+      ],
+      [
+        25.75546,
+        93.855
+      ],
+      [
+        25.75866,
+        93.85912
+      ],
+      [
+        25.75193,
+        93.85782
+      ],
+      [
+        25.75666,
+        93.86278
+      ],
+      [
+        25.75146,
+        93.86233
+      ],
+      [
+        25.752,
+        93.865
+      ]
+    ]
+  },
+  {
+    "id": "SEG_29_04",
+    "name": "Medziphema -> Zubza Sinking Zone (NH-29)",
+    "corridor": "CORRIDOR_NH29",
+    "source": "Medziphema",
+    "target": "Zubza",
+    "distance_km": 28.0,
+    "base_speed_kmh": 32.0,
+    "district": "Chumukedima / Kohima",
+    "risk_score": 0.72,
+    "risk_level": "HIGH",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 35.0,
+      "elevation_m": 1120.0,
+      "gsi_landslide_history": 9,
+      "rainfall_intensity_mm": 44.0,
+      "rock_formation": "Disik Sinking Clay-Shale"
+    },
+    "coordinates": [
+      [
+        25.752,
+        93.865
+      ],
+      [
+        25.74961,
+        93.87502
+      ],
+      [
+        25.74121,
+        93.88247
+      ],
+      [
+        25.74322,
+        93.89438
+      ],
+      [
+        25.73321,
+        93.90114
+      ],
+      [
+        25.73361,
+        93.91236
+      ],
+      [
+        25.728,
+        93.921
+      ],
+      [
+        25.72254,
+        93.92985
+      ],
+      [
+        25.72314,
+        93.94113
+      ],
+      [
+        25.71325,
+        93.94819
+      ],
+      [
+        25.71548,
+        93.96013
+      ],
+      [
+        25.70721,
+        93.96785
+      ],
+      [
+        25.705,
+        93.978
+      ],
+      [
+        25.70274,
+        93.9866
+      ],
+      [
+        25.69461,
+        93.99233
+      ],
+      [
+        25.69664,
+        94.00304
+      ],
+      [
+        25.68694,
+        94.008
+      ],
+      [
+        25.68741,
+        94.01794
+      ],
+      [
+        25.682,
+        94.025
+      ]
+    ]
+  },
+  {
+    "id": "SEG_29_05",
+    "name": "Zubza -> Kohima Capital Transport Depot (NH-29)",
+    "corridor": "CORRIDOR_NH29",
+    "source": "Zubza",
+    "target": "Kohima",
+    "distance_km": 15.0,
+    "base_speed_kmh": 28.0,
+    "district": "Kohima",
+    "risk_score": 0.42,
+    "risk_level": "MODERATE",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 24.0,
+      "elevation_m": 1444.0,
+      "gsi_landslide_history": 4,
+      "rainfall_intensity_mm": 38.0,
+      "rock_formation": "Disang Metasedimentary Ridge"
+    },
+    "coordinates": [
+      [
+        25.682,
+        94.025
+      ],
+      [
+        25.68324,
+        94.03131
+      ],
+      [
+        25.67798,
+        94.03709
+      ],
+      [
+        25.68399,
+        94.04378
+      ],
+      [
+        25.67698,
+        94.04942
+      ],
+      [
+        25.68124,
+        94.05597
+      ],
+      [
+        25.679,
+        94.062
+      ],
+      [
+        25.67643,
+        94.06948
+      ],
+      [
+        25.68035,
+        94.07766
+      ],
+      [
+        25.67302,
+        94.08462
+      ],
+      [
+        25.67868,
+        94.09299
+      ],
+      [
+        25.67309,
+        94.10014
+      ],
+      [
+        25.674,
+        94.108
+      ]
+    ]
+  },
+  {
+    "id": "SEG_29_06",
+    "name": "Kohima -> Mao Inter-State Border Gate (NH-2)",
+    "corridor": "CORRIDOR_NH29",
+    "source": "Kohima",
+    "target": "MaoBorder",
+    "distance_km": 32.0,
+    "base_speed_kmh": 36.0,
+    "district": "Kohima / Senapati",
+    "risk_score": 0.58,
+    "risk_level": "MODERATE",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 26.5,
+      "elevation_m": 1780.0,
+      "gsi_landslide_history": 5,
+      "rainfall_intensity_mm": 42.0,
+      "rock_formation": "Barail Arenaceous Group"
+    },
+    "coordinates": [
+      [
+        25.674,
+        94.108
+      ],
+      [
+        25.66805,
+        94.11183
+      ],
+      [
+        25.66004,
+        94.10946
+      ],
+      [
+        25.65561,
+        94.11782
+      ],
+      [
+        25.64704,
+        94.11379
+      ],
+      [
+        25.64205,
+        94.12049
+      ],
+      [
+        25.635,
+        94.121
+      ],
+      [
+        25.62508,
+        94.12163
+      ],
+      [
+        25.61672,
+        94.12861
+      ],
+      [
+        25.60567,
+        94.1246
+      ],
+      [
+        25.59772,
+        94.13328
+      ],
+      [
+        25.58708,
+        94.13097
+      ],
+      [
+        25.578,
+        94.135
+      ],
+      [
+        25.566,
+        94.13791
+      ],
+      [
+        25.55338,
+        94.13432
+      ],
+      [
+        25.54183,
+        94.14198
+      ],
+      [
+        25.52904,
+        94.13665
+      ],
+      [
+        25.51733,
+        94.14258
+      ],
+      [
+        25.505,
+        94.142
+      ]
+    ]
+  },
+  {
+    "id": "SEG_29_07",
+    "name": "Mao Gate -> Senapati Supply Point (NH-2)",
+    "corridor": "CORRIDOR_NH29",
+    "source": "MaoBorder",
+    "target": "Senapati",
+    "distance_km": 35.0,
+    "base_speed_kmh": 40.0,
+    "district": "Senapati",
+    "risk_score": 0.38,
+    "risk_level": "MODERATE",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 20.0,
+      "elevation_m": 1050.0,
+      "gsi_landslide_history": 2,
+      "rainfall_intensity_mm": 30.0,
+      "rock_formation": "Disang Shale Formation"
+    },
+    "coordinates": [
+      [
+        25.505,
+        94.142
+      ],
+      [
+        25.49029,
+        94.13743
+      ],
+      [
+        25.47822,
+        94.12689
+      ],
+      [
+        25.46159,
+        94.1267
+      ],
+      [
+        25.45022,
+        94.11456
+      ],
+      [
+        25.43429,
+        94.11277
+      ],
+      [
+        25.421,
+        94.105
+      ],
+      [
+        25.40873,
+        94.09566
+      ],
+      [
+        25.39312,
+        94.09194
+      ],
+      [
+        25.38329,
+        94.07849
+      ],
+      [
+        25.36678,
+        94.07627
+      ],
+      [
+        25.35606,
+        94.06433
+      ],
+      [
+        25.342,
+        94.058
+      ],
+      [
+        25.32831,
+        94.05236
+      ],
+      [
+        25.31781,
+        94.04102
+      ],
+      [
+        25.30179,
+        94.03956
+      ],
+      [
+        25.29214,
+        94.02669
+      ],
+      [
+        25.27698,
+        94.02369
+      ],
+      [
+        25.265,
+        94.015
+      ]
+    ]
+  },
+  {
+    "id": "SEG_29_08",
+    "name": "Senapati -> Kangpokpi Transit Hub (NH-2)",
+    "corridor": "CORRIDOR_NH29",
+    "source": "Senapati",
+    "target": "Kangpokpi",
+    "distance_km": 24.0,
+    "base_speed_kmh": 42.0,
+    "district": "Senapati / Kangpokpi",
+    "risk_score": 0.32,
+    "risk_level": "LOW",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 16.0,
+      "elevation_m": 980.0,
+      "gsi_landslide_history": 1,
+      "rainfall_intensity_mm": 26.0,
+      "rock_formation": "River Terrace Alluvium"
+    },
+    "coordinates": [
+      [
+        25.265,
+        94.015
+      ],
+      [
+        25.25437,
+        94.0128
+      ],
+      [
+        25.24608,
+        94.0045
+      ],
+      [
+        25.23375,
+        94.00677
+      ],
+      [
+        25.22608,
+        93.99684
+      ],
+      [
+        25.21437,
+        93.99747
+      ],
+      [
+        25.205,
+        93.992
+      ],
+      [
+        25.19608,
+        93.98702
+      ],
+      [
+        25.185,
+        93.98819
+      ],
+      [
+        25.17766,
+        93.9787
+      ],
+      [
+        25.166,
+        93.98153
+      ],
+      [
+        25.15808,
+        93.97368
+      ],
+      [
+        25.148,
+        93.972
+      ]
+    ]
+  },
+  {
+    "id": "SEG_29_09",
+    "name": "Kangpokpi -> Imphal Regional Food & Med Depot (NH-2)",
+    "corridor": "CORRIDOR_NH29",
+    "source": "Kangpokpi",
+    "target": "Imphal",
+    "distance_km": 45.0,
+    "base_speed_kmh": 50.0,
+    "district": "Kangpokpi / Imphal West",
+    "risk_score": 0.22,
+    "risk_level": "LOW",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 8.5,
+      "elevation_m": 786.0,
+      "gsi_landslide_history": 0,
+      "rainfall_intensity_mm": 25.0,
+      "rock_formation": "Manipur Valley Alluvial Basin"
+    },
+    "coordinates": [
+      [
+        25.148,
+        93.972
+      ],
+      [
+        25.1299,
+        93.9692
+      ],
+      [
+        25.11341,
+        93.96006
+      ],
+      [
+        25.09414,
+        93.96189
+      ],
+      [
+        25.07808,
+        93.95106
+      ],
+      [
+        25.05923,
+        93.9512
+      ],
+      [
+        25.042,
+        93.945
+      ],
+      [
+        25.02596,
+        93.94209
+      ],
+      [
+        25.00945,
+        93.94569
+      ],
+      [
+        24.99375,
+        93.93801
+      ],
+      [
+        24.97712,
+        93.94336
+      ],
+      [
+        24.96129,
+        93.93742
+      ],
+      [
+        24.945,
+        93.938
+      ],
+      [
+        24.92365,
+        93.93955
+      ],
+      [
+        24.90236,
+        93.93457
+      ],
+      [
+        24.88097,
+        93.9409
+      ],
+      [
+        24.8597,
+        93.93417
+      ],
+      [
+        24.83832,
+        93.93875
+      ],
+      [
+        24.817,
+        93.9368
+      ]
+    ]
+  },
+  {
+    "id": "SEG_10_01",
+    "name": "Siliguri Hub -> Sevoke Coronation Bridge (NH-10)",
+    "corridor": "CORRIDOR_NH10",
+    "source": "Siliguri",
+    "target": "Sevoke",
+    "distance_km": 22.0,
+    "base_speed_kmh": 50.0,
+    "district": "Darjeeling",
+    "risk_score": 0.25,
+    "risk_level": "LOW",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 10.2,
+      "elevation_m": 180.0,
+      "gsi_landslide_history": 1,
+      "rainfall_intensity_mm": 22.0,
+      "rock_formation": "Piedmont Gravels"
+    },
+    "coordinates": [
+      [
+        26.7271,
+        88.3953
+      ],
+      [
+        26.73925,
+        88.39988
+      ],
+      [
+        26.74829,
+        88.4102
+      ],
+      [
+        26.76271,
+        88.41057
+      ],
+      [
+        26.77093,
+        88.42243
+      ],
+      [
+        26.78452,
+        88.42434
+      ],
+      [
+        26.795,
+        88.432
+      ],
+      [
+        26.80246,
+        88.43835
+      ],
+      [
+        26.81319,
+        88.43904
+      ],
+      [
+        26.81824,
+        88.44953
+      ],
+      [
+        26.82985,
+        88.44871
+      ],
+      [
+        26.83579,
+        88.45768
+      ],
+      [
+        26.845,
+        88.461
+      ],
+      [
+        26.85213,
+        88.46115
+      ],
+      [
+        26.85753,
+        88.46759
+      ],
+      [
+        26.86593,
+        88.46313
+      ],
+      [
+        26.87086,
+        88.47126
+      ],
+      [
+        26.8788,
+        88.46848
+      ],
+      [
+        26.885,
+        88.472
+      ]
+    ]
+  },
+  {
+    "id": "SEG_10_02",
+    "name": "Sevoke Bridge -> Teesta Bazaar Scour Zone (NH-10)",
+    "corridor": "CORRIDOR_NH10",
+    "source": "Sevoke",
+    "target": "TeestaBazaar",
+    "distance_km": 26.0,
+    "base_speed_kmh": 32.0,
+    "district": "Darjeeling / Kalimpong",
+    "risk_score": 0.85,
+    "risk_level": "CRITICAL",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 44.0,
+      "elevation_m": 220.0,
+      "gsi_landslide_history": 16,
+      "rainfall_intensity_mm": 52.0,
+      "rock_formation": "Daling Phyllite Gorge Escarpment"
+    },
+    "coordinates": [
+      [
+        26.885,
+        88.472
+      ],
+      [
+        26.89417,
+        88.46845
+      ],
+      [
+        26.90457,
+        88.47131
+      ],
+      [
+        26.91284,
+        88.46306
+      ],
+      [
+        26.92357,
+        88.46764
+      ],
+      [
+        26.93217,
+        88.46112
+      ],
+      [
+        26.942,
+        88.461
+      ],
+      [
+        26.95181,
+        88.46002
+      ],
+      [
+        26.95983,
+        88.45275
+      ],
+      [
+        26.97096,
+        88.45637
+      ],
+      [
+        26.9785,
+        88.44742
+      ],
+      [
+        26.98915,
+        88.44935
+      ],
+      [
+        26.998,
+        88.445
+      ],
+      [
+        27.00771,
+        88.44161
+      ],
+      [
+        27.0185,
+        88.44466
+      ],
+      [
+        27.02742,
+        88.43655
+      ],
+      [
+        27.0385,
+        88.44132
+      ],
+      [
+        27.04771,
+        88.43494
+      ],
+      [
+        27.058,
+        88.435
+      ]
+    ]
+  },
+  {
+    "id": "SEG_10_03",
+    "name": "Teesta Bazaar -> Rangpo Sikkim Checkpost (NH-10)",
+    "corridor": "CORRIDOR_NH10",
+    "source": "TeestaBazaar",
+    "target": "Rangpo",
+    "distance_km": 24.0,
+    "base_speed_kmh": 35.0,
+    "district": "Kalimpong / Pakyong",
+    "risk_score": 0.65,
+    "risk_level": "HIGH",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 32.0,
+      "elevation_m": 330.0,
+      "gsi_landslide_history": 7,
+      "rainfall_intensity_mm": 45.0,
+      "rock_formation": "Reyang Phyllite & Slate"
+    },
+    "coordinates": [
+      [
+        27.058,
+        88.435
+      ],
+      [
+        27.065,
+        88.43679
+      ],
+      [
+        27.06889,
+        88.44433
+      ],
+      [
+        27.07816,
+        88.44192
+      ],
+      [
+        27.08123,
+        88.451
+      ],
+      [
+        27.08967,
+        88.45013
+      ],
+      [
+        27.095,
+        88.455
+      ],
+      [
+        27.10048,
+        88.46245
+      ],
+      [
+        27.11039,
+        88.46511
+      ],
+      [
+        27.11262,
+        88.47607
+      ],
+      [
+        27.12372,
+        88.47744
+      ],
+      [
+        27.12715,
+        88.48712
+      ],
+      [
+        27.135,
+        88.492
+      ],
+      [
+        27.14299,
+        88.49668
+      ],
+      [
+        27.14667,
+        88.50628
+      ],
+      [
+        27.15781,
+        88.50737
+      ],
+      [
+        27.16033,
+        88.51828
+      ],
+      [
+        27.17032,
+        88.52068
+      ],
+      [
+        27.176,
+        88.528
+      ]
+    ]
+  },
+  {
+    "id": "SEG_10_04",
+    "name": "Rangpo Border -> Singtam Junction (NH-10)",
+    "corridor": "CORRIDOR_NH10",
+    "source": "Rangpo",
+    "target": "Singtam",
+    "distance_km": 14.0,
+    "base_speed_kmh": 38.0,
+    "district": "Pakyong / Gangtok",
+    "risk_score": 0.4,
+    "risk_level": "MODERATE",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 22.0,
+      "elevation_m": 410.0,
+      "gsi_landslide_history": 3,
+      "rainfall_intensity_mm": 35.0,
+      "rock_formation": "Gorubathan Gneiss"
+    },
+    "coordinates": [
+      [
+        27.176,
+        88.528
+      ],
+      [
+        27.17999,
+        88.5238
+      ],
+      [
+        27.18713,
+        88.52532
+      ],
+      [
+        27.18881,
+        88.51694
+      ],
+      [
+        27.1968,
+        88.51999
+      ],
+      [
+        27.19932,
+        88.51313
+      ],
+      [
+        27.205,
+        88.512
+      ],
+      [
+        27.21059,
+        88.51124
+      ],
+      [
+        27.21335,
+        88.5046
+      ],
+      [
+        27.22102,
+        88.50815
+      ],
+      [
+        27.22302,
+        88.49994
+      ],
+      [
+        27.22993,
+        88.50191
+      ],
+      [
+        27.234,
+        88.498
+      ]
+    ]
+  },
+  {
+    "id": "SEG_10_05",
+    "name": "Singtam -> Gangtok STNM Hospital & Base (NH-10)",
+    "corridor": "CORRIDOR_NH10",
+    "source": "Singtam",
+    "target": "Gangtok",
+    "distance_km": 28.0,
+    "base_speed_kmh": 32.0,
+    "district": "Gangtok",
+    "risk_score": 0.48,
+    "risk_level": "MODERATE",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 26.5,
+      "elevation_m": 1650.0,
+      "gsi_landslide_history": 4,
+      "rainfall_intensity_mm": 38.0,
+      "rock_formation": "Central Gneissic Complex"
+    },
+    "coordinates": [
+      [
+        27.234,
+        88.498
+      ],
+      [
+        27.24063,
+        88.50487
+      ],
+      [
+        27.2418,
+        88.51534
+      ],
+      [
+        27.25242,
+        88.51957
+      ],
+      [
+        27.25214,
+        88.531
+      ],
+      [
+        27.26129,
+        88.5362
+      ],
+      [
+        27.265,
+        88.545
+      ],
+      [
+        27.26805,
+        88.55265
+      ],
+      [
+        27.27651,
+        88.55664
+      ],
+      [
+        27.2756,
+        88.56696
+      ],
+      [
+        27.28551,
+        88.56997
+      ],
+      [
+        27.28605,
+        88.57931
+      ],
+      [
+        27.292,
+        88.585
+      ],
+      [
+        27.2996,
+        88.58839
+      ],
+      [
+        27.30334,
+        88.59705
+      ],
+      [
+        27.31377,
+        88.59657
+      ],
+      [
+        27.31648,
+        88.60665
+      ],
+      [
+        27.32587,
+        88.60759
+      ],
+      [
+        27.3314,
+        88.6138
+      ]
+    ]
+  },
+  {
+    "id": "SEG_06_01",
+    "name": "Shillong Plateau -> Jowai Transport Hub (NH-6)",
+    "corridor": "CORRIDOR_NH6",
+    "source": "Shillong",
+    "target": "Jowai",
+    "distance_km": 64.0,
+    "base_speed_kmh": 50.0,
+    "district": "East Khasi Hills / West Jaintia Hills",
+    "risk_score": 0.28,
+    "risk_level": "LOW",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 12.5,
+      "elevation_m": 1380.0,
+      "gsi_landslide_history": 1,
+      "rainfall_intensity_mm": 31.0,
+      "rock_formation": "Shillong Group Quartzite"
+    },
+    "coordinates": [
+      [
+        25.5788,
+        91.8933
+      ],
+      [
+        25.57606,
+        91.92103
+      ],
+      [
+        25.56687,
+        91.94771
+      ],
+      [
+        25.56885,
+        91.97621
+      ],
+      [
+        25.55794,
+        92.00261
+      ],
+      [
+        25.55819,
+        92.03083
+      ],
+      [
+        25.552,
+        92.058
+      ],
+      [
+        25.54151,
+        92.07158
+      ],
+      [
+        25.53658,
+        92.0886
+      ],
+      [
+        25.52203,
+        92.09965
+      ],
+      [
+        25.51858,
+        92.1176
+      ],
+      [
+        25.50551,
+        92.12958
+      ],
+      [
+        25.498,
+        92.145
+      ],
+      [
+        25.49098,
+        92.15565
+      ],
+      [
+        25.47905,
+        92.162
+      ],
+      [
+        25.47563,
+        92.17581
+      ],
+      [
+        25.46239,
+        92.181
+      ],
+      [
+        25.45765,
+        92.19365
+      ],
+      [
+        25.448,
+        92.202
+      ]
+    ]
+  },
+  {
+    "id": "SEG_06_02",
+    "name": "Jowai -> Khliehriat Coal Belt (NH-6)",
+    "corridor": "CORRIDOR_NH6",
+    "source": "Jowai",
+    "target": "Khliehriat",
+    "distance_km": 42.0,
+    "base_speed_kmh": 45.0,
+    "district": "West Jaintia Hills / East Jaintia Hills",
+    "risk_score": 0.45,
+    "risk_level": "MODERATE",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 18.0,
+      "elevation_m": 1200.0,
+      "gsi_landslide_history": 3,
+      "rainfall_intensity_mm": 38.0,
+      "rock_formation": "Tertiary Sandstone & Coal Measures"
+    },
+    "coordinates": [
+      [
+        25.448,
+        92.202
+      ],
+      [
+        25.44117,
+        92.21674
+      ],
+      [
+        25.42874,
+        92.2281
+      ],
+      [
+        25.426,
+        92.24531
+      ],
+      [
+        25.41207,
+        92.25577
+      ],
+      [
+        25.40783,
+        92.27207
+      ],
+      [
+        25.398,
+        92.285
+      ],
+      [
+        25.38882,
+        92.29746
+      ],
+      [
+        25.38529,
+        92.31318
+      ],
+      [
+        25.37197,
+        92.32326
+      ],
+      [
+        25.36996,
+        92.33984
+      ],
+      [
+        25.35815,
+        92.35079
+      ],
+      [
+        25.352,
+        92.365
+      ]
+    ]
+  },
+  {
+    "id": "SEG_06_03",
+    "name": "Khliehriat -> Sonapur Mudflow Tunnel (NH-6)",
+    "corridor": "CORRIDOR_NH6",
+    "source": "Khliehriat",
+    "target": "SonapurTunnel",
+    "distance_km": 35.0,
+    "base_speed_kmh": 30.0,
+    "district": "East Jaintia Hills",
+    "risk_score": 0.92,
+    "risk_level": "CRITICAL",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 46.0,
+      "elevation_m": 580.0,
+      "gsi_landslide_history": 18,
+      "rainfall_intensity_mm": 61.0,
+      "rock_formation": "Fractured Shale & Mining Subsidence"
+    },
+    "coordinates": [
+      [
+        25.352,
+        92.365
+      ],
+      [
+        25.33764,
+        92.36791
+      ],
+      [
+        25.32276,
+        92.36431
+      ],
+      [
+        25.30878,
+        92.37199
+      ],
+      [
+        25.29376,
+        92.36665
+      ],
+      [
+        25.27964,
+        92.37258
+      ],
+      [
+        25.265,
+        92.372
+      ],
+      [
+        25.25173,
+        92.36975
+      ],
+      [
+        25.23822,
+        92.37403
+      ],
+      [
+        25.22513,
+        92.367
+      ],
+      [
+        25.21155,
+        92.37303
+      ],
+      [
+        25.1984,
+        92.36775
+      ],
+      [
+        25.185,
+        92.369
+      ],
+      [
+        25.17497,
+        92.37058
+      ],
+      [
+        25.16505,
+        92.36564
+      ],
+      [
+        25.15494,
+        92.372
+      ],
+      [
+        25.14505,
+        92.3653
+      ],
+      [
+        25.13497,
+        92.36992
+      ],
+      [
+        25.125,
+        92.368
+      ]
+    ]
+  },
+  {
+    "id": "SEG_06_04",
+    "name": "Sonapur Tunnel -> Badarpur Junction (NH-6)",
+    "corridor": "CORRIDOR_NH6",
+    "source": "SonapurTunnel",
+    "target": "Badarpur",
+    "distance_km": 58.0,
+    "base_speed_kmh": 40.0,
+    "district": "East Jaintia Hills / Karimganj",
+    "risk_score": 0.52,
+    "risk_level": "MODERATE",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 22.0,
+      "elevation_m": 42.0,
+      "gsi_landslide_history": 4,
+      "rainfall_intensity_mm": 40.0,
+      "rock_formation": "Surma Group Siltstone"
+    },
+    "coordinates": [
+      [
+        25.125,
+        92.368
+      ],
+      [
+        25.11152,
+        92.37255
+      ],
+      [
+        25.09673,
+        92.3707
+      ],
+      [
+        25.0842,
+        92.37993
+      ],
+      [
+        25.06906,
+        92.37636
+      ],
+      [
+        25.05618,
+        92.38388
+      ],
+      [
+        25.042,
+        92.385
+      ],
+      [
+        25.02782,
+        92.39938
+      ],
+      [
+        25.01867,
+        92.41793
+      ],
+      [
+        25.0008,
+        92.42927
+      ],
+      [
+        24.993,
+        92.44893
+      ],
+      [
+        24.97649,
+        92.46138
+      ],
+      [
+        24.965,
+        92.478
+      ],
+      [
+        24.95584,
+        92.49673
+      ],
+      [
+        24.94107,
+        92.51211
+      ],
+      [
+        24.936,
+        92.5333
+      ],
+      [
+        24.91973,
+        92.54778
+      ],
+      [
+        24.91317,
+        92.56806
+      ],
+      [
+        24.901,
+        92.585
+      ]
+    ]
+  },
+  {
+    "id": "SEG_06_05",
+    "name": "Badarpur -> Silchar Barak Supply Depot (NH-6)",
+    "corridor": "CORRIDOR_NH6",
+    "source": "Badarpur",
+    "target": "Silchar",
+    "distance_km": 28.0,
+    "base_speed_kmh": 45.0,
+    "district": "Karimganj / Cachar",
+    "risk_score": 0.2,
+    "risk_level": "LOW",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 4.5,
+      "elevation_m": 35.0,
+      "gsi_landslide_history": 0,
+      "rainfall_intensity_mm": 35.0,
+      "rock_formation": "Barak River Alluvial Basin"
+    },
+    "coordinates": [
+      [
+        24.901,
+        92.585
+      ],
+      [
+        24.89664,
+        92.60178
+      ],
+      [
+        24.88616,
+        92.61628
+      ],
+      [
+        24.88628,
+        92.63472
+      ],
+      [
+        24.87416,
+        92.64861
+      ],
+      [
+        24.87264,
+        92.66644
+      ],
+      [
+        24.865,
+        92.682
+      ],
+      [
+        24.85805,
+        92.69761
+      ],
+      [
+        24.85731,
+        92.71524
+      ],
+      [
+        24.84582,
+        92.72936
+      ],
+      [
+        24.84675,
+        92.74754
+      ],
+      [
+        24.83692,
+        92.76221
+      ],
+      [
+        24.8333,
+        92.7789
+      ]
+    ]
+  },
+  {
+    "id": "SEG_06_06",
+    "name": "Badarpur -> Dharmanagar Gateway (NH-8)",
+    "corridor": "CORRIDOR_NH6",
+    "source": "Badarpur",
+    "target": "Dharmanagar",
+    "distance_km": 72.0,
+    "base_speed_kmh": 48.0,
+    "district": "Karimganj / North Tripura",
+    "risk_score": 0.32,
+    "risk_level": "LOW",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 14.0,
+      "elevation_m": 48.0,
+      "gsi_landslide_history": 1,
+      "rainfall_intensity_mm": 28.0,
+      "rock_formation": "Tripura Ridge Anticline"
+    },
+    "coordinates": [
+      [
+        24.901,
+        92.585
+      ],
+      [
+        24.87049,
+        92.55963
+      ],
+      [
+        24.84437,
+        92.52942
+      ],
+      [
+        24.81065,
+        92.50759
+      ],
+      [
+        24.78571,
+        92.47609
+      ],
+      [
+        24.75316,
+        92.45296
+      ],
+      [
+        24.725,
+        92.425
+      ],
+      [
+        24.69607,
+        92.40029
+      ],
+      [
+        24.66314,
+        92.38073
+      ],
+      [
+        24.63715,
+        92.35224
+      ],
+      [
+        24.60314,
+        92.33406
+      ],
+      [
+        24.57607,
+        92.30695
+      ],
+      [
+        24.545,
+        92.285
+      ],
+      [
+        24.51566,
+        92.26643
+      ],
+      [
+        24.49008,
+        92.24252
+      ],
+      [
+        24.45798,
+        92.22786
+      ],
+      [
+        24.43341,
+        92.20252
+      ],
+      [
+        24.40232,
+        92.18643
+      ],
+      [
+        24.375,
+        92.165
+      ]
+    ]
+  },
+  {
+    "id": "SEG_06_07",
+    "name": "Dharmanagar -> Agartala GB Pant Hospital & Depot (NH-8)",
+    "corridor": "CORRIDOR_NH6",
+    "source": "Dharmanagar",
+    "target": "Agartala",
+    "distance_km": 135.0,
+    "base_speed_kmh": 55.0,
+    "district": "North Tripura / West Tripura",
+    "risk_score": 0.22,
+    "risk_level": "LOW",
+    "is_blocked": false,
+    "geotechnical": {
+      "slope_deg": 8.0,
+      "elevation_m": 30.0,
+      "gsi_landslide_history": 0,
+      "rainfall_intensity_mm": 20.5,
+      "rock_formation": "Tipam Sandstone & Alluvium"
+    },
+    "coordinates": [
+      [
+        24.375,
+        92.165
+      ],
+      [
+        24.33652,
+        92.14095
+      ],
+      [
+        24.3017,
+        92.11149
+      ],
+      [
+        24.26053,
+        92.09139
+      ],
+      [
+        24.2267,
+        92.06049
+      ],
+      [
+        24.18652,
+        92.03895
+      ],
+      [
+        24.15,
+        92.012
+      ],
+      [
+        24.1135,
+        91.9844
+      ],
+      [
+        24.07327,
+        91.96215
+      ],
+      [
+        24.0395,
+        91.93063
+      ],
+      [
+        23.99827,
+        91.90982
+      ],
+      [
+        23.9635,
+        91.87973
+      ],
+      [
+        23.925,
+        91.855
+      ],
+      [
+        23.91328,
+        91.80031
+      ],
+      [
+        23.90798,
+        91.74446
+      ],
+      [
+        23.89156,
+        91.69063
+      ],
+      [
+        23.88798,
+        91.63446
+      ],
+      [
+        23.87328,
+        91.58031
+      ],
+      [
+        23.865,
+        91.525
+      ],
+      [
+        23.86115,
+        91.48506
+      ],
+      [
+        23.85083,
+        91.44602
+      ],
+      [
+        23.85172,
+        91.40541
+      ],
+      [
+        23.83967,
+        91.36662
+      ],
+      [
+        23.83882,
+        91.32626
+      ],
+      [
+        23.8315,
+        91.2868
+      ]
+    ]
   }
 ];
 
-// Weather monitoring stations along corridor
 export const DEFAULT_WEATHER_STATIONS = [
-  { station: "Guwahati", temp_c: 31.5, rainfall_mm: 18.2, weather_desc: "Scattered Monsoon Showers", humidity_pct: 84, alert: "MODERATE", elevation_m: 55, forecast_24h_mm: 25.0 },
-  { station: "Tezpur", temp_c: 29.8, rainfall_mm: 24.5, weather_desc: "Steady Rain", humidity_pct: 88, alert: "MODERATE", elevation_m: 78, forecast_24h_mm: 32.0 },
-  { station: "Bhalukpong", temp_c: 26.0, rainfall_mm: 42.0, weather_desc: "Heavy Downpour (Gorge Slopes Saturated)", humidity_pct: 92, alert: "HIGH", elevation_m: 215, forecast_24h_mm: 55.0 },
-  { station: "Bomdila", temp_c: 17.5, rainfall_mm: 34.0, weather_desc: "Dense Fog & Rain", humidity_pct: 95, alert: "HIGH", elevation_m: 2415, forecast_24h_mm: 45.0 },
-  { station: "SelaPass", temp_c: 4.2, rainfall_mm: 56.5, weather_desc: "Near-Freezing Torrential Rain & Mist", humidity_pct: 98, alert: "CRITICAL", elevation_m: 3733, forecast_24h_mm: 75.0 },
-  { station: "Tawang", temp_c: 14.8, rainfall_mm: 32.0, weather_desc: "Cold Monsoon Showers", humidity_pct: 90, alert: "MODERATE", elevation_m: 3048, forecast_24h_mm: 40.0 }
+  {
+    "station": "Guwahati",
+    "corridor": "CORRIDOR_NH13",
+    "lat": 26.1445,
+    "lon": 91.7362,
+    "temp_c": 31.5,
+    "rainfall_mm": 18.2,
+    "weather_desc": "Scattered Monsoon Showers",
+    "humidity_pct": 84,
+    "elevation_m": 55,
+    "forecast_24h_mm": 22.0,
+    "soil_saturation_pct": 42,
+    "color": "#22c55e",
+    "alert_level": "MODERATE",
+    "alert_radius_m": 16000
+  },
+  {
+    "station": "Tezpur",
+    "corridor": "CORRIDOR_NH13",
+    "lat": 26.6528,
+    "lon": 92.7926,
+    "temp_c": 29.8,
+    "rainfall_mm": 24.5,
+    "weather_desc": "Steady Moderate Rain",
+    "humidity_pct": 88,
+    "elevation_m": 78,
+    "forecast_24h_mm": 28.0,
+    "soil_saturation_pct": 55,
+    "color": "#22c55e",
+    "alert_level": "MODERATE",
+    "alert_radius_m": 18000
+  },
+  {
+    "station": "Bhalukpong",
+    "corridor": "CORRIDOR_NH13",
+    "lat": 27.0125,
+    "lon": 92.6514,
+    "temp_c": 26.0,
+    "rainfall_mm": 42.0,
+    "weather_desc": "Heavy Downpour (Gorge Slopes Saturated)",
+    "humidity_pct": 92,
+    "elevation_m": 215,
+    "forecast_24h_mm": 55.0,
+    "soil_saturation_pct": 82,
+    "color": "#f59e0b",
+    "alert_level": "HIGH",
+    "alert_radius_m": 26000
+  },
+  {
+    "station": "Bomdila",
+    "corridor": "CORRIDOR_NH13",
+    "lat": 27.2644,
+    "lon": 92.4241,
+    "temp_c": 17.5,
+    "rainfall_mm": 34.0,
+    "weather_desc": "Dense Fog & Continuous Rain",
+    "humidity_pct": 95,
+    "elevation_m": 2415,
+    "forecast_24h_mm": 45.0,
+    "soil_saturation_pct": 74,
+    "color": "#f59e0b",
+    "alert_level": "HIGH",
+    "alert_radius_m": 24000
+  },
+  {
+    "station": "SelaPass",
+    "corridor": "CORRIDOR_NH13",
+    "lat": 27.5034,
+    "lon": 92.1039,
+    "temp_c": 4.2,
+    "rainfall_mm": 56.5,
+    "weather_desc": "Near-Freezing Cloudburst & Sleet",
+    "humidity_pct": 98,
+    "elevation_m": 3733,
+    "forecast_24h_mm": 75.0,
+    "soil_saturation_pct": 91,
+    "color": "#ef4444",
+    "alert_level": "CRITICAL",
+    "alert_radius_m": 35000
+  },
+  {
+    "station": "Tawang",
+    "corridor": "CORRIDOR_NH13",
+    "lat": 27.5861,
+    "lon": 91.8594,
+    "temp_c": 14.8,
+    "rainfall_mm": 32.0,
+    "weather_desc": "Cold Monsoon Showers",
+    "humidity_pct": 90,
+    "elevation_m": 3048,
+    "forecast_24h_mm": 40.0,
+    "soil_saturation_pct": 68,
+    "color": "#f59e0b",
+    "alert_level": "HIGH",
+    "alert_radius_m": 22000
+  },
+  {
+    "station": "Dimapur",
+    "corridor": "CORRIDOR_NH29",
+    "lat": 25.906,
+    "lon": 93.727,
+    "temp_c": 30.2,
+    "rainfall_mm": 22.0,
+    "weather_desc": "Humid Monsoon Overcast",
+    "humidity_pct": 86,
+    "elevation_m": 145,
+    "forecast_24h_mm": 25.0,
+    "soil_saturation_pct": 48,
+    "color": "#22c55e",
+    "alert_level": "MODERATE",
+    "alert_radius_m": 16000
+  },
+  {
+    "station": "Kohima",
+    "corridor": "CORRIDOR_NH29",
+    "lat": 25.674,
+    "lon": 94.108,
+    "temp_c": 21.0,
+    "rainfall_mm": 45.0,
+    "weather_desc": "Heavy Mountain Showers (Paglapahar Alert)",
+    "humidity_pct": 94,
+    "elevation_m": 1444,
+    "forecast_24h_mm": 58.0,
+    "soil_saturation_pct": 84,
+    "color": "#f59e0b",
+    "alert_level": "HIGH",
+    "alert_radius_m": 28000
+  },
+  {
+    "station": "Imphal",
+    "corridor": "CORRIDOR_NH29",
+    "lat": 24.817,
+    "lon": 93.9368,
+    "temp_c": 27.5,
+    "rainfall_mm": 28.5,
+    "weather_desc": "Intermittent Valley Showers",
+    "humidity_pct": 88,
+    "elevation_m": 786,
+    "forecast_24h_mm": 35.0,
+    "soil_saturation_pct": 62,
+    "color": "#f59e0b",
+    "alert_level": "MODERATE",
+    "alert_radius_m": 20000
+  },
+  {
+    "station": "Siliguri",
+    "corridor": "CORRIDOR_NH10",
+    "lat": 26.7271,
+    "lon": 88.3953,
+    "temp_c": 31.0,
+    "rainfall_mm": 19.0,
+    "weather_desc": "Passing Thunderclouds",
+    "humidity_pct": 82,
+    "elevation_m": 122,
+    "forecast_24h_mm": 22.0,
+    "soil_saturation_pct": 44,
+    "color": "#22c55e",
+    "alert_level": "MODERATE",
+    "alert_radius_m": 16000
+  },
+  {
+    "station": "TeestaBazaar",
+    "corridor": "CORRIDOR_NH10",
+    "lat": 27.058,
+    "lon": 88.435,
+    "temp_c": 24.8,
+    "rainfall_mm": 52.0,
+    "weather_desc": "Torrential Downpour & Teesta River Spate",
+    "humidity_pct": 96,
+    "elevation_m": 220,
+    "forecast_24h_mm": 70.0,
+    "soil_saturation_pct": 92,
+    "color": "#ef4444",
+    "alert_level": "CRITICAL",
+    "alert_radius_m": 32000
+  },
+  {
+    "station": "Gangtok",
+    "corridor": "CORRIDOR_NH10",
+    "lat": 27.3314,
+    "lon": 88.6138,
+    "temp_c": 18.2,
+    "rainfall_mm": 38.0,
+    "weather_desc": "Heavy Alpine Fog & Rain",
+    "humidity_pct": 94,
+    "elevation_m": 1650,
+    "forecast_24h_mm": 48.0,
+    "soil_saturation_pct": 79,
+    "color": "#f59e0b",
+    "alert_level": "HIGH",
+    "alert_radius_m": 24000
+  },
+  {
+    "station": "Shillong",
+    "corridor": "CORRIDOR_NH6",
+    "lat": 25.5788,
+    "lon": 91.8933,
+    "temp_c": 20.5,
+    "rainfall_mm": 31.0,
+    "weather_desc": "Cloudy with Steady Showers",
+    "humidity_pct": 90,
+    "elevation_m": 1525,
+    "forecast_24h_mm": 40.0,
+    "soil_saturation_pct": 71,
+    "color": "#f59e0b",
+    "alert_level": "HIGH",
+    "alert_radius_m": 22000
+  },
+  {
+    "station": "Sonapur",
+    "corridor": "CORRIDOR_NH6",
+    "lat": 25.125,
+    "lon": 92.368,
+    "temp_c": 26.2,
+    "rainfall_mm": 61.0,
+    "weather_desc": "Extreme Jaintia Cloudburst (Mudflow Active)",
+    "humidity_pct": 98,
+    "elevation_m": 580,
+    "forecast_24h_mm": 82.0,
+    "soil_saturation_pct": 96,
+    "color": "#ef4444",
+    "alert_level": "CRITICAL",
+    "alert_radius_m": 38000
+  },
+  {
+    "station": "Silchar",
+    "corridor": "CORRIDOR_NH6",
+    "lat": 24.8333,
+    "lon": 92.7789,
+    "temp_c": 28.5,
+    "rainfall_mm": 35.0,
+    "weather_desc": "Barak Valley Monsoon Rain",
+    "humidity_pct": 92,
+    "elevation_m": 35,
+    "forecast_24h_mm": 42.0,
+    "soil_saturation_pct": 75,
+    "color": "#f59e0b",
+    "alert_level": "HIGH",
+    "alert_radius_m": 24000
+  },
+  {
+    "station": "Agartala",
+    "corridor": "CORRIDOR_NH6",
+    "lat": 23.8315,
+    "lon": 91.2868,
+    "temp_c": 31.2,
+    "rainfall_mm": 20.5,
+    "weather_desc": "Scattered Rain & High Humidity",
+    "humidity_pct": 85,
+    "elevation_m": 30,
+    "forecast_24h_mm": 24.0,
+    "soil_saturation_pct": 46,
+    "color": "#22c55e",
+    "alert_level": "MODERATE",
+    "alert_radius_m": 16000
+  }
+];
+
+export const BRO_MACHINERY_UNITS = [
+  {
+    "id": "BRO_VARTAK_01",
+    "unit": "Task Force 14 BRTF",
+    "type": "Heavy Hydraulic Excavator (CAT 320D)",
+    "location": "Sessa Scree Chokepoint (km 114)",
+    "corridor": "CORRIDOR_NH13",
+    "lat": 27.0984,
+    "lon": 92.5342,
+    "status": "CLEARING_DEBRIS",
+    "operator": "BRO Project Vartak",
+    "eta_clearance_hrs": 2.5
+  },
+  {
+    "id": "BRO_VARTAK_02",
+    "unit": "Task Force 14 BRTF",
+    "type": "Tracked Heavy Wheel Dozer",
+    "location": "Kaspi River Cut (km 142)",
+    "corridor": "CORRIDOR_NH13",
+    "lat": 27.2014,
+    "lon": 92.4412,
+    "status": "STANDBY",
+    "operator": "BRO Project Vartak",
+    "eta_clearance_hrs": 0.0
+  },
+  {
+    "id": "BRO_VARTAK_03",
+    "unit": "Task Force 44 BRTF",
+    "type": "Twin-Auger Snow Cutter & De-Icer",
+    "location": "Sela Alpine Pass Summit (3,733m)",
+    "corridor": "CORRIDOR_NH13",
+    "lat": 27.5034,
+    "lon": 92.1039,
+    "status": "PATROLLING",
+    "operator": "BRO Project Vartak",
+    "eta_clearance_hrs": 0.0
+  },
+  {
+    "id": "BRO_SEWAK_01",
+    "unit": "Task Force 15 BRTF",
+    "type": "Heavy Crawler Rock-Dozer",
+    "location": "Paglapahar Gorge (NH-29)",
+    "corridor": "CORRIDOR_NH29",
+    "lat": 25.765,
+    "lon": 93.842,
+    "status": "ACTIVE_REMOVAL",
+    "operator": "BRO Project Sewak",
+    "eta_clearance_hrs": 1.8
+  },
+  {
+    "id": "BRO_SWASTIK_01",
+    "unit": "Task Force 758 BRTF",
+    "type": "Pneumatic Rockbreaker Excavator",
+    "location": "Teesta Bazaar Cliff Defile (NH-10)",
+    "corridor": "CORRIDOR_NH10",
+    "lat": 27.058,
+    "lon": 88.435,
+    "status": "STANDBY",
+    "operator": "BRO Project Swastik",
+    "eta_clearance_hrs": 0.0
+  },
+  {
+    "id": "BRO_PUSHPAK_01",
+    "unit": "Task Force 28 BRTF",
+    "type": "High-Capacity Mud Siphon & Excavator",
+    "location": "Sonapur Tunnel Portal (NH-6)",
+    "corridor": "CORRIDOR_NH6",
+    "lat": 25.125,
+    "lon": 92.368,
+    "status": "ACTIVE_MUD_SIPHONING",
+    "operator": "BRO Project Pushpak",
+    "eta_clearance_hrs": 3.0
+  }
+];
+
+export const ACTIVE_CONVOYS = [
+  {
+    "id": "MED_CONVOY_01",
+    "cargo": "Cold-Chain Vaccines & Oxygen Cylinders",
+    "vehicle_id": "MED_CONVOY_01",
+    "corridor": "CORRIDOR_NH13",
+    "origin": "Guwahati",
+    "destination": "Tawang Civil Hospital",
+    "lat": 27.3578,
+    "lon": 92.2394,
+    "speed_kmh": 32.0,
+    "progress_pct": 68.0,
+    "priority": "CRITICAL_MEDICAL",
+    "status": "EN_ROUTE",
+    "current_landmark": "Dirang Valley Staging Area",
+    "operational_advisory": "CONTINUE",
+    "cargo_type": "MEDICAL",
+    "driver_name": "Subedar R. Thapa",
+    "temperature_c": 3.8
+  },
+  {
+    "id": "PDS_GRAIN_04",
+    "cargo": "Essential PDS Food Grains (FCI Supply)",
+    "vehicle_id": "PDS_GRAIN_04",
+    "corridor": "CORRIDOR_NH13",
+    "origin": "Guwahati",
+    "destination": "Bomdila Ration Depot",
+    "lat": 26.6528,
+    "lon": 92.7926,
+    "speed_kmh": 48.0,
+    "progress_pct": 32.0,
+    "priority": "ESSENTIAL_FOOD",
+    "status": "EN_ROUTE",
+    "current_landmark": "Tezpur Base",
+    "operational_advisory": "CONTINUE",
+    "cargo_type": "FOOD_PDS",
+    "driver_name": "Havaldar M. Saikia",
+    "tonnage": 14.5
+  },
+  {
+    "id": "FUEL_TANKER_02",
+    "cargo": "High-Altitude Diesel & Aviation POL",
+    "vehicle_id": "FUEL_TANKER_02",
+    "corridor": "CORRIDOR_NH29",
+    "origin": "Dimapur",
+    "destination": "Kohima Reserve Depot",
+    "lat": 25.82,
+    "lon": 93.774,
+    "speed_kmh": 34.0,
+    "progress_pct": 28.0,
+    "priority": "FUEL_POL",
+    "status": "CAUTION_PROCEEDING",
+    "current_landmark": "Approaching Chumukedima Foothills",
+    "operational_advisory": "CONTINUE",
+    "cargo_type": "FUEL_POL",
+    "driver_name": "Naik K. Ao",
+    "fuel_volume_liters": 12000
+  },
+  {
+    "id": "RELIEF_SUPPLY_03",
+    "cargo": "Emergency Flood Sanitation & Trauma Kits",
+    "vehicle_id": "RELIEF_SUPPLY_03",
+    "corridor": "CORRIDOR_NH10",
+    "origin": "Siliguri",
+    "destination": "Gangtok STNM Hospital",
+    "lat": 26.885,
+    "lon": 88.472,
+    "speed_kmh": 36.0,
+    "progress_pct": 38.0,
+    "priority": "CRITICAL_MEDICAL",
+    "status": "SLOW_GORGE_TRANSIT",
+    "current_landmark": "Sevoke Coronation Bridge",
+    "operational_advisory": "CAUTION_WEATHER",
+    "cargo_type": "MEDICAL",
+    "driver_name": "L. Bhutia",
+    "priority_seal": "SDMA_PRIORITY_1"
+  }
 ];
 
 export const DEFAULT_CORRIDOR_HEALTH = {
-  status: "CAUTION",
-  average_risk_score: 0.42,
-  blocked_segments_count: 0,
-  total_segments: 15,
-  high_risk_segments_count: 3,
-  active_advisory: "Monsoon saturated slopes between Bhalukpong and Sessa. BRO standby units deployed at km 114.",
-  timestamp: "2026-09-06T12:00:00Z"
+  "status": "CAUTION",
+  "average_risk_score": 0.44,
+  "blocked_segments_count": 1,
+  "total_segments": 42,
+  "high_risk_segments_count": 6,
+  "active_advisory": "Heavy monsoon rains triggering active scree slides between Sessa (NH-13) and Paglapahar (NH-29). BRO Project Vartak & Sewak heavy clearance task forces deployed.",
+  "timestamp": "2026-09-06T20:30:00Z"
 };
 
 export const DEFAULT_DISTRICTS = [
-  { name: "Kamrup Metro", state: "Assam", status: "ACCESSIBLE", active_lifelines: 2, blocked_roads: 0, priority_depot: "Guwahati Central", medicine_stock_days: 28 },
-  { name: "Sonitpur", state: "Assam", status: "ACCESSIBLE", active_lifelines: 2, blocked_roads: 0, priority_depot: "Tezpur Base", medicine_stock_days: 21 },
-  { name: "West Kameng", state: "Arunachal Pradesh", status: "DEGRADED", active_lifelines: 1, blocked_roads: 1, priority_depot: "Bomdila Civil Hospital", medicine_stock_days: 9 },
-  { name: "Tawang", state: "Arunachal Pradesh", status: "ISOLATED_RISK", active_lifelines: 1, blocked_roads: 1, priority_depot: "Tawang Frontier Depot", medicine_stock_days: 5 }
+  {
+    "name": "Kamrup Metro",
+    "state": "Assam",
+    "status": "ACCESSIBLE",
+    "active_lifelines": 2,
+    "blocked_roads": 0,
+    "priority_depot": "Guwahati Central",
+    "medicine_stock_days": 28,
+    "food_stock_days": 45
+  },
+  {
+    "name": "Sonitpur",
+    "state": "Assam",
+    "status": "ACCESSIBLE",
+    "active_lifelines": 2,
+    "blocked_roads": 0,
+    "priority_depot": "Tezpur Military Base",
+    "medicine_stock_days": 21,
+    "food_stock_days": 35
+  },
+  {
+    "name": "West Kameng",
+    "state": "Arunachal Pradesh",
+    "status": "DEGRADED",
+    "active_lifelines": 1,
+    "blocked_roads": 1,
+    "priority_depot": "Bomdila Civil Hospital",
+    "medicine_stock_days": 9,
+    "food_stock_days": 14
+  },
+  {
+    "name": "Tawang",
+    "state": "Arunachal Pradesh",
+    "status": "ISOLATED_RISK",
+    "active_lifelines": 1,
+    "blocked_roads": 1,
+    "priority_depot": "Tawang Frontier Depot",
+    "medicine_stock_days": 5,
+    "food_stock_days": 8
+  },
+  {
+    "name": "Kohima",
+    "state": "Nagaland",
+    "status": "DEGRADED",
+    "active_lifelines": 1,
+    "blocked_roads": 1,
+    "priority_depot": "Kohima Capital Depot",
+    "medicine_stock_days": 8,
+    "food_stock_days": 12
+  },
+  {
+    "name": "Imphal West",
+    "state": "Manipur",
+    "status": "ISOLATED_RISK",
+    "active_lifelines": 1,
+    "blocked_roads": 1,
+    "priority_depot": "Imphal Regional Depot",
+    "medicine_stock_days": 4,
+    "food_stock_days": 7
+  },
+  {
+    "name": "Gangtok",
+    "state": "Sikkim",
+    "status": "DEGRADED",
+    "active_lifelines": 1,
+    "blocked_roads": 1,
+    "priority_depot": "STNM Hospital Store",
+    "medicine_stock_days": 7,
+    "food_stock_days": 10
+  },
+  {
+    "name": "East Jaintia Hills",
+    "state": "Meghalaya",
+    "status": "DEGRADED",
+    "active_lifelines": 1,
+    "blocked_roads": 1,
+    "priority_depot": "Khliehriat Supply Base",
+    "medicine_stock_days": 11,
+    "food_stock_days": 16
+  }
 ];

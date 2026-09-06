@@ -37,7 +37,7 @@ export default function LandslideRainfallPanel({ onSelectZone, onSelectRoute, we
             }`}
           >
             <AlertOctagon className="w-3.5 h-3.5" />
-            <span>Landslide Prediction (5)</span>
+            <span>Landslide Prediction ({LANDSLIDE_PREDICTION_ZONES.length})</span>
           </button>
           <button
             onClick={() => setActiveTab('rainfall')}
