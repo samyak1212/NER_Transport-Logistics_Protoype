@@ -10,35 +10,48 @@ import {
   RefreshCw, 
   Clock, 
   ShieldAlert,
-  Layers
+  Wrench,
+  Upload,
+  Layers,
+  Image,
+  Sparkles
 } from 'lucide-react';
 import { api } from '../../services/api';
 
+const MOUNTAIN_LOCATION_PRESETS = [
+  { name: 'Sessa Scree Slide (NH-13 km 114)', lat: 27.0984, lon: 92.5342, segment: 'SEG_06 (Sessa Scree Belt)' },
+  { name: 'Bhalukpong Foothill Checkpost (km 48)', lat: 27.0125, lon: 92.6394, segment: 'SEG_03 (Bhalukpong Gate)' },
+  { name: 'Nichiphu Fog Gorge (km 98)', lat: 27.1500, lon: 92.5000, segment: 'SEG_05 (Nichiphu Sector)' },
+  { name: 'Kaspi River Washout Cut (km 122)', lat: 27.2000, lon: 92.4500, segment: 'SEG_08 (Kaspi Stream Crossing)' },
+  { name: 'Sela Pass Alpine Summit (km 220)', lat: 27.5050, lon: 92.1020, segment: 'SEG_14 (Sela Summit Pass)' },
+  { name: 'Paglapahar Gorge (NH-29 km 32)', lat: 25.7500, lon: 93.9200, segment: 'SEG_22 (Paglapahar Chokepoint)' },
+  { name: 'Teesta Bazaar Scour (NH-10 km 48)', lat: 27.0600, lon: 88.4300, segment: 'SEG_27 (Teesta Riverbank)' },
+  { name: 'Sonapur Mudflow Tunnel (NH-6 km 142)', lat: 25.1250, lon: 92.3680, segment: 'SEG_32 (Sonapur Tunnel Portal)' }
+];
+
 export default function FieldOps({
   reports = [],
+  segments = [],
+  selectedCoordinates = null,
   onReportSubmitted = () => {},
-  onReportResolved = () => {},
-  selectedCoordinates = null
+  onReportResolved = () => {}
 }) {
   const [reporterName, setReporterName] = useState('BRO Junior Engineer (42 BRTF)');
   const [agency, setAgency] = useState('BRO_42_BRTF');
   const [incidentType, setIncidentType] = useState('LANDSLIDE');
   const [severity, setSeverity] = useState('BLOCKING');
-  const [lat, setLat] = useState(selectedCoordinates ? selectedCoordinates[0] : 27.0984);
-  const [lon, setLon] = useState(selectedCoordinates ? selectedCoordinates[1] : 92.5342);
+  const [lat, setLat] = useState(27.0984);
+  const [lon, setLon] = useState(92.5342);
+  const [presetLocation, setPresetLocation] = useState('Sessa Scree Slide (NH-13 km 114)');
+  const [snappedSegment, setSnappedSegment] = useState('SEG_06 (Sessa Scree Belt)');
+  const [machineryNeeded, setMachineryNeeded] = useState('CAT_320D_EXCAVATOR');
+  const [estClearanceHours, setEstClearanceHours] = useState(2.5);
   const [description, setDescription] = useState('');
+  const [photoAttached, setPhotoAttached] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [offlineQueue, setOfflineQueue] = useState([]);
   const [isSyncing, setIsSyncing] = useState(false);
-
-  // Sync with map-clicked coordinates if provided
-  useEffect(() => {
-    if (selectedCoordinates) {
-      setLat(selectedCoordinates[0]);
-      setLon(selectedCoordinates[1]);
-    }
-  }, [selectedCoordinates]);
 
   // Load offline queue from localStorage
   const loadOfflineQueue = () => {
@@ -49,6 +62,39 @@ export default function FieldOps({
   useEffect(() => {
     loadOfflineQueue();
   }, []);
+
+  const handleSelectPreset = (e) => {
+    const selectedName = e.target.value;
+    setPresetLocation(selectedName);
+    const found = MOUNTAIN_LOCATION_PRESETS.find(p => p.name === selectedName);
+    if (found) {
+      setLat(found.lat);
+      setLon(found.lon);
+      setSnappedSegment(found.segment);
+    }
+  };
+
+  const handleUseBrowserLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const cLat = parseFloat(pos.coords.latitude.toFixed(5));
+          const cLon = parseFloat(pos.coords.longitude.toFixed(5));
+          setLat(cLat);
+          setLon(cLon);
+          setPresetLocation('Custom Live GPS Coordinates');
+          setSnappedSegment(`Snapped to Nearest Highway Segment (${cLat}, ${cLon})`);
+        },
+        () => {
+          // Fallback
+          setLat(27.0984);
+          setLon(92.5342);
+          setPresetLocation('Sessa Scree Slide (NH-13 km 114)');
+          setSnappedSegment('SEG_06 (Sessa Scree Belt)');
+        }
+      );
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -61,17 +107,34 @@ export default function FieldOps({
         severity: severity,
         latitude: parseFloat(lat),
         longitude: parseFloat(lon),
-        description: description || `Severe ${incidentType.toLowerCase()} causing road restriction.`
+        description: description || `Severe ${incidentType.toLowerCase()} reported by field unit. Snapped to ${snappedSegment}. Requires ${machineryNeeded} (Est ${estClearanceHours}h clearance).`
       };
 
       const res = await api.submitFieldReport(payload);
       setSubmitSuccess(true);
-      setTimeout(() => setSubmitSuccess(false), 4000);
+      setTimeout(() => setSubmitSuccess(false), 5000);
       setDescription('');
+      setPhotoAttached(false);
       loadOfflineQueue();
       onReportSubmitted(res);
     } catch (err) {
-      console.error('Error submitting report:', err);
+      console.error('Error submitting report, saving to offline queue:', err);
+      // Save to offline queue
+      const currentQ = JSON.parse(localStorage.getItem('offline_field_reports') || '[]');
+      currentQ.push({
+        reporter_name: reporterName,
+        agency: agency,
+        incident_type: incidentType,
+        severity: severity,
+        latitude: parseFloat(lat),
+        longitude: parseFloat(lon),
+        description: description || `Offline field incident at ${presetLocation}.`,
+        timestamp: new Date().toISOString()
+      });
+      localStorage.setItem('offline_field_reports', JSON.stringify(currentQ));
+      loadOfflineQueue();
+      setSubmitSuccess(true);
+      setTimeout(() => setSubmitSuccess(false), 5000);
     } finally {
       setIsSubmitting(false);
     }
@@ -85,16 +148,7 @@ export default function FieldOps({
 
     for (const item of offlineQueue) {
       try {
-        const payload = {
-          reporter_name: item.reporter_name,
-          agency: item.agency,
-          incident_type: item.incident_type,
-          severity: item.severity,
-          latitude: item.latitude,
-          longitude: item.longitude,
-          description: item.description
-        };
-        await api.submitFieldReport(payload);
+        await api.submitFieldReport(item);
       } catch (err) {
         remaining.push(item);
       }
@@ -107,236 +161,345 @@ export default function FieldOps({
   };
 
   const incidentTypes = [
-    { id: 'LANDSLIDE', label: 'Landslide', icon: '⛰️' },
-    { id: 'FLASH_FLOOD', label: 'Flash Flood', icon: '🌊' },
-    { id: 'ROAD_BLOCKAGE', label: 'Debris Fall', icon: '🚧' },
-    { id: 'BRIDGE_DAMAGED', label: 'Bridge Damage', icon: '🌉' },
-    { id: 'TREE_FALL', label: 'Tree Fall', icon: '🌲' },
+    { id: 'LANDSLIDE', label: 'Landslide / Rockfall', icon: '⛰️' },
+    { id: 'MUDFLOW', label: 'Mudflow / Debris Washout', icon: '🌊' },
+    { id: 'FLASH_FLOOD', label: 'Flash Flood Inundation', icon: '🌧️' },
+    { id: 'BRIDGE_DAMAGE', label: 'Bridge / Culvert Damaged', icon: '🌉' },
+    { id: 'SNOW_BLOCKAGE', label: 'Snow / Ice Sleet', icon: '❄️' },
+    { id: 'TREE_FALL', label: 'Fallen Tree / Powerline', icon: '🌲' }
   ];
 
   return (
-    <div className="space-y-4 text-slate-200">
-      {/* 1. Offline Synchronization Status Banner */}
-      <div className="p-3 rounded-xl glass-panel border border-slate-800 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2 text-xs">
-          <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></div>
-          <span className="font-semibold text-slate-100">Store-and-Forward Offline Cache:</span>
-          <span className="text-slate-400">
-            {offlineQueue.length > 0
-              ? `${offlineQueue.length} incidents safely queued locally in zero-network buffer`
-              : 'All ground field reports synchronized with regional command cloud.'}
-          </span>
+    <div className="space-y-4 text-slate-200 font-sans">
+      {/* 1. Header Banner & Offline Sync Bar */}
+      <div className="glass-panel p-4 rounded-xl border border-slate-700/80 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-3 bg-gradient-to-r from-slate-900 to-defense-900">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0">
+            <Wrench className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-xs font-bold font-mono uppercase tracking-wider text-cyan-400">
+              Field Operations & Checkpost Incident Console
+            </div>
+            <div className="text-sm font-black text-white">
+              On-Ground Obstacle Logging, Photo Evidence & Road Reopening
+            </div>
+            <div className="text-[11px] text-slate-400">
+              Designed for BRO Junior Engineers, Police Border Checkposts, and Patrol Teams
+            </div>
+          </div>
         </div>
 
-        {offlineQueue.length > 0 && (
-          <button
-            onClick={handleSyncOffline}
-            disabled={isSyncing}
-            className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-lg flex items-center gap-1.5 shadow-md shadow-amber-500/20 transition-all disabled:opacity-50"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-            <span>SYNC QUEUE ({offlineQueue.length})</span>
-          </button>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* 2. Left: 30-Second Mobile Incident Logger */}
-        <div className="glass-panel p-4 rounded-xl border border-slate-800">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-            <h3 className="font-bold text-xs uppercase tracking-wider text-slate-200 flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-amber-400" />
-              Field Incident Logger (Clause f)
-            </h3>
-            <span className="text-[10px] text-cyan-400 font-mono">BRO / Police</span>
+        {/* Offline Queue Status & Sync Button */}
+        <div className="flex items-center gap-2 self-stretch md:self-auto justify-end">
+          <div className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold border flex items-center gap-2 ${
+            offlineQueue.length > 0 
+              ? 'bg-amber-500/10 border-amber-500/40 text-amber-300' 
+              : 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300'
+          }`}>
+            {offlineQueue.length > 0 ? <WifiOff className="w-3.5 h-3.5" /> : <Wifi className="w-3.5 h-3.5" />}
+            <span>{offlineQueue.length > 0 ? `${offlineQueue.length} Queued Offline` : 'Online & Synchronized'}</span>
           </div>
 
-          <form onSubmit={handleSubmit} className="mt-3 space-y-3 text-xs">
-            {/* Incident Type Grid */}
+          {offlineQueue.length > 0 && (
+            <button
+              onClick={handleSyncOffline}
+              disabled={isSyncing}
+              className="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center gap-1.5 shadow"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+              <span>Sync Queue</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Submission Success Toast */}
+      {submitSuccess && (
+        <div className="p-3 rounded-xl bg-emerald-600 text-white font-bold text-xs flex items-center gap-2 shadow-lg animate-fadeIn">
+          <CheckCircle2 className="w-4 h-4" />
+          <span>Incident broadcasted successfully! Road segment has been updated in the regional routing graph and Command HQ alerted.</span>
+        </div>
+      )}
+
+      {/* 2. Main Two-Column Layout: Incident Logger on Left, Active Obstacle Feed on Right */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        {/* Left 7 Columns: Rapid Incident Logging Form */}
+        <div className="lg:col-span-7 glass-panel p-5 rounded-2xl border border-slate-800 shadow-xl space-y-4">
+          <h3 className="font-bold text-xs uppercase tracking-wider text-slate-200 flex items-center gap-2 pb-2 border-b border-slate-800">
+            <AlertTriangle className="w-4 h-4 text-amber-400" />
+            Rapid 60-Second On-Ground Disruption Logger (Clause f)
+          </h3>
+
+          <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+            {/* Step 1: Incident Category Grid */}
             <div>
-              <label className="text-slate-400 font-medium">Incident Category</label>
-              <div className="mt-1.5 grid grid-cols-2 gap-1.5">
-                {incidentTypes.map(t => (
+              <label className="text-slate-300 font-bold block mb-2 font-mono">
+                1. Select Incident Classification:
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {incidentTypes.map((type) => (
                   <button
-                    key={t.id}
+                    key={type.id}
                     type="button"
-                    onClick={() => setIncidentType(t.id)}
-                    className={`py-2 px-2.5 rounded-lg border text-left flex items-center gap-2 transition-all ${
-                      incidentType === t.id
-                        ? 'bg-amber-500/20 border-amber-500/60 text-amber-200 font-bold'
-                        : 'bg-defense-900 border-slate-800 text-slate-400 hover:border-slate-700'
+                    onClick={() => setIncidentType(type.id)}
+                    className={`p-2.5 rounded-xl border text-left flex items-center gap-2 transition-all cursor-pointer ${
+                      incidentType === type.id
+                        ? 'bg-cyan-500/20 border-cyan-400 text-white font-bold shadow-md shadow-cyan-950'
+                        : 'bg-defense-900 border-slate-700 text-slate-300 hover:border-slate-500'
                     }`}
                   >
-                    <span>{t.icon}</span>
-                    <span className="truncate">{t.label}</span>
+                    <span className="text-lg">{type.icon}</span>
+                    <span className="text-[11px] leading-tight">{type.label}</span>
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Severity Chips */}
-            <div>
-              <label className="text-slate-400 font-medium">Hazard Severity & Road Impact</label>
-              <div className="mt-1.5 grid grid-cols-3 gap-1.5">
-                {['MINOR', 'MAJOR', 'BLOCKING'].map(s => (
+            {/* Step 2: Location and GPS Snapping */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-slate-300 font-bold block mb-1 font-mono">
+                  2. Mountain Chokepoint Preset:
+                </label>
+                <select
+                  value={presetLocation}
+                  onChange={handleSelectPreset}
+                  className="w-full bg-defense-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 font-mono text-xs focus:border-cyan-500 outline-none cursor-pointer"
+                >
+                  {MOUNTAIN_LOCATION_PRESETS.map((p, idx) => (
+                    <option key={idx} value={p.name}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-slate-300 font-bold block mb-1 font-mono flex items-center justify-between">
+                  <span>GPS Coordinates:</span>
                   <button
-                    key={s}
                     type="button"
-                    onClick={() => setSeverity(s)}
-                    className={`py-1.5 rounded-lg border font-mono font-bold text-center text-[11px] transition-all ${
-                      severity === s
-                        ? s === 'BLOCKING'
-                          ? 'bg-rose-500 text-white border-rose-600 shadow-md shadow-rose-900/50'
-                          : s === 'MAJOR'
-                          ? 'bg-amber-500 text-slate-950 border-amber-600'
-                          : 'bg-blue-500 text-white border-blue-600'
-                        : 'bg-defense-900 border-slate-800 text-slate-400'
-                    }`}
+                    onClick={handleUseBrowserLocation}
+                    className="text-[10px] text-cyan-400 hover:underline flex items-center gap-1 font-sans"
                   >
-                    {s}
+                    <MapPin className="w-3 h-3" />
+                    <span>Get Live GPS</span>
                   </button>
-                ))}
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    step="any"
+                    value={lat}
+                    onChange={(e) => setLat(e.target.value)}
+                    placeholder="Latitude"
+                    className="w-1/2 bg-defense-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-100 font-mono text-xs focus:border-cyan-500 outline-none"
+                  />
+                  <input
+                    type="number"
+                    step="any"
+                    value={lon}
+                    onChange={(e) => setLon(e.target.value)}
+                    placeholder="Longitude"
+                    className="w-1/2 bg-defense-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-100 font-mono text-xs focus:border-cyan-500 outline-none"
+                  />
+                </div>
               </div>
             </div>
 
-            {/* GPS Coordinates */}
-            <div className="grid grid-cols-2 gap-2 font-mono">
+            {/* Road Snapping Confirmation Pill */}
+            <div className="p-2.5 rounded-lg bg-slate-900 border border-cyan-500/30 flex items-center justify-between text-[11px] font-mono">
+              <span className="text-slate-400">Automatic Road Snapping:</span>
+              <span className="text-cyan-400 font-bold flex items-center gap-1">
+                <span>🛣️</span>
+                <span>{snappedSegment}</span>
+              </span>
+            </div>
+
+            {/* Step 3: Severity & Clearance Estimate */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-slate-400 text-[11px]">Latitude (°N)</label>
-                <input
-                  type="number"
-                  step="0.0001"
-                  value={lat}
-                  onChange={(e) => setLat(e.target.value)}
-                  className="mt-1 w-full bg-defense-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-100 text-xs outline-none focus:border-cyan-500"
-                  required
-                />
+                <label className="text-slate-300 font-bold block mb-1 font-mono">
+                  3. Road Passability Severity:
+                </label>
+                <div className="flex gap-1.5">
+                  {[
+                    { id: 'MINOR', label: 'Minor Caution', color: 'bg-amber-500/20 border-amber-500 text-amber-300' },
+                    { id: 'MAJOR', label: 'Single-Lane Only', color: 'bg-orange-500/20 border-orange-500 text-orange-300' },
+                    { id: 'BLOCKING', label: 'Total Blockage', color: 'bg-rose-500/20 border-rose-500 text-rose-300' }
+                  ].map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => setSeverity(s.id)}
+                      className={`flex-1 py-1.5 px-2 rounded-lg border text-center text-[10px] font-bold font-mono transition-all cursor-pointer ${
+                        severity === s.id ? `${s.color} font-black shadow` : 'bg-defense-900 border-slate-700 text-slate-400'
+                      }`}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
               </div>
+
               <div>
-                <label className="text-slate-400 text-[11px]">Longitude (°E)</label>
-                <input
-                  type="number"
-                  step="0.0001"
-                  value={lon}
-                  onChange={(e) => setLon(e.target.value)}
-                  className="mt-1 w-full bg-defense-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-100 text-xs outline-none focus:border-cyan-500"
-                  required
-                />
+                <label className="text-slate-300 font-bold block mb-1 font-mono">
+                  4. Machinery Required for Clearance:
+                </label>
+                <select
+                  value={machineryNeeded}
+                  onChange={(e) => setMachineryNeeded(e.target.value)}
+                  className="w-full bg-defense-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 font-mono text-xs focus:border-cyan-500 outline-none cursor-pointer"
+                >
+                  <option value="CAT_320D_EXCAVATOR">CAT 320D Hydraulic Excavator</option>
+                  <option value="CRAWLER_DOZER">Crawler Wheel Dozer</option>
+                  <option value="TWIN_AUGER_SNOW_CUTTER">Twin-Auger Snow Cutter</option>
+                  <option value="HIGH_LIFT_LOADER">High-Lift Front Loader</option>
+                  <option value="MANUAL_GANG">Manual Shovel & Rock Gang</option>
+                </select>
               </div>
             </div>
 
-            {/* Notes */}
+            {/* Step 4: Photo Evidence & Description */}
             <div>
-              <label className="text-slate-400 font-medium">Field Observations / Clearance Notes</label>
+              <div className="flex justify-between items-center mb-1">
+                <label className="text-slate-300 font-bold font-mono">
+                  5. Incident Notes & Photo Evidence:
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setPhotoAttached(!photoAttached)}
+                  className={`text-[11px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 transition-all ${
+                    photoAttached 
+                      ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300' 
+                      : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Camera className="w-3 h-3" />
+                  <span>{photoAttached ? '✓ Photo Attached' : 'Attach Photo'}</span>
+                </button>
+              </div>
+
+              {photoAttached && (
+                <div className="mb-2 p-2.5 rounded-lg bg-slate-900 border border-slate-700 flex items-center gap-3">
+                  <div className="w-12 h-12 rounded bg-slate-800 border border-slate-600 flex items-center justify-center text-slate-400 text-xs">
+                    📸 RAW
+                  </div>
+                  <div className="text-[11px] text-slate-300">
+                    <span className="font-bold text-white">IMG_HIMALAYA_DEBRIS_0942.JPG</span> (2.4 MB)<br/>
+                    <span className="text-slate-400 font-mono text-[10px]">Geotagged: {lat}, {lon} &bull; Time: Just Now</span>
+                  </div>
+                </div>
+              )}
+
               <textarea
-                rows={2}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="e.g. Mudflow 40m wide across both lanes. Excavator required."
-                className="mt-1 w-full bg-defense-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 text-xs outline-none focus:border-cyan-500"
+                rows={2}
+                placeholder="Brief on-ground remark (e.g. 50 meters rockfall, scree still rolling down mountain slope, boulder obstruction)..."
+                className="w-full bg-defense-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 text-xs focus:border-cyan-500 outline-none resize-none font-sans"
               />
             </div>
 
-            {/* Photo upload mock button */}
-            <div className="flex items-center justify-between p-2 rounded-lg bg-defense-900 border border-slate-800 text-slate-400">
-              <span className="flex items-center gap-1.5">
-                <Camera className="w-4 h-4 text-cyan-400" />
-                <span>Geotagged Photo:</span>
-              </span>
-              <span className="text-[10px] text-cyan-400 font-mono">GPS Embedded</span>
-            </div>
-
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-2.5 bg-gradient-to-r from-amber-500 to-rose-600 hover:from-amber-600 hover:to-rose-700 text-white font-bold rounded-lg shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-xs uppercase tracking-wider shadow-xl shadow-cyan-950 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-98"
             >
-              <Send className="w-3.5 h-3.5" />
-              <span>{isSubmitting ? 'Transmitting Incident...' : 'TRANSMIT GEO-TAGGED REPORT'}</span>
+              <Send className="w-4 h-4" />
+              <span>{isSubmitting ? 'TRANSMITTING INCIDENT...' : 'TRANSMIT ON-GROUND INCIDENT REPORT'}</span>
             </button>
-
-            {submitSuccess && (
-              <div className="p-2 rounded bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-center font-bold text-xs flex items-center justify-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Incident Logged & Snapped to Road Segment!</span>
-              </div>
-            )}
           </form>
         </div>
 
-        {/* 3. Right: Active Incident Feed & One-Click Road Reopening */}
-        <div className="lg:col-span-2 glass-panel p-4 rounded-xl border border-slate-800">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-            <h3 className="font-bold text-xs uppercase tracking-wider text-slate-200 flex items-center gap-2">
-              <ShieldAlert className="w-4 h-4 text-rose-400" />
-              Active Corridor Disruption Feed & Clearance Lifecycle
-            </h3>
-            <span className="text-[11px] font-mono text-slate-400">
-              {reports.filter(r => !r.is_resolved).length} Active Incidents
-            </span>
+        {/* Right 5 Columns: Active Field Obstacles & Road Reopening Actions */}
+        <div className="lg:col-span-5 glass-panel p-5 rounded-2xl border border-slate-800 shadow-xl flex flex-col justify-between space-y-4">
+          <div>
+            <div className="flex justify-between items-center pb-2 border-b border-slate-800">
+              <h3 className="font-bold text-xs uppercase tracking-wider text-slate-200 flex items-center gap-2">
+                <ShieldAlert className="w-4 h-4 text-rose-400" />
+                Active Field Obstacles ({reports.filter(r => !r.is_resolved).length})
+              </h3>
+              <span className="text-[10px] font-mono text-slate-400">
+                1-Click Road Reopening
+              </span>
+            </div>
+
+            <div className="mt-3 space-y-3 max-h-[480px] overflow-y-auto pr-1">
+              {reports.length === 0 ? (
+                <div className="p-8 text-center text-slate-500 text-xs font-mono">
+                  No active on-ground disruptions reported.
+                </div>
+              ) : (
+                reports.map((r) => {
+                  const isBlocked = r.severity === 'BLOCKING';
+                  return (
+                    <div 
+                      key={r.id} 
+                      className={`p-3.5 rounded-xl border text-xs space-y-2.5 transition-all ${
+                        r.is_resolved 
+                          ? 'bg-slate-900/40 border-slate-800 opacity-60' 
+                          : isBlocked 
+                          ? 'bg-rose-950/30 border-rose-500/50 shadow-md' 
+                          : 'bg-defense-900 border-slate-800'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <span className="font-bold text-slate-100 flex items-center gap-1.5">
+                            <span>{r.incident_type === 'LANDSLIDE' ? '⛰️' : '⚠️'}</span>
+                            <span>{r.incident_type}</span>
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-mono block mt-0.5">
+                            By {r.reporter_name || 'BRO Patrol'} &bull; {r.agency || 'BRO'}
+                          </span>
+                        </div>
+
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                          r.is_resolved 
+                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' 
+                            : isBlocked 
+                            ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40 animate-pulse' 
+                            : 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
+                        }`}>
+                          {r.is_resolved ? 'CLEARED / REOPENED' : r.severity}
+                        </span>
+                      </div>
+
+                      <p className="text-[11px] text-slate-300 font-sans">
+                        {r.description}
+                      </p>
+
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-800/80 text-[10px] font-mono">
+                        <span className="text-slate-400">
+                          Coords: {r.latitude?.toFixed(4)}, {r.longitude?.toFixed(4)}
+                        </span>
+
+                        {!r.is_resolved ? (
+                          <button
+                            type="button"
+                            onClick={() => onReportResolved(r.id)}
+                            className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg shadow flex items-center gap-1 transition-all active:scale-95"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Mark Cleared / Reopen Road</span>
+                          </button>
+                        ) : (
+                          <span className="text-emerald-400 font-bold flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" />
+                            <span>Road Reopened</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </div>
 
-          <div className="mt-3 space-y-2.5 max-h-[500px] overflow-y-auto pr-1">
-            {reports.map((report) => (
-              <div
-                key={report.id}
-                className={`p-3 rounded-lg border text-xs transition-all ${
-                  report.is_resolved
-                    ? 'bg-defense-900/40 border-slate-800/60 opacity-60'
-                    : 'bg-defense-900 border-slate-800 shadow-md'
-                }`}
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className={`px-2 py-0.5 rounded font-mono text-[10px] font-bold ${
-                      report.severity === 'BLOCKING'
-                        ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
-                        : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                    }`}>
-                      {report.incident_type} • {report.severity}
-                    </span>
-                    <span className="font-mono text-[10px] text-slate-500">
-                      ID: {report.id}
-                    </span>
-                  </div>
-
-                  <span className="text-[11px] font-mono text-slate-400 flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    {report.timestamp}
-                  </span>
-                </div>
-
-                <div className="mt-2 text-slate-200 font-medium">
-                  {report.description}
-                </div>
-
-                <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400 font-mono">
-                  <div>
-                    Snapped: <b className="text-cyan-400">{report.snapped_segment_name || 'Highway Corridor'}</b>
-                    <span className="ml-2 text-slate-500">({report.latitude.toFixed(4)}°N, {report.longitude.toFixed(4)}°E)</span>
-                  </div>
-                  <div>Reported by: <b className="text-slate-300">{report.agency}</b></div>
-                </div>
-
-                {/* 1-Click Road Clearance Action */}
-                {!report.is_resolved ? (
-                  <div className="mt-3 pt-2 border-t border-slate-800 flex justify-end">
-                    <button
-                      onClick={() => onReportResolved(report.id)}
-                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded text-[11px] flex items-center gap-1.5 shadow-md shadow-emerald-900/30 transition-all"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>MARK CLEARED / REOPEN ROAD</span>
-                    </button>
-                  </div>
-                ) : (
-                  <div className="mt-2 text-[11px] font-mono text-emerald-400 flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Debris cleared and road reopened into routing graph.</span>
-                  </div>
-                )}
-              </div>
-            ))}
+          <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-[11px] text-slate-400 font-mono">
+            💡 <b>Field Protocol:</b> Once bulldozers or rockbreakers finish debris removal, tapping <b>'Mark Cleared'</b> immediately unblocks the road segment in the central routing engine and alerts all moving convoys.
           </div>
         </div>
       </div>

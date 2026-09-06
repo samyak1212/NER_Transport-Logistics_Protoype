@@ -1,14 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
-import MapCanvas from './components/MapCanvas';
-import GeotechnicalDrawer from './components/GeotechnicalDrawer';
 import CommandHQ from './components/workspaces/CommandHQ';
 import LogisticsDispatch from './components/workspaces/LogisticsDispatch';
 import FieldOps from './components/workspaces/FieldOps';
 import DriverHUD from './components/workspaces/DriverHUD';
 import PublicPortal from './components/workspaces/PublicPortal';
 import SimulationLab from './components/workspaces/SimulationLab';
-import LandslideRainfallPanel from './components/LandslideRainfallPanel';
 import { 
   DEFAULT_NODES, 
   DEFAULT_SEGMENTS, 
@@ -154,10 +151,10 @@ export default function App() {
 
       {/* Main Content Layout */}
       <main className="flex-1 p-3 md:p-4 max-w-[1700px] w-full mx-auto space-y-4">
-        {/* Top Split: Map Canvas & Geotechnical Inspector Drawer */}
-        <div className="relative w-full h-[450px] md:h-[500px] flex rounded-xl overflow-hidden border border-slate-800 shadow-2xl">
-          <div className="flex-1 h-full">
-            <MapCanvas
+        {/* Role-Tailored Workspace Views */}
+        <div className="transition-all">
+          {activeWorkspace === 'command' && (
+            <CommandHQ
               nodes={nodes}
               segments={segments}
               activeRoute={activeRoute}
@@ -165,51 +162,20 @@ export default function App() {
               reports={reports}
               selectedSegment={selectedSegment}
               onSelectSegment={(seg) => setSelectedSegment(seg)}
-              activeWorkspace={activeWorkspace}
-            />
-          </div>
-
-          {/* Drawer appears when a road segment is clicked */}
-          {selectedSegment && (
-            <div className="absolute top-0 right-0 h-full z-[1100]">
-              <GeotechnicalDrawer
-                segment={selectedSegment}
-                onClose={() => setSelectedSegment(null)}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Real-Time Disruption Prediction, Rainfall & Lifeline Corridors (SIH Clauses b & c) */}
-        <LandslideRainfallPanel
-          weatherData={weatherData}
-          onSelectZone={(zone) => {
-            const match = segments.find(s => s.id === zone.id || s.name.toLowerCase().includes(zone.name.split(' ')[0].toLowerCase()));
-            if (match) setSelectedSegment(match);
-          }}
-          onSelectRoute={(routeType) => {
-            if (routeType === 'bypass') {
-              handleCalculateRoute('Guwahati', 'Tawang', 'CRITICAL_MEDICAL');
-            }
-          }}
-        />
-
-        {/* Lower Split: Role-Tailored Workspace Views */}
-        <div className="transition-all">
-          {activeWorkspace === 'command' && (
-            <CommandHQ
               corridorHealth={corridorHealth}
               districts={districts}
               broMachinery={broMachinery}
               weatherData={weatherData}
               executiveBrief={executiveBrief}
-              onSelectSegment={(seg) => setSelectedSegment(seg)}
+              onCalculateRoute={handleCalculateRoute}
             />
           )}
 
           {activeWorkspace === 'dispatch' && (
             <LogisticsDispatch
               nodes={nodes}
+              segments={segments}
+              activeRoute={activeRoute}
               activeVehicle={activeVehicle}
               comparisonData={comparisonData}
               onCalculateRoute={handleCalculateRoute}
@@ -224,6 +190,7 @@ export default function App() {
           {activeWorkspace === 'field' && (
             <FieldOps
               reports={reports}
+              segments={segments}
               selectedCoordinates={selectedCoordinates}
               onReportSubmitted={refreshAllData}
               onReportResolved={handleReportResolved}
@@ -231,11 +198,17 @@ export default function App() {
           )}
 
           {activeWorkspace === 'driver' && (
-            <DriverHUD activeVehicle={activeVehicle} />
+            <DriverHUD 
+              activeVehicle={activeVehicle} 
+              onRerouteVehicle={handleRerouteVehicle}
+            />
           )}
 
           {activeWorkspace === 'public' && (
-            <PublicPortal activeVehicle={activeVehicle} />
+            <PublicPortal 
+              activeVehicle={activeVehicle} 
+              weatherData={weatherData}
+            />
           )}
 
           {activeWorkspace === 'lab' && (
