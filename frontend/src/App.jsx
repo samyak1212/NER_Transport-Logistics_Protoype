@@ -27,6 +27,7 @@ export default function App() {
   const [nodes, setNodes] = useState(DEFAULT_NODES);
   const [activeRoute, setActiveRoute] = useState(null);
   const [activeVehicle, setActiveVehicle] = useState(null);
+  const [convoys, setConvoys] = useState(ACTIVE_CONVOYS);
   const [comparisonData, setComparisonData] = useState(null);
   const [reports, setReports] = useState([]);
   const [broMachinery, setBroMachinery] = useState([]);
@@ -35,10 +36,14 @@ export default function App() {
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
   const [selectedCoordinates, setSelectedCoordinates] = useState(null);
 
+  const currentDriver = REGISTERED_DRIVERS.find(d => d.id === selectedDriverId) || REGISTERED_DRIVERS[0];
+  const targetVehicleId = currentDriver?.assigned_vehicle_id || 'MED_CONVOY_01';
+  const currentVehicle = convoys.find(v => v.driver_id === selectedDriverId || v.id === targetVehicleId) || activeVehicle || convoys[0];
+
   // Initial Data Fetch
   const refreshAllData = async () => {
     try {
-      const [cHealth, dists, segs, nds, reps, bro, wthr, brief, vTele] = await Promise.all([
+      const [cHealth, dists, segs, nds, reps, bro, wthr, brief, vTele, allV] = await Promise.all([
         api.getCorridorHealth().catch(() => null),
         api.getDistricts().catch(() => []),
         api.getSegments().catch(() => []),
@@ -47,7 +52,8 @@ export default function App() {
         api.getBROMachinery().catch(() => []),
         api.getCorridorWeather().catch(() => []),
         api.getExecutiveBrief().catch(() => null),
-        api.getVehicleTelemetry().catch(() => null)
+        api.getVehicleTelemetry(targetVehicleId).catch(() => null),
+        api.getAllVehicles().catch(() => [])
       ]);
 
       if (cHealth) setCorridorHealth(cHealth);
@@ -59,6 +65,7 @@ export default function App() {
       if (wthr) setWeatherData(wthr);
       if (brief) setExecutiveBrief(brief);
       if (vTele) setActiveVehicle(vTele);
+      if (allV && allV.length > 0) setConvoys(allV);
 
       // Preload baseline comparison metrics without forcing a turn-by-turn route on the map
       if (!comparisonData) {
@@ -76,13 +83,18 @@ export default function App() {
 
     // Telemetry polling interval (every 4 seconds)
     const interval = setInterval(() => {
-      api.getVehicleTelemetry('MED_CONVOY_01')
-        .then(v => setActiveVehicle(v))
+      api.getVehicleTelemetry(targetVehicleId)
+        .then(v => {
+          if (v) {
+            setActiveVehicle(v);
+            setConvoys(prev => prev.map(c => c.id === targetVehicleId ? { ...c, ...v, lat: v.current_lat || c.lat, lon: v.current_lon || c.lon } : c));
+          }
+        })
         .catch(() => {});
     }, 4000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [selectedDriverId, targetVehicleId]);
 
   // Handlers
   const handleCalculateRoute = async (origin, dest, cargo) => {
@@ -103,29 +115,37 @@ export default function App() {
 
   const handleAdvanceVehicle = async (stepPct = 4.0) => {
     try {
-      const updated = await api.advanceVehicle('MED_CONVOY_01', stepPct);
+      const updated = await api.advanceVehicle(targetVehicleId, stepPct);
       setActiveVehicle(updated);
+      setConvoys(prev => prev.map(c => c.id === targetVehicleId ? { ...c, ...updated, lat: updated.current_lat || c.lat, lon: updated.current_lon || c.lon } : c));
     } catch (err) {
       console.error('Failed to advance vehicle:', err);
     }
   };
 
   const handlePauseVehicle = async () => {
-    await api.pauseVehicle('MED_CONVOY_01');
-    const v = await api.getVehicleTelemetry('MED_CONVOY_01');
-    setActiveVehicle(v);
+    await api.pauseVehicle(targetVehicleId);
+    const v = await api.getVehicleTelemetry(targetVehicleId);
+    if (v) {
+      setActiveVehicle(v);
+      setConvoys(prev => prev.map(c => c.id === targetVehicleId ? { ...c, ...v } : c));
+    }
   };
 
   const handleResumeVehicle = async () => {
-    await api.resumeVehicle('MED_CONVOY_01');
-    const v = await api.getVehicleTelemetry('MED_CONVOY_01');
-    setActiveVehicle(v);
+    await api.resumeVehicle(targetVehicleId);
+    const v = await api.getVehicleTelemetry(targetVehicleId);
+    if (v) {
+      setActiveVehicle(v);
+      setConvoys(prev => prev.map(c => c.id === targetVehicleId ? { ...c, ...v } : c));
+    }
   };
 
   const handleRerouteVehicle = async () => {
     try {
-      const updated = await api.rerouteVehicle('MED_CONVOY_01');
+      const updated = await api.rerouteVehicle(targetVehicleId);
       setActiveVehicle(updated);
+      setConvoys(prev => prev.map(c => c.id === targetVehicleId ? { ...c, ...updated, lat: updated.current_lat || c.lat, lon: updated.current_lon || c.lon } : c));
       refreshAllData();
     } catch (err) {
       console.error('Reroute failed:', err);
@@ -143,12 +163,11 @@ export default function App() {
 
   const activeAlertsCount = reports.filter(r => !r.is_resolved).length;
 
-  const currentDriver = REGISTERED_DRIVERS.find(d => d.id === selectedDriverId) || REGISTERED_DRIVERS[0];
-  const currentVehicle = ACTIVE_CONVOYS.find(v => v.driver_id === selectedDriverId || v.id === currentDriver.assigned_vehicle_id) || activeVehicle || ACTIVE_CONVOYS[0];
-
   const handleSelectDriver = (driverId) => {
     setSelectedDriverId(driverId);
-    const matched = ACTIVE_CONVOYS.find(v => v.driver_id === driverId);
+    const drv = REGISTERED_DRIVERS.find(d => d.id === driverId);
+    const vId = drv?.assigned_vehicle_id;
+    const matched = convoys.find(v => v.driver_id === driverId || v.id === vId);
     if (matched) {
       setActiveVehicle(matched);
     }
@@ -173,7 +192,7 @@ export default function App() {
               segments={segments}
               activeRoute={activeRoute}
               activeVehicle={currentVehicle}
-              allConvoys={ACTIVE_CONVOYS}
+              allConvoys={convoys}
               drivers={REGISTERED_DRIVERS}
               selectedDriverId={selectedDriverId}
               onSelectDriver={handleSelectDriver}
@@ -234,7 +253,7 @@ export default function App() {
             <PublicPortal 
               activeVehicle={currentVehicle}
               currentDriver={currentDriver}
-              allConvoys={ACTIVE_CONVOYS}
+              allConvoys={convoys}
               weatherData={weatherData}
             />
           )}

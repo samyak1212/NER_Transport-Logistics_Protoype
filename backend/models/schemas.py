@@ -30,6 +30,8 @@ class RoadSegment(BaseModel):
     risk_level: str = "LOW"  # LOW, MODERATE, HIGH, IMPASSABLE
     district: str
     bridge_limit_tons: Optional[float] = None
+    risk_breakdown: Optional[Dict[str, Any]] = None
+    ai_disruption_prob: Optional[float] = None
 
 
 class CorridorHealth(BaseModel):
@@ -72,6 +74,7 @@ class RouteSegmentDetail(BaseModel):
     slope_deg: float
     elevation_m: float
     coordinates: List[List[float]]
+    risk_breakdown: Optional[Dict[str, Any]] = None
 
 
 class RouteResponse(BaseModel):

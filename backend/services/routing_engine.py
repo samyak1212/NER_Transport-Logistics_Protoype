@@ -120,6 +120,7 @@ class RoutingEngine:
             seg_copy["risk_score"] = risk
             seg_copy["risk_level"] = level
             seg_copy["risk_breakdown"] = breakdown
+            seg_copy["ai_disruption_prob"] = breakdown.get("ai_disruption_prob", risk)
             self.segments[seg_copy["id"]] = seg_copy
 
     def update_segment_blockage(self, segment_id: str, is_blocked: bool, reason: str = None):
@@ -136,6 +137,7 @@ class RoutingEngine:
             self.segments[segment_id]["risk_score"] = risk
             self.segments[segment_id]["risk_level"] = level
             self.segments[segment_id]["risk_breakdown"] = breakdown
+            self.segments[segment_id]["ai_disruption_prob"] = breakdown.get("ai_disruption_prob", risk)
 
     def set_rainfall_multiplier(self, multiplier: float):
         """Simulates monsoon rainfall variation across the network."""
@@ -151,6 +153,7 @@ class RoutingEngine:
             seg["risk_score"] = risk
             seg["risk_level"] = level
             seg["risk_breakdown"] = breakdown
+            seg["ai_disruption_prob"] = breakdown.get("ai_disruption_prob", risk)
 
     def build_graph(self, mode: str, cargo_priority: str) -> nx.DiGraph:
         """
@@ -259,7 +262,8 @@ class RoutingEngine:
                 risk_level=seg["risk_level"],
                 slope_deg=seg["geotechnical"]["slope_deg"],
                 elevation_m=seg["geotechnical"]["elevation_m"],
-                coordinates=seg["coordinates"]
+                coordinates=seg["coordinates"],
+                risk_breakdown=seg.get("risk_breakdown")
             )
             segments_detail.append(detail)
 

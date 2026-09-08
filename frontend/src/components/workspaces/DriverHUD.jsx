@@ -36,6 +36,37 @@ export default function DriverHUD({
   const [sosSent, setSosSent] = useState(false);
   const [audioMuted, setAudioMuted] = useState(false);
   const [showDriverModal, setShowDriverModal] = useState(false);
+  const [gpsMode, setGpsMode] = useState('SIMULATED'); // 'SIMULATED' or 'LIVE_DEVICE'
+  const [liveGpsData, setLiveGpsData] = useState(null);
+  const [gpsError, setGpsError] = useState(null);
+
+  React.useEffect(() => {
+    let watchId = null;
+    if (gpsMode === 'LIVE_DEVICE' && typeof navigator !== 'undefined' && navigator.geolocation) {
+      watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          const speedKmh = pos.coords.speed !== null && pos.coords.speed >= 0 ? Math.round(pos.coords.speed * 3.6) : 38;
+          setLiveGpsData({
+            lat: parseFloat(pos.coords.latitude.toFixed(5)),
+            lon: parseFloat(pos.coords.longitude.toFixed(5)),
+            speed: speedKmh,
+            accuracy_m: Math.round(pos.coords.accuracy)
+          });
+          setGpsError(null);
+        },
+        (err) => {
+          console.warn('Geolocation watch error:', err);
+          setGpsError('GPS signal degraded');
+        },
+        { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
+      );
+    }
+    return () => {
+      if (watchId !== null && navigator.geolocation) {
+        navigator.geolocation.clearWatch(watchId);
+      }
+    };
+  }, [gpsMode]);
 
   const handleSOS = () => {
     setSosSent(true);
@@ -122,21 +153,43 @@ export default function DriverHUD({
           </div>
         </div>
 
-        {/* Switch Driver Profile / Login Button */}
-        <div className="flex items-center gap-2 self-stretch md:self-auto justify-end">
+        {/* Switch Driver Profile / Login Button & GPS Mode */}
+        <div className="flex flex-wrap items-center gap-2 self-stretch md:self-auto justify-end">
+          {/* GPS Mode Toggle (Simulated vs Live Device) */}
+          <div className="flex rounded-xl bg-slate-950 p-1 border border-slate-700">
+            <button
+              type="button"
+              onClick={() => setGpsMode('SIMULATED')}
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-sans font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                gpsMode === 'SIMULATED' ? 'bg-cyan-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <span>🕹️ Sim</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setGpsMode('LIVE_DEVICE')}
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-sans font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                gpsMode === 'LIVE_DEVICE' ? 'bg-emerald-600 text-white shadow animate-pulse' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <span>📡 Live GPS</span>
+            </button>
+          </div>
+
           <button
             type="button"
             onClick={() => setShowDriverModal(true)}
             className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-cyan-300 text-xs font-bold font-sans flex items-center gap-1.5 transition-all shadow-md cursor-pointer active:scale-95"
           >
             <KeyRound className="w-3.5 h-3.5" />
-            <span>Driver Login / Switch Vehicle</span>
+            <span>Driver Login</span>
           </button>
 
           {/* Voice Mute Toggle */}
           <button
             onClick={() => setAudioMuted(!audioMuted)}
-            className={`p-2 rounded-xl border text-xs transition-all ${
+            className={`p-2 rounded-xl border text-xs transition-all cursor-pointer ${
               audioMuted ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-blue-600/20 border-blue-500/40 text-blue-300'
             }`}
             title="Toggle Audio Advisories"
@@ -272,14 +325,18 @@ export default function DriverHUD({
         <div className="glass-panel p-6 rounded-2xl border-2 border-slate-700 flex flex-col items-center justify-center text-center bg-slate-900/80">
           <span className="text-xs text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
             <Gauge className="w-4 h-4 text-cyan-400" />
-            Convoy Speedometer
+            Convoy Speedometer {gpsMode === 'LIVE_DEVICE' && <span className="text-[10px] text-emerald-400 font-mono">(DEVICE GPS)</span>}
           </span>
           <div className="mt-3 text-7xl font-black text-cyan-400 tracking-tighter">
-            {vehicle.speed_kmh || 42}
+            {gpsMode === 'LIVE_DEVICE' && liveGpsData?.speed !== undefined
+              ? liveGpsData.speed
+              : (vehicle.speed_kmh || 42)}
           </div>
           <span className="text-sm font-bold text-slate-400 mt-1">KM / HOUR</span>
           <div className="mt-3 px-3 py-1 rounded-full bg-slate-800 text-[11px] text-slate-300 font-mono">
-            Speed Limit: 45 km/h &bull; Altitude: <b>2,850m</b>
+            {gpsMode === 'LIVE_DEVICE' && liveGpsData
+              ? `GPS Fix: ${liveGpsData.lat.toFixed(4)}°N, ${liveGpsData.lon.toFixed(4)}°E (±${liveGpsData.accuracy_m || 5}m)`
+              : `Speed Limit: 45 km/h • Altitude: 2,850m`}
           </div>
         </div>
 
