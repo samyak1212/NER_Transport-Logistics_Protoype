@@ -12,7 +12,7 @@ The platform follows a **Multi-Stakeholder Persona-Driven Lifeline Network Archi
 
 ```mermaid
 graph TD
-    subgraph External Sensors & Government Geospatial Data
+    subgraph EXT_DATA ["External Sensors & Government Geospatial Data"]
         OM["Open-Meteo API<br/>Rainfall, Wind, Temp Feeds"]
         NASA_DEM["NASA SRTM 30m DEM<br/>Slope Gradient & Elevation Profiles"]
         GSI["Geological Survey of India (GSI)<br/>Historical Landslide Recurrence Catalog"]
@@ -21,30 +21,30 @@ graph TD
         OGD["data.gov.in & MDoNER<br/>State Logistics & Baseline Censuses"]
     end
 
-    subgraph Backend Engine & Ingestion (Python 3.13 + FastAPI)
+    subgraph BACKEND ["Backend Engine & Ingestion (Python 3.13 + FastAPI)"]
         BW["Background Telemetry Worker / Vehicle Simulator<br/>4s Polling Daemon"]
         TPE["ThreadPoolExecutor / Async Event Loop<br/>Parallel Corridor Processing"]
         ENG_RISK["Dynamic Risk Engine<br/>risk_engine.py"]
         ENG_ROUTING["Risk-Penalized Dijkstra Engine<br/>routing_engine.py"]
         ENG_FIELD["Field Report & Haversine Snapper<br/>field_report_service.py"]
         ENG_AI["AI Logistics Intelligence Assistant<br/>ai_service.py"]
-        MEM_CACHE[("(In-Memory Telemetry & Corridor Cache)")]
-        OSRM_CACHE[("(In-Memory & Disk OSRM Geometry Cache)")]
+        MEM_CACHE[("In-Memory Telemetry & Corridor Cache")]
+        OSRM_CACHE[("In-Memory & Disk OSRM Geometry Cache")]
         HTTP_SRV["FastAPI Uvicorn REST API<br/>main.py :8000"]
     end
 
-    subgraph Persistence Tier
-        SQLITE[("(SQLite 3 Database & File Store)<br/>Incident Logs, Media Uploads & Snapshots")]
+    subgraph PERSISTENCE ["Persistence Tier"]
+        SQLITE[("SQLite 3 Database & File Store<br/>Incident Logs, Media Uploads & Snapshots")]
     end
 
-    subgraph Frontend Presentation Tier (React 19 + TailwindCSS + Vite + Leaflet)
+    subgraph FRONTEND ["Frontend Presentation Tier (React 19 + TailwindCSS + Vite + Leaflet)"]
         WORKSPACE_BAR["Workspace Navigation Bar<br/>Header.jsx"]
         STATE_STORE["Central State Coordinator<br/>App.jsx & api.js"]
         MAP_CANVAS["Interactive Leaflet GIS Canvas<br/>MapCanvas.jsx"]
         GEOTECH_DRAWER["Geotechnical Segment Inspector<br/>GeotechnicalDrawer.jsx"]
         RAIN_PANEL["Landslide & Monsoon Radar Panel<br/>LandslideRainfallPanel.jsx"]
 
-        subgraph Isolated Stakeholder Workspaces
+        subgraph WORKSPACES ["Isolated Stakeholder Workspaces"]
             HQ_WORKSPACE["Regional Command HQ<br/>CommandHQ.jsx (MDoNER / SDMA / BRO)"]
             DISPATCH_WORKSPACE["Logistics Dispatch Console<br/>LogisticsDispatch.jsx (FCI / Health Dept)"]
             FIELD_WORKSPACE["Field Operations PWA<br/>FieldOps.jsx (BRO Engineers / Checkposts)"]
@@ -73,7 +73,7 @@ graph TD
     ENG_ROUTING --> HTTP_SRV
     ENG_FIELD --> HTTP_SRV
     ENG_AI --> HTTP_SRV
-    SQLITE <-->|Read / Write| HTTP_SRV
+    HTTP_SRV <--> SQLITE
 
     %% Client Routing & Flow
     HTTP_SRV -->|REST Endpoints / Corridors & Telemetry| STATE_STORE

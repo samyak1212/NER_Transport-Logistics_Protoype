@@ -22,7 +22,7 @@ Illustrates the complete data journey from live external sensor APIs (Open-Meteo
 
 ```mermaid
 flowchart TD
-    subgraph External Sensors & Government APIs
+    subgraph EXT_APIS ["External Sensors & Government APIs"]
         OpenMeteo["Open-Meteo API<br/>Precipitation, Wind, Hazard Feeds"]
         NASA_SRTM["NASA SRTM 30m DEM<br/>Elevation & Terrain Slope Profiles"]
         GSI["Geological Survey of India (GSI)<br/>Historical Landslide Catalog"]
@@ -30,21 +30,21 @@ flowchart TD
         OGD["data.gov.in & MDoNER<br/>State Logistics & Baseline Censuses"]
     end
 
-    subgraph Ingestion & Cache Layer
+    subgraph INGESTION ["Ingestion & Cache Layer"]
         CacheMgr["Cache Manager<br/>SQLite api_cache + Preloaded JSON"]
         OpenMeteo & NASA_SRTM & GSI & OSRM & OGD --> CacheMgr
         CacheMgr --> Worker["Background Telemetry Daemon<br/>4s Periodic Convoy & Corridor Sync"]
     end
 
-    subgraph Core Analytical Engines
-        Worker --> DB[("(SQLite transport_ner.db)<br/>Incident Records & Uploads")]
+    subgraph ENGINES ["Core Analytical Engines"]
+        Worker --> DB[("SQLite transport_ner.db<br/>Incident Records & Uploads")]
         DB --> RiskEngine["Dynamic Risk Engine<br/>risk_engine.py (Geotech + Weather)"]
         DB --> DijkstraEngine["Risk-Penalized Dijkstra Engine<br/>routing_engine.py (Cargo Multipliers)"]
         DB --> VehicleSim["Vehicle Convoy Simulator<br/>vehicle_simulator.py (AIS-140 GPS)"]
         DB --> FieldService["Field Report Snapping Service<br/>field_report_service.py (Haversine)"]
     end
 
-    subgraph API Gateway & Endpoints
+    subgraph GATEWAY ["API Gateway & Endpoints"]
         FastAPI["Python FastAPI / Uvicorn Server<br/>Port 8000"]
         RiskEngine & DijkstraEngine & VehicleSim & FieldService --> FastAPI
         FastAPI --> CorridorAPI["/api/corridors/* (Health, Districts, Weather)"]
@@ -54,7 +54,7 @@ flowchart TD
         FastAPI --> SimAPI["/api/simulation/* (Inject Hazard, Rain Multiplier)"]
     end
 
-    subgraph Stakeholder Frontend Portals
+    subgraph PORTALS ["Stakeholder Frontend Portals"]
         FastAPI --> CommandHQ["Regional Command HQ<br/>MDoNER / SDMA / BRO Command Console"]
         FastAPI --> LogisticsDispatch["Logistics Dispatch Console<br/>FCI / Health Dept / Oil PSUs Dispatchers"]
         FastAPI --> FieldOps["Field Operations PWA<br/>BRO Junior Engineers & Checkposts"]
@@ -92,7 +92,7 @@ flowchart TD
     WorkspaceBar -->|Tab 6: Simulation Lab| SimRoute{"Evaluator Role View"}
     SimRoute --> SimShell["SimulationLab.jsx: Hackathon Stress-Test Bench<br/>Hazard Injection + Rainfall Multipliers"]
 
-    subgraph Viewport & Map Specialization
+    subgraph VIEWPORT ["Viewport & Map Specialization"]
         HQShell & DispatchShell & SimShell -.->|Mount| MapCanvas["Interactive Leaflet GIS MapCanvas<br/>Curved Polylines, Weather Radar & Geotech Drawer"]
         DriverShell & PublicShell -.->|Suppress| ClutterFree["Clutter-Free Ultra-Fast View<br/>Zero Heavy GIS Overhead for Low-Bandwidth 2G/3G"]
     end
@@ -136,7 +136,7 @@ Details the mathematical calculation pipeline that dynamically bounds road segme
 
 ```mermaid
 flowchart TD
-    subgraph Geotechnical & Weather Input Dimensions
+    subgraph INPUTS ["Geotechnical & Weather Input Dimensions"]
         Slope["NASA SRTM 30m Slope Gradient: theta_deg"]
         Elevation["NASA SRTM Elevation Profile: elevation_m"]
         GSI_Cat["GSI Landslide Recurrence History: gsi_slides"]
@@ -194,7 +194,7 @@ flowchart LR
         ImpassableCheck -->|No| NormalEdge["Cost(e) = Computed Risk Cost"]
     end
 
-    subgraph Path Optimization & Trade-off Solver
+    subgraph SOLVER ["Path Optimization & Trade-off Solver"]
         SeverEdge & NormalEdge --> Dijkstra["NetworkX Dijkstra Solver: nx.dijkstra_path"]
         Dijkstra --> DualCalc["Dual Solve: Calculate Fastest (lambda=0) & Risk-Aware"]
         DualCalc --> TradeOff["Trade-off Matrix: Delta t vs. Delta Risk (-48% Landslide Exposure)"]
