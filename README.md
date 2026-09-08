@@ -24,10 +24,13 @@ This platform bridges this critical national infrastructure gap. By synthesizing
 
 ## 📚 2. Complete Project Documentation Index
 
-All deep architectural research, statutory audits, and mathematical formulations are organized inside the [`docs/`](./docs) directory:
+All deep architectural research, technical designs, workflow diagrams, statutory audits, and mathematical formulations are organized inside the [`docs/`](./docs) directory:
 
 | Document | Description |
 |---|---|
+| 🏗️ [**SYSTEM_ARCHITECTURE.md**](./docs/SYSTEM_ARCHITECTURE.md) | Comprehensive system architecture, FastAPI backend design, multi-tier data provenance, and mathematical formulations. |
+| 📊 [**ARCHITECTURE_AND_WORKFLOW_DIAGRAMS.md**](./docs/ARCHITECTURE_AND_WORKFLOW_DIAGRAMS.md) | Authoritative reference with 7 Mermaid workflow diagrams (End-to-end data flow, caching, risk engine, Dijkstra routing, convoy rerouting, and field ops). |
+| 📚 [**docs/README.md**](./docs/README.md) | Documentation suite master index and architectural executive summary. |
 | 📄 [**PROBLEM_STATEMENT.md**](./docs/PROBLEM_STATEMENT.md) | Official SIH Problem Statement 26002 specifications and statutory requirements from MDoNER. |
 | 📊 [**SIH_PROBLEM_STATEMENT_GAP_ANALYSIS.md**](./docs/SIH_PROBLEM_STATEMENT_GAP_ANALYSIS.md) | Comprehensive engineering audit and statutory compliance matrix against Clauses (a) through (h). |
 | 👥 [**PROTOTYPE_CORE_STAKEHOLDERS_AND_FLOWS.md**](./docs/PROTOTYPE_CORE_STAKEHOLDERS_AND_FLOWS.md) | Persona-driven user journeys, UI wireframe blueprints, and operational workflows for all 6 stakeholder groups. |
