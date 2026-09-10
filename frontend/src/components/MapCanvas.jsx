@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, memo } from 'react';
 import { MapContainer, TileLayer, Polyline, Marker, Popup, Circle, CircleMarker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { 
@@ -22,13 +22,13 @@ import {
 import { 
   DEFAULT_NODES, 
   DEFAULT_SEGMENTS, 
-  LANDSLIDE_PREDICTION_ZONES,
-  DEFAULT_WEATHER_STATIONS,
-  BRO_MACHINERY_UNITS,
-  ACTIVE_CONVOYS,
-  REGIONAL_CORRIDORS,
-  CORRIDOR_DRIVING_ROUTES
+  LANDSLIDE_PREDICTION_ZONES, 
+  DEFAULT_WEATHER_STATIONS, 
+  BRO_MACHINERY_UNITS, 
+  ACTIVE_CONVOYS, 
+  REGIONAL_CORRIDORS 
 } from '../data/defaultData';
+import { CORRIDOR_DRIVING_ROUTES } from '../data/corridorDrivingRoutes';
 
 // Fix standard Leaflet default icon issues in React
 delete L.Icon.Default.prototype._getIconUrl;
@@ -284,6 +284,79 @@ const createConvoyIcon = (convoy) => {
   });
 };
 
+// 7. Active Convoy Live GPS Pulse Marker
+const createActiveVehicleIcon = (progressPct) => {
+  const roundedPct = Math.round(progressPct || 0);
+  return new L.DivIcon({
+    className: 'live-active-convoy-pulse',
+    html: `
+      <div style="display: flex; flex-direction: column; align-items: center; transform: translate(-50%, -50%); cursor: pointer;">
+        <div style="
+          width: 26px;
+          height: 26px;
+          border-radius: 50%;
+          background: #3b82f6;
+          border: 3px solid #ffffff;
+          box-shadow: 0 0 12px #3b82f6;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          animation: pulse 1.2s infinite;
+        ">
+          <span style="font-size: 12px;">🚚</span>
+        </div>
+        <div style="
+          background: #1e3a8a;
+          color: #93c5fd;
+          padding: 1px 5px;
+          border-radius: 4px;
+          font-size: 8px;
+          font-family: monospace;
+          font-weight: bold;
+          margin-top: 2px;
+          white-space: nowrap;
+        ">
+          GPS LIVE (${roundedPct}%)
+        </div>
+      </div>
+    `,
+    iconSize: [0, 0],
+    iconAnchor: [0, 0]
+  });
+};
+
+// Global DivIcon memoization cache to eliminate React-Leaflet DOM reconstruction thrash
+const iconCache = new Map();
+const getOrCreateIcon = (key, factory) => {
+  let icon = iconCache.get(key);
+  if (!icon) {
+    icon = factory();
+    iconCache.set(key, icon);
+  }
+  return icon;
+};
+
+const getGoogleWaypointIcon = (letter, label, color) => 
+  getOrCreateIcon(`gwp_${letter}_${label}_${color}`, () => createGoogleWaypointIcon(letter, label, color));
+
+const getStationIcon = (name, type, elevation) => 
+  getOrCreateIcon(`stn_${name}_${type}_${elevation}`, () => createStationIcon(name, type, elevation));
+
+const getRainfallIcon = (station, rainfall_mm, color, alert_level) => 
+  getOrCreateIcon(`rnf_${station}_${rainfall_mm}_${color}_${alert_level}`, () => createRainfallIcon(station, rainfall_mm, color, alert_level));
+
+const getLandslideIcon = (prob, name) => 
+  getOrCreateIcon(`ls_${prob}_${name}`, () => createLandslideIcon(prob, name));
+
+const getMachineryIcon = (unit, type, status) => 
+  getOrCreateIcon(`mch_${unit}_${type}_${status}`, () => createMachineryIcon(unit, type, status));
+
+const getConvoyIcon = (convoy) => 
+  getOrCreateIcon(`cvy_${convoy.id}_${convoy.speed_kmh}_${convoy.status}_${convoy.priority}_${convoy.vehicle_reg}`, () => createConvoyIcon(convoy));
+
+const getActiveVehicleIcon = (pct) => 
+  getOrCreateIcon(`vlive_${Math.round(pct || 0)}`, () => createActiveVehicleIcon(pct));
+
 // Corridor Route Metadata for Google Directions View
 const CORRIDOR_ROUTE_META = {
   CORRIDOR_NH13: {
@@ -345,7 +418,7 @@ function MapController({ center, zoom }) {
   return null;
 }
 
-export default function MapCanvas({
+function MapCanvas({
   nodes = [],
   segments = [],
   activeRoute = null,
@@ -401,45 +474,62 @@ export default function MapCanvas({
 
   // Filter segments according to selected corridor
   const allSegments = (segments && segments.length > 0) ? segments : DEFAULT_SEGMENTS;
-  const filteredSegments = selectedCorridor === 'ALL'
-    ? allSegments
-    : allSegments.filter(s => s.corridor === selectedCorridor || (selectedCorridor === 'CORRIDOR_NH13' && s.corridor === 'CORRIDOR_NH13_BYPASS'));
+  const filteredSegments = useMemo(() => {
+    return selectedCorridor === 'ALL'
+      ? allSegments
+      : allSegments.filter(s => s.corridor === selectedCorridor || (selectedCorridor === 'CORRIDOR_NH13' && s.corridor === 'CORRIDOR_NH13_BYPASS'));
+  }, [allSegments, selectedCorridor]);
 
   // Filter nodes
   const allNodes = (nodes && nodes.length > 0) ? nodes : DEFAULT_NODES;
-  const filteredNodes = selectedCorridor === 'ALL'
-    ? allNodes
-    : allNodes.filter(n => n.corridor === selectedCorridor || (selectedCorridor === 'CORRIDOR_NH13' && n.corridor === 'CORRIDOR_NH13_BYPASS'));
+  const filteredNodes = useMemo(() => {
+    return selectedCorridor === 'ALL'
+      ? allNodes
+      : allNodes.filter(n => n.corridor === selectedCorridor || (selectedCorridor === 'CORRIDOR_NH13' && n.corridor === 'CORRIDOR_NH13_BYPASS'));
+  }, [allNodes, selectedCorridor]);
 
   // Filter weather stations
-  const filteredWeather = selectedCorridor === 'ALL'
-    ? DEFAULT_WEATHER_STATIONS
-    : DEFAULT_WEATHER_STATIONS.filter(w => w.corridor === selectedCorridor);
+  const filteredWeather = useMemo(() => {
+    return selectedCorridor === 'ALL'
+      ? DEFAULT_WEATHER_STATIONS
+      : DEFAULT_WEATHER_STATIONS.filter(w => w.corridor === selectedCorridor);
+  }, [selectedCorridor]);
 
   // Filter Landslide zones
-  const filteredLandslides = selectedCorridor === 'ALL'
-    ? LANDSLIDE_PREDICTION_ZONES
-    : LANDSLIDE_PREDICTION_ZONES.filter(z => z.corridor === selectedCorridor);
+  const filteredLandslides = useMemo(() => {
+    return selectedCorridor === 'ALL'
+      ? LANDSLIDE_PREDICTION_ZONES
+      : LANDSLIDE_PREDICTION_ZONES.filter(z => z.corridor === selectedCorridor);
+  }, [selectedCorridor]);
 
   // Filter BRO Machinery
-  const filteredMachinery = selectedCorridor === 'ALL'
-    ? BRO_MACHINERY_UNITS
-    : BRO_MACHINERY_UNITS.filter(m => m.corridor === selectedCorridor);
+  const filteredMachinery = useMemo(() => {
+    return selectedCorridor === 'ALL'
+      ? BRO_MACHINERY_UNITS
+      : BRO_MACHINERY_UNITS.filter(m => m.corridor === selectedCorridor);
+  }, [selectedCorridor]);
 
   // Filter Convoys
-  const filteredConvoys = selectedCorridor === 'ALL'
-    ? ACTIVE_CONVOYS
-    : ACTIVE_CONVOYS.filter(c => c.corridor === selectedCorridor);
+  const filteredConvoys = useMemo(() => {
+    return selectedCorridor === 'ALL'
+      ? ACTIVE_CONVOYS
+      : ACTIVE_CONVOYS.filter(c => c.corridor === selectedCorridor);
+  }, [selectedCorridor]);
 
   // Determine active Google Maps Highway Route to render
-  const isSpecificCorridor = selectedCorridor !== 'ALL' && CORRIDOR_ROUTE_META[selectedCorridor];
+  const isSpecificCorridor = selectedCorridor !== 'ALL' && Boolean(CORRIDOR_ROUTE_META[selectedCorridor]);
   const activeCorridorMeta = isSpecificCorridor ? CORRIDOR_ROUTE_META[selectedCorridor] : null;
 
   // Primary vs Alternate driving route coordinates
-  const primaryRouteData = isSpecificCorridor && CORRIDOR_DRIVING_ROUTES ? CORRIDOR_DRIVING_ROUTES[activeCorridorMeta.primaryKey] : null;
-  const alternateRouteData = (isSpecificCorridor && activeCorridorMeta.hasAlternate && CORRIDOR_DRIVING_ROUTES) 
-    ? CORRIDOR_DRIVING_ROUTES[activeCorridorMeta.alternateKey] 
-    : null;
+  const primaryRouteData = useMemo(() => {
+    return (isSpecificCorridor && CORRIDOR_DRIVING_ROUTES) ? CORRIDOR_DRIVING_ROUTES[activeCorridorMeta.primaryKey] : null;
+  }, [isSpecificCorridor, activeCorridorMeta]);
+
+  const alternateRouteData = useMemo(() => {
+    return (isSpecificCorridor && activeCorridorMeta?.hasAlternate && CORRIDOR_DRIVING_ROUTES) 
+      ? CORRIDOR_DRIVING_ROUTES[activeCorridorMeta.alternateKey] 
+      : null;
+  }, [isSpecificCorridor, activeCorridorMeta]);
 
   // Active driving route coordinates to emphasize
   const activeDrivingRouteData = useAlternateBypass && alternateRouteData ? alternateRouteData : primaryRouteData;
@@ -607,6 +697,7 @@ export default function MapCanvas({
       <MapContainer
         center={currentCorridorConfig.center}
         zoom={currentCorridorConfig.zoom}
+        preferCanvas={true}
         style={{ width: '100%', height: '100%' }}
         scrollWheelZoom={true}
       >
@@ -648,7 +739,7 @@ export default function MapCanvas({
             {/* Interactive Weather Station Marker */}
             <Marker
               position={[w.lat, w.lon]}
-              icon={createRainfallIcon(w.station, w.rainfall_mm, w.color, w.alert_level)}
+              icon={getRainfallIcon(w.station, w.rainfall_mm, w.color, w.alert_level)}
             >
               <Popup>
                 <div className="p-1 text-slate-900 font-sans text-xs max-w-xs">
@@ -850,13 +941,13 @@ export default function MapCanvas({
             {/* Google Start Pin 'A' */}
             <Marker
               position={activeCorridorMeta.startCoord}
-              icon={createGoogleWaypointIcon('A', `A: ${activeCorridorMeta.originName}`, '#16a34a')}
+              icon={getGoogleWaypointIcon('A', `A: ${activeCorridorMeta.originName}`, '#16a34a')}
             />
 
             {/* Google Destination Pin 'B' */}
             <Marker
               position={activeCorridorMeta.destCoord}
-              icon={createGoogleWaypointIcon('B', `B: ${activeCorridorMeta.destName}`, '#dc2626')}
+              icon={getGoogleWaypointIcon('B', `B: ${activeCorridorMeta.destName}`, '#dc2626')}
             />
           </>
         )}
@@ -890,13 +981,13 @@ export default function MapCanvas({
             {/* Start Pin 'A' */}
             <Marker
               position={activeRoute.geometry_coordinates[0]}
-              icon={createGoogleWaypointIcon('A', `A: ${activeRoute.path_nodes ? activeRoute.path_nodes[0] : 'Origin'}`, '#16a34a')}
+              icon={getGoogleWaypointIcon('A', `A: ${activeRoute.path_nodes ? activeRoute.path_nodes[0] : 'Origin'}`, '#16a34a')}
             />
 
             {/* Destination Pin 'B' */}
             <Marker
               position={activeRoute.geometry_coordinates[activeRoute.geometry_coordinates.length - 1]}
-              icon={createGoogleWaypointIcon('B', `B: ${activeRoute.path_nodes ? activeRoute.path_nodes[activeRoute.path_nodes.length - 1] : 'Destination'}`, '#dc2626')}
+              icon={getGoogleWaypointIcon('B', `B: ${activeRoute.path_nodes ? activeRoute.path_nodes[activeRoute.path_nodes.length - 1] : 'Destination'}`, '#dc2626')}
             />
           </>
         )}
@@ -906,7 +997,7 @@ export default function MapCanvas({
           <Marker
             key={zone.id}
             position={[zone.lat, zone.lon]}
-            icon={createLandslideIcon(zone.probability_pct, zone.name)}
+            icon={getLandslideIcon(zone.probability_pct, zone.name)}
           >
             <Popup>
               <div className="p-1 text-slate-900 font-sans max-w-xs">
@@ -933,7 +1024,7 @@ export default function MapCanvas({
           <Marker
             key={m.id}
             position={[m.lat, m.lon]}
-            icon={createMachineryIcon(m.unit, m.type, m.status)}
+            icon={getMachineryIcon(m.unit, m.type, m.status)}
           >
             <Popup>
               <div className="p-1 text-slate-900 font-sans text-xs">
@@ -960,7 +1051,7 @@ export default function MapCanvas({
           <Marker
             key={convoy.id}
             position={[convoy.lat, convoy.lon]}
-            icon={createConvoyIcon(convoy)}
+            icon={getConvoyIcon(convoy)}
             eventHandlers={{
               click: () => {
                 if (onSelectConvoy) onSelectConvoy(convoy);
@@ -1001,42 +1092,7 @@ export default function MapCanvas({
         {activeVehicle && activeVehicle.current_lat && activeVehicle.current_lon && (
           <Marker
             position={[activeVehicle.current_lat, activeVehicle.current_lon]}
-            icon={new L.DivIcon({
-              className: 'live-active-convoy-pulse',
-              html: `
-                <div style="display: flex; flex-direction: column; align-items: center; transform: translate(-50%, -50%); cursor: pointer;">
-                  <div style="
-                    width: 26px;
-                    height: 26px;
-                    border-radius: 50%;
-                    background: #3b82f6;
-                    border: 3px solid #ffffff;
-                    box-shadow: 0 0 20px #3b82f6;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    animation: pulse 1.2s infinite;
-                  ">
-                    <span style="font-size: 12px;">🚚</span>
-                  </div>
-                  <div style="
-                    background: #1e3a8a;
-                    color: #93c5fd;
-                    padding: 1px 5px;
-                    border-radius: 4px;
-                    font-size: 8px;
-                    font-family: monospace;
-                    font-weight: bold;
-                    margin-top: 2px;
-                    white-space: nowrap;
-                  ">
-                    GPS LIVE (${activeVehicle.progress_pct.toFixed(0)}%)
-                  </div>
-                </div>
-              `,
-              iconSize: [0, 0],
-              iconAnchor: [0, 0]
-            })}
+            icon={getActiveVehicleIcon(activeVehicle.progress_pct)}
             eventHandlers={{
               click: () => {
                 if (onSelectConvoy) onSelectConvoy(activeVehicle);
@@ -1076,7 +1132,7 @@ export default function MapCanvas({
           <Marker
             key={node.id}
             position={[node.lat, node.lon]}
-            icon={createStationIcon(node.name || node.id, node.type, node.elevation_m)}
+            icon={getStationIcon(node.name || node.id, node.type, node.elevation_m)}
           >
             <Popup>
               <div className="text-slate-900 font-sans text-xs">
@@ -1211,3 +1267,5 @@ export default function MapCanvas({
     </div>
   );
 }
+
+export default memo(MapCanvas);

@@ -18,5 +18,18 @@ export default defineConfig({
         changeOrigin: true
       }
     }
+  },
+  build: {
+    target: 'es2020',
+    chunkSizeWarningLimit: 800,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          leaflet: ['leaflet', 'react-leaflet'],
+          lucide: ['lucide-react']
+        }
+      }
+    }
   }
 });
