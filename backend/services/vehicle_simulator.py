@@ -28,10 +28,15 @@ class VehicleSimulator:
     def __init__(self, routing_engine: RoutingEngine):
         self.routing_engine = routing_engine
         self.vehicles: Dict[str, Dict[str, Any]] = {}
+        self.aliases: Dict[str, str] = {
+            "FOOD_RATION_02": "PDS_GRAIN_04",
+            "FUEL_TANKER_03": "FUEL_TANKER_02",
+            "DISASTER_RELIEF_04": "RELIEF_SUPPLY_03",
+        }
         self._init_default_vehicles()
 
     def _init_default_vehicles(self):
-        """Initializes 4 realistic strategic convoys across the 8 NER states."""
+        """Initializes 4 realistic strategic convoys across the 8 NER states matching frontend fleet IDs."""
         # 1. Critical Medical Cold-Chain Convoy (Subedar R. Thapa)
         self.create_vehicle(
             vehicle_id="MED_CONVOY_01",
@@ -40,40 +45,40 @@ class VehicleSimulator:
             cargo_description="10,000 Doses Anti-Rabies & Snake Venom + Pediatric Oxygen",
             origin="Guwahati",
             destination="Tawang",
-            initial_progress=38.0
+            initial_progress=0.0
         )
 
-        # 2. Food Corporation of India (FCI) Essential Food Grain Convoy (Havildar P. Gogoi)
+        # 2. Food Corporation of India (FCI) Essential Food Grain Convoy (Havildar M. Saikia)
         self.create_vehicle(
-            vehicle_id="FOOD_RATION_02",
+            vehicle_id="PDS_GRAIN_04",
             vehicle_type="ASHOK_LEYLAND_1616_HEAVY",
             cargo_priority="ESSENTIAL_FOOD",
-            cargo_description="24 MT Fortified Rice & Pulses (PDS Buffer Stock)",
+            cargo_description="14.5 MT Fortified Rice & Pulses (PDS Buffer Stock)",
             origin="Guwahati",
-            destination="Tawang",
-            initial_progress=15.0
+            destination="Bomdila",
+            initial_progress=32.0
         )
 
-        # 3. High-Altitude Fuel Tanker (Naik S. Sangma)
+        # 3. High-Altitude Fuel Tanker (Naik K. Ao)
         self.create_vehicle(
-            vehicle_id="FUEL_TANKER_03",
+            vehicle_id="FUEL_TANKER_02",
             vehicle_type="BHARATBENZ_2823_POL_TANKER",
             cargo_priority="FUEL_POL",
-            cargo_description="18 KL Winterized Arctic Diesel (-30°C pour point)",
+            cargo_description="12 KL Winterized Arctic Diesel (-30°C pour point)",
             origin="Dimapur",
-            destination="Imphal",
-            initial_progress=45.0
+            destination="Kohima",
+            initial_progress=28.0
         )
 
-        # 4. Disaster Relief & Shelter Materials (Cpl L. Jamir)
+        # 4. Disaster Relief & Trauma Supplies (Lance Naik B. Chettri)
         self.create_vehicle(
-            vehicle_id="DISASTER_RELIEF_04",
+            vehicle_id="RELIEF_SUPPLY_03",
             vehicle_type="MAHINDRA_BLAZO_X_ALL_TERRAIN",
-            cargo_priority="GENERAL",
-            cargo_description="Prefab Cold-Weather Shelter Modules & Water Purification",
+            cargo_priority="CRITICAL_MEDICAL",
+            cargo_description="Emergency Flood Sanitation & Trauma Kits",
             origin="Siliguri",
             destination="Gangtok",
-            initial_progress=25.0
+            initial_progress=38.0
         )
 
     def create_vehicle(
@@ -126,9 +131,37 @@ class VehicleSimulator:
         self.evaluate_hazards(vehicle_id)
         return vehicle
 
+    def _resolve_vehicle(self, vehicle_id: str) -> Optional[Dict[str, Any]]:
+        """Resolves a vehicle dictionary by ID or alias; dynamically auto-provisions if missing."""
+        if vehicle_id in self.vehicles:
+            return self.vehicles[vehicle_id]
+
+        if vehicle_id in self.aliases:
+            canon = self.aliases[vehicle_id]
+            if canon in self.vehicles:
+                return self.vehicles[canon]
+
+        for alias, canon in self.aliases.items():
+            if canon == vehicle_id and alias in self.vehicles:
+                return self.vehicles[alias]
+
+        # Dynamic fallback registration to prevent 404s on unexpected vehicle IDs
+        try:
+            return self.create_vehicle(
+                vehicle_id=vehicle_id,
+                vehicle_type="ASHOK_LEYLAND_1616_HEAVY",
+                cargo_priority="ESSENTIAL_FOOD",
+                cargo_description="Regional Essential Supply Convoy",
+                origin="Guwahati",
+                destination="Bomdila",
+                initial_progress=25.0
+            )
+        except Exception:
+            return None
+
     def get_vehicle_telemetry(self, vehicle_id: str) -> Optional[VehicleTelemetry]:
         """Returns structured telemetry data for a vehicle."""
-        v = self.vehicles.get(vehicle_id)
+        v = self._resolve_vehicle(vehicle_id)
         if not v:
             return None
 
@@ -145,7 +178,7 @@ class VehicleSimulator:
             curr_seg_id = route.segments[seg_idx].segment_id
 
         return VehicleTelemetry(
-            vehicle_id=v["vehicle_id"],
+            vehicle_id=vehicle_id,
             status=v["status"],
             current_lat=round(v["current_lat"], 5),
             current_lon=round(v["current_lon"], 5),
@@ -163,17 +196,22 @@ class VehicleSimulator:
         )
 
     def get_all_vehicles(self) -> List[VehicleTelemetry]:
-        """Returns telemetries for all active convoys."""
+        """Returns telemetries for all active convoys (excluding alias duplicates)."""
         res = []
-        for v_id in self.vehicles:
-            t = self.get_vehicle_telemetry(v_id)
+        seen = set()
+        for v_id, v in list(self.vehicles.items()):
+            canonical_id = v.get("vehicle_id", v_id)
+            if canonical_id in seen:
+                continue
+            seen.add(canonical_id)
+            t = self.get_vehicle_telemetry(canonical_id)
             if t:
                 res.append(t)
         return res
 
     def advance_vehicle(self, vehicle_id: str, step_pct: float = 3.5) -> Optional[VehicleTelemetry]:
         """Advances vehicle progress along polyline."""
-        v = self.vehicles.get(vehicle_id)
+        v = self._resolve_vehicle(vehicle_id)
         if not v or v["status"] not in ["IN_TRANSIT", "REROUTED"]:
             return self.get_vehicle_telemetry(vehicle_id) if v else None
 
@@ -207,7 +245,7 @@ class VehicleSimulator:
         Scans remaining road segments along vehicle's path.
         If a blocked segment or high hazard is ahead, triggers REROUTE or SUSPEND.
         """
-        v = self.vehicles.get(vehicle_id)
+        v = self._resolve_vehicle(vehicle_id)
         if not v or v["status"] == "ARRIVED":
             return
 
@@ -271,7 +309,7 @@ class VehicleSimulator:
         Dynamically calculates a safe detour bypass from the vehicle's CURRENT position,
         preventing teleportation back to the origin.
         """
-        v = self.vehicles.get(vehicle_id)
+        v = self._resolve_vehicle(vehicle_id)
         if not v:
             return None
 
@@ -329,11 +367,13 @@ class VehicleSimulator:
         return self.get_vehicle_telemetry(vehicle_id)
 
     def pause_vehicle(self, vehicle_id: str):
-        if vehicle_id in self.vehicles:
-            self.vehicles[vehicle_id]["status"] = "PAUSED"
-            self.vehicles[vehicle_id]["speed_kmh"] = 0.0
+        v = self._resolve_vehicle(vehicle_id)
+        if v:
+            v["status"] = "PAUSED"
+            v["speed_kmh"] = 0.0
 
     def resume_vehicle(self, vehicle_id: str):
-        if vehicle_id in self.vehicles:
-            self.vehicles[vehicle_id]["status"] = "IN_TRANSIT"
-            self.vehicles[vehicle_id]["speed_kmh"] = 42.0
+        v = self._resolve_vehicle(vehicle_id)
+        if v:
+            v["status"] = "IN_TRANSIT"
+            v["speed_kmh"] = 42.0
