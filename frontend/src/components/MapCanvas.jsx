@@ -29,6 +29,7 @@ import {
   REGIONAL_CORRIDORS 
 } from '../data/defaultData';
 import { CORRIDOR_DRIVING_ROUTES } from '../data/corridorDrivingRoutes';
+import { getMediaUrl } from '../services/api';
 
 // Fix standard Leaflet default icon issues in React
 delete L.Icon.Default.prototype._getIconUrl;
@@ -212,6 +213,63 @@ const createLandslideIcon = (prob, name) => {
   });
 };
 
+// 4b. Field Incident Report Marker with Severity Status
+const createIncidentReportIcon = (type, severity) => {
+  const isBlocking = severity === 'BLOCKING';
+  const color = isBlocking ? '#ef4444' : '#f59e0b';
+  return new L.DivIcon({
+    className: 'custom-incident-marker',
+    html: `
+      <div style="display: flex; flex-direction: column; align-items: center; transform: translate(-50%, -100%); pointer-events: auto; cursor: pointer;">
+        <div style="
+          background: #0f172a;
+          border: 2px solid ${color};
+          color: #ffffff;
+          padding: 2.5px 6px;
+          border-radius: 6px;
+          font-family: system-ui, sans-serif;
+          font-size: 10px;
+          font-weight: 800;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.85);
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          white-space: nowrap;
+        ">
+          <span>${type === 'LANDSLIDE' ? '⛰️' : '⚠️'}</span>
+          <span style="color: ${color};">${isBlocking ? 'BLOCKED' : 'OBSTACLE'}</span>
+        </div>
+        <div style="
+          width: 22px;
+          height: 22px;
+          border-radius: 50%;
+          background: ${color};
+          border: 2px solid #ffffff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #ffffff;
+          font-size: 11px;
+          font-weight: 900;
+          box-shadow: 0 0 12px ${color};
+          margin-top: 2px;
+        ">
+          !
+        </div>
+        <div style="
+          width: 0;
+          height: 0;
+          border-left: 4px solid transparent;
+          border-right: 4px solid transparent;
+          border-top: 5px solid ${color};
+        "></div>
+      </div>
+    `,
+    iconSize: [0, 0],
+    iconAnchor: [0, 0]
+  });
+};
+
 // 5. BRO Heavy Machinery Deployment Marker
 const createMachineryIcon = (unit, type, status) => {
   const isClearing = status.includes('CLEARING') || status.includes('ACTIVE');
@@ -357,6 +415,9 @@ const getConvoyIcon = (convoy) =>
 const getActiveVehicleIcon = (pct) => 
   getOrCreateIcon(`vlive_${Math.round(pct || 0)}`, () => createActiveVehicleIcon(pct));
 
+const getIncidentReportIcon = (type, severity) => 
+  getOrCreateIcon(`inc_${type}_${severity}`, () => createIncidentReportIcon(type, severity));
+
 // Corridor Route Metadata for Google Directions View
 const CORRIDOR_ROUTE_META = {
   CORRIDOR_NH13: {
@@ -448,7 +509,7 @@ function MapCanvas({
   // Basemap definitions
   const basemapLayers = {
     dark: {
-      base: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+      base: import.meta.env.VITE_MAP_TILE_URL || 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
       ref: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}',
       attr: '&copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
       maxZoom: 16
@@ -1047,7 +1108,9 @@ function MapCanvas({
         ))}
 
         {/* 8. Regional Monitored Fleet Convoys */}
-        {showConvoys && !focusRoadOnly && filteredConvoys.map((convoy) => (
+        {showConvoys && !focusRoadOnly && filteredConvoys
+          .filter(c => !(activeVehicle && (c.id === activeVehicle.id || c.id === activeVehicle.vehicle_id)))
+          .map((convoy) => (
           <Marker
             key={convoy.id}
             position={[convoy.lat, convoy.lon]}
@@ -1126,6 +1189,57 @@ function MapCanvas({
             </Popup>
           </Marker>
         )}
+
+        {/* 9b. Live Field Incident Reports Markers */}
+        {reports.filter(r => !r.is_resolved && r.latitude && r.longitude).map((r) => (
+          <Marker
+            key={`field-rpt-${r.id}`}
+            position={[r.latitude, r.longitude]}
+            icon={getIncidentReportIcon(r.incident_type, r.severity)}
+          >
+            <Popup>
+              <div className="text-slate-900 font-sans text-xs min-w-[210px] max-w-[270px]">
+                <div className="flex items-center justify-between pb-1 border-b border-slate-200">
+                  <span className="font-bold text-rose-800 flex items-center gap-1">
+                    <span>{r.incident_type === 'LANDSLIDE' ? '⛰️' : '⚠️'}</span>
+                    <span>{r.incident_type}</span>
+                  </span>
+                  <span className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-bold ${
+                    r.severity === 'BLOCKING' 
+                      ? 'bg-rose-100 text-rose-800 border border-rose-300' 
+                      : 'bg-amber-100 text-amber-800 border border-amber-300'
+                  }`}>
+                    {r.severity}
+                  </span>
+                </div>
+                <div className="text-[11px] text-slate-700 mt-1.5 space-y-1">
+                  <div><b>Reporter:</b> {r.reporter_name || 'BRO Patrol'} ({r.agency || 'BRO'})</div>
+                  <div><b>Snapped Road:</b> {r.snapped_segment_name || 'Mountain Sector'}</div>
+                  <div className="text-slate-600 italic bg-slate-50 p-1.5 rounded border border-slate-200">
+                    "{r.description}"
+                  </div>
+                  {r.photo_url && (
+                    <div className="mt-1.5 rounded-lg border border-slate-300 overflow-hidden shadow-sm">
+                      <img 
+                        src={getMediaUrl(r.photo_url)} 
+                        alt="Hazard Evidence" 
+                        className="w-full h-28 object-cover" 
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                      <div className="p-1 bg-slate-100 text-[9px] font-mono text-slate-600 flex justify-between">
+                        <span>📷 Verified Photo</span>
+                        <span className="text-cyan-700 font-bold">ON-GROUND</span>
+                      </div>
+                    </div>
+                  )}
+                  <div className="text-[10px] text-slate-400 font-mono pt-1">
+                    GPS: {r.latitude?.toFixed(4)}, {r.longitude?.toFixed(4)}
+                  </div>
+                </div>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
 
         {/* 10. Strategic Town Stations & Landmarks */}
         {showStations && !focusRoadOnly && filteredNodes.filter(n => n.isKeyStation || n.isHazardZone).map((node) => (

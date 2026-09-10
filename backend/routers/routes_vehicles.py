@@ -2,6 +2,7 @@
 API Router for Convoy Dispatch, Live GPS Telemetry, and Reactive Rerouting.
 """
 from fastapi import APIRouter, HTTPException, Depends
+from typing import List
 from backend.models.schemas import VehicleTelemetry, VehicleCreate
 from backend.services.vehicle_simulator import VehicleSimulator
 
@@ -9,6 +10,12 @@ router = APIRouter(prefix="/vehicles", tags=["GPS Telemetry & Convoy Tracking"])
 
 
 from backend.dependencies import get_vehicle_simulator
+
+
+@router.get("", response_model=List[VehicleTelemetry])
+def get_all_convoys(simulator: VehicleSimulator = Depends(get_vehicle_simulator)):
+    """Returns telemetry for all active monitored supply convoys."""
+    return simulator.get_all_vehicles()
 
 
 @router.get("/{vehicle_id}/telemetry", response_model=VehicleTelemetry)

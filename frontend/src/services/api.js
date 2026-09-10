@@ -2,7 +2,16 @@
  * API Client with Offline Queue and Fallback Support.
  */
 
-const API_BASE = '/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL ? import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '') : '/api';
+
+export const getMediaUrl = (path) => {
+  if (!path) return '';
+  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('blob:') || path.startsWith('data:')) {
+    return path;
+  }
+  const base = import.meta.env.VITE_API_BASE_URL ? import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '') : '';
+  return `${base}${path.startsWith('/') ? '' : '/'}${path}`;
+};
 
 export const api = {
   // --- Corridors & Geotechnical ---
@@ -78,6 +87,12 @@ export const api = {
   },
 
   // --- Vehicle Telemetry ---
+  async getAllVehicles() {
+    const res = await fetch(`${API_BASE}/vehicles`);
+    if (!res.ok) throw new Error('Failed to fetch all vehicles');
+    return res.json();
+  },
+
   async getVehicleTelemetry(vehicleId = 'MED_CONVOY_01') {
     const res = await fetch(`${API_BASE}/vehicles/${vehicleId}/telemetry`);
     if (!res.ok) throw new Error('Failed to fetch vehicle telemetry');
@@ -143,6 +158,17 @@ export const api = {
   async resolveFieldReport(reportId) {
     const res = await fetch(`${API_BASE}/field-reports/${reportId}/resolve`, { method: 'POST' });
     if (!res.ok) throw new Error('Failed to resolve field report');
+    return res.json();
+  },
+
+  async uploadPhoto(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch(`${API_BASE}/field-reports/upload-photo`, {
+      method: 'POST',
+      body: formData
+    });
+    if (!res.ok) throw new Error('Failed to upload incident photo');
     return res.json();
   },
 

@@ -3,6 +3,7 @@ Live meteorological connector using Open-Meteo 100% Free API.
 Provides real-time precipitation, temperature, wind, and forecast conditions
 across the North Eastern Region without requiring an API key.
 """
+import os
 import httpx
 from typing import Dict, Any, List
 
@@ -12,7 +13,10 @@ class WeatherService:
     Asynchronous weather service querying Open-Meteo endpoints for key corridor stations.
     """
 
-    BASE_URL = "https://api.open-meteo.com/v1/forecast"
+    @classmethod
+    def get_base_url(cls) -> str:
+        base = os.getenv("OPEN_METEO_BASE_URL", "https://api.open-meteo.com/v1").rstrip("/")
+        return f"{base}/forecast"
 
     KEY_STATIONS = {
         "Guwahati": {"lat": 26.1445, "lon": 91.7362, "elevation_m": 55},
@@ -50,7 +54,7 @@ class WeatherService:
                 "timezone": "Asia/Kolkata"
             }
             async with httpx.AsyncClient(timeout=3.5) as client:
-                resp = await client.get(cls.BASE_URL, params=params)
+                resp = await client.get(cls.get_base_url(), params=params)
                 if resp.status_code == 200:
                     data = resp.json()
                     curr = data.get("current", {})
