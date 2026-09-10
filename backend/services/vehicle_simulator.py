@@ -7,7 +7,7 @@ import math
 from typing import Dict, Any, Optional, List
 from backend.services.routing_engine import RoutingEngine
 from backend.models.schemas import VehicleTelemetry, VehicleCreate
-from backend.data.corridor_data import NODES
+from backend.data.corridor_data import NODES, ACTIVE_CONVOYS_DATA
 
 
 def haversine_dist(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -177,11 +177,22 @@ class VehicleSimulator:
             seg_idx = min(len(route.segments) - 1, int((v["progress_pct"] / 100.0) * len(route.segments)))
             curr_seg_id = route.segments[seg_idx].segment_id
 
+        # Match metadata from ACTIVE_CONVOYS_DATA or defaults
+        target_id = v.get("vehicle_id", vehicle_id)
+        meta = {}
+        for c in ACTIVE_CONVOYS_DATA:
+            if c.get("vehicle_id") == target_id or c.get("id") == target_id or c.get("vehicle_id") == vehicle_id:
+                meta = c
+                break
+
         return VehicleTelemetry(
             vehicle_id=vehicle_id,
+            id=vehicle_id,
             status=v["status"],
             current_lat=round(v["current_lat"], 5),
             current_lon=round(v["current_lon"], 5),
+            lat=round(v["current_lat"], 5),
+            lon=round(v["current_lon"], 5),
             speed_kmh=round(v["speed_kmh"], 1),
             progress_pct=round(v["progress_pct"], 1),
             distance_covered_km=round(v["distance_covered_km"], 1),
@@ -192,7 +203,19 @@ class VehicleSimulator:
             ahead_hazard_detected=v["ahead_hazard_detected"],
             ahead_hazard_detail=v["ahead_hazard_detail"],
             operational_advisory=v["operational_advisory"],
-            detour_available=v["detour_available"]
+            detour_available=v["detour_available"],
+            cargo=meta.get("cargo") or v.get("cargo_description") or "Essential Regional Supplies",
+            cargo_priority=v.get("cargo_priority") or meta.get("priority") or "GENERAL",
+            priority=meta.get("priority") or v.get("cargo_priority") or "GENERAL",
+            origin=v.get("origin") or meta.get("origin") or "Guwahati Hub",
+            destination=v.get("destination") or meta.get("destination") or "Strategic Lifeline Depot",
+            driver_id=meta.get("driver_id"),
+            driver_name=meta.get("driver_name"),
+            driver_phone=meta.get("driver_phone"),
+            driver_license=meta.get("driver_license"),
+            vehicle_reg=meta.get("vehicle_reg"),
+            vehicle_model=meta.get("vehicle_model") or v.get("vehicle_type"),
+            corridor=meta.get("corridor") or "CORRIDOR_NH13"
         )
 
     def get_all_vehicles(self) -> List[VehicleTelemetry]:

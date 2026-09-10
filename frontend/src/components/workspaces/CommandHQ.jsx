@@ -119,8 +119,9 @@ export default function CommandHQ({
 
   // Find linked driver for selected manifest convoy
   const activeManifestConvoy = selectedConvoyForManifest;
+  const manifestConvoyId = activeManifestConvoy ? (activeManifestConvoy.id || activeManifestConvoy.vehicle_id) : null;
   const matchedDriver = activeManifestConvoy 
-    ? (displayDrivers.find(d => d.id === activeManifestConvoy.driver_id || d.assigned_vehicle_id === activeManifestConvoy.id) || {
+    ? (displayDrivers.find(d => d.id === activeManifestConvoy.driver_id || d.assigned_vehicle_id === manifestConvoyId) || {
         name: activeManifestConvoy.driver_name || 'Subedar R. Thapa',
         id: activeManifestConvoy.driver_id || 'DRV-014',
         phone: activeManifestConvoy.driver_phone || '+91 94350-12844',
@@ -225,16 +226,25 @@ export default function CommandHQ({
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           {displayConvoys.map((convoy) => {
-            const isSelected = selectedConvoyForManifest?.id === convoy.id;
-            const isMed = convoy.priority === 'CRITICAL_MEDICAL' || convoy.cargo_type === 'MEDICAL';
-            const isFood = convoy.priority === 'ESSENTIAL_FOOD' || convoy.cargo_type === 'FOOD_PDS';
-            const isFuel = convoy.priority === 'FUEL_POL' || convoy.cargo_type === 'FUEL_POL';
+            const convoyId = convoy.id || convoy.vehicle_id;
+            const isSelected = (selectedConvoyForManifest?.id || selectedConvoyForManifest?.vehicle_id) === convoyId;
+            const linkedDriver = displayDrivers.find(d => d.assigned_vehicle_id === convoyId || d.id === convoy.driver_id);
+            const priority = convoy.priority || convoy.cargo_priority || linkedDriver?.cargo_priority || 'GENERAL';
+            const isMed = priority === 'CRITICAL_MEDICAL' || convoy.cargo_type === 'MEDICAL';
+            const isFood = priority === 'ESSENTIAL_FOOD' || convoy.cargo_type === 'FOOD_PDS';
+            const isFuel = priority === 'FUEL_POL' || convoy.cargo_type === 'FUEL_POL';
             const borderCol = isMed ? 'border-rose-500/40 hover:border-rose-400' : isFood ? 'border-emerald-500/40 hover:border-emerald-400' : isFuel ? 'border-amber-500/40 hover:border-amber-400' : 'border-cyan-500/40 hover:border-cyan-400';
             const badgeBg = isMed ? 'bg-rose-500/10 text-rose-300 border-rose-500/30' : isFood ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30' : isFuel ? 'bg-amber-500/10 text-amber-300 border-amber-500/30' : 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30';
 
+            const vehicleReg = convoy.vehicle_reg || linkedDriver?.vehicle_reg || 'AS-01-EC-9042';
+            const driverName = convoy.driver_name || linkedDriver?.name || 'Driver En Route';
+            const driverPhone = convoy.driver_phone || linkedDriver?.phone || '+91 94350-12844';
+            const cargo = convoy.cargo || linkedDriver?.cargo_summary || 'Essential Regional Supplies';
+            const destination = convoy.destination || 'Forward Lifeline Depot';
+
             return (
               <div
-                key={convoy.id}
+                key={convoyId}
                 onClick={() => setSelectedConvoyForManifest(convoy)}
                 className={`p-3.5 rounded-xl bg-defense-900 border ${borderCol} cursor-pointer transition-all hover:scale-[1.01] hover:shadow-lg flex flex-col justify-between space-y-2 ${
                   isSelected ? 'ring-2 ring-cyan-400 bg-defense-800' : ''
@@ -244,20 +254,20 @@ export default function CommandHQ({
                   <div className="flex justify-between items-start gap-2">
                     <span className="font-bold text-xs text-white flex items-center gap-1.5">
                       <Truck className="w-3.5 h-3.5 text-cyan-400" />
-                      {convoy.id}
+                      {convoyId}
                     </span>
                     <span className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold border ${badgeBg}`}>
-                      {convoy.priority}
+                      {priority}
                     </span>
                   </div>
 
                   <div className="mt-2 text-xs font-mono">
                     <div className="text-amber-400 font-bold flex items-center justify-between">
-                      <span>Reg: {convoy.vehicle_reg || 'AS-01-EC-9042'}</span>
-                      <span className="text-[10px] text-slate-400">{convoy.speed_kmh} km/h</span>
+                      <span>Reg: {vehicleReg}</span>
+                      <span className="text-[10px] text-slate-400">{convoy.speed_kmh || 42} km/h</span>
                     </div>
                     <div className="text-slate-300 font-bold mt-1 truncate">
-                      {convoy.cargo}
+                      {cargo}
                     </div>
                   </div>
 
@@ -267,15 +277,15 @@ export default function CommandHQ({
                         <User className="w-3 h-3 text-cyan-400" />
                         Driver:
                       </span>
-                      <span className="font-bold text-slate-200">{convoy.driver_name}</span>
+                      <span className="font-bold text-slate-200">{driverName}</span>
                     </div>
                     <div className="flex items-center justify-between text-[10px] font-mono text-slate-500">
                       <span>Phone:</span>
-                      <span className="text-cyan-400">{convoy.driver_phone}</span>
+                      <span className="text-cyan-400">{driverPhone}</span>
                     </div>
                     <div className="flex items-center justify-between text-[10px] font-mono text-slate-500">
                       <span>Destination:</span>
-                      <span className="text-slate-300 truncate max-w-[130px]">{convoy.destination}</span>
+                      <span className="text-slate-300 truncate max-w-[130px]">{destination}</span>
                     </div>
                   </div>
                 </div>

@@ -38,7 +38,37 @@ export default function App() {
 
   const currentDriver = REGISTERED_DRIVERS.find(d => d.id === selectedDriverId) || REGISTERED_DRIVERS[0];
   const targetVehicleId = currentDriver?.assigned_vehicle_id || 'MED_CONVOY_01';
-  const currentVehicle = convoys.find(v => v.driver_id === selectedDriverId || v.id === targetVehicleId) || activeVehicle || convoys[0];
+  const currentVehicle = convoys.find(v => v.driver_id === selectedDriverId || (v.id || v.vehicle_id) === targetVehicleId) || activeVehicle || convoys[0];
+
+  // Helper to merge live vehicle telemetry with rich convoy/driver manifest data
+  const mergeConvoyWithTelemetry = (convoy, telemetry) => {
+    if (!telemetry) return convoy;
+    const convoyId = convoy?.id || convoy?.vehicle_id || telemetry?.id || telemetry?.vehicle_id;
+    const linkedDriver = REGISTERED_DRIVERS.find(
+      d => d.assigned_vehicle_id === convoyId || d.id === convoy?.driver_id || d.id === telemetry?.driver_id
+    );
+    return {
+      ...convoy,
+      ...telemetry,
+      id: convoyId,
+      vehicle_id: convoyId,
+      driver_name: telemetry.driver_name || convoy?.driver_name || linkedDriver?.name,
+      driver_phone: telemetry.driver_phone || convoy?.driver_phone || linkedDriver?.phone,
+      driver_id: telemetry.driver_id || convoy?.driver_id || linkedDriver?.id,
+      driver_license: telemetry.driver_license || convoy?.driver_license || linkedDriver?.license_no,
+      vehicle_reg: telemetry.vehicle_reg || convoy?.vehicle_reg || linkedDriver?.vehicle_reg,
+      vehicle_model: telemetry.vehicle_model || convoy?.vehicle_model || linkedDriver?.vehicle_model,
+      destination: telemetry.destination || convoy?.destination,
+      origin: telemetry.origin || convoy?.origin,
+      cargo: telemetry.cargo || convoy?.cargo || linkedDriver?.cargo_summary,
+      priority: telemetry.priority || telemetry.cargo_priority || convoy?.priority || linkedDriver?.cargo_priority,
+      lat: telemetry.current_lat ?? telemetry.lat ?? convoy?.lat,
+      lon: telemetry.current_lon ?? telemetry.lon ?? convoy?.lon,
+      speed_kmh: telemetry.speed_kmh ?? convoy?.speed_kmh,
+      progress_pct: telemetry.progress_pct ?? convoy?.progress_pct,
+      status: telemetry.status || convoy?.status,
+    };
+  };
 
   // Initial Data Fetch
   const refreshAllData = async () => {
@@ -65,7 +95,16 @@ export default function App() {
       if (wthr) setWeatherData(wthr);
       if (brief) setExecutiveBrief(brief);
       if (vTele) setActiveVehicle(vTele);
-      if (allV && allV.length > 0) setConvoys(allV);
+      if (allV && allV.length > 0) {
+        setConvoys(prev => {
+          const base = (prev && prev.length > 0) ? prev : ACTIVE_CONVOYS;
+          return base.map(existing => {
+            const vId = existing.id || existing.vehicle_id;
+            const tele = allV.find(v => (v.vehicle_id || v.id) === vId);
+            return mergeConvoyWithTelemetry(existing, tele);
+          });
+        });
+      }
 
       // Preload baseline comparison metrics without forcing a turn-by-turn route on the map
       if (!comparisonData) {
@@ -87,7 +126,13 @@ export default function App() {
         .then(v => {
           if (v) {
             setActiveVehicle(v);
-            setConvoys(prev => prev.map(c => c.id === targetVehicleId ? { ...c, ...v, lat: v.current_lat || c.lat, lon: v.current_lon || c.lon } : c));
+            setConvoys(prev => prev.map(c => {
+              const cId = c.id || c.vehicle_id;
+              if (cId === targetVehicleId) {
+                return mergeConvoyWithTelemetry(c, v);
+              }
+              return c;
+            }));
           }
         })
         .catch(() => {});
@@ -117,7 +162,13 @@ export default function App() {
     try {
       const updated = await api.advanceVehicle(targetVehicleId, stepPct);
       setActiveVehicle(updated);
-      setConvoys(prev => prev.map(c => c.id === targetVehicleId ? { ...c, ...updated, lat: updated.current_lat || c.lat, lon: updated.current_lon || c.lon } : c));
+      setConvoys(prev => prev.map(c => {
+        const cId = c.id || c.vehicle_id;
+        if (cId === targetVehicleId) {
+          return mergeConvoyWithTelemetry(c, updated);
+        }
+        return c;
+      }));
     } catch (err) {
       console.error('Failed to advance vehicle:', err);
     }
@@ -128,7 +179,13 @@ export default function App() {
     const v = await api.getVehicleTelemetry(targetVehicleId);
     if (v) {
       setActiveVehicle(v);
-      setConvoys(prev => prev.map(c => c.id === targetVehicleId ? { ...c, ...v } : c));
+      setConvoys(prev => prev.map(c => {
+        const cId = c.id || c.vehicle_id;
+        if (cId === targetVehicleId) {
+          return mergeConvoyWithTelemetry(c, v);
+        }
+        return c;
+      }));
     }
   };
 
@@ -137,7 +194,13 @@ export default function App() {
     const v = await api.getVehicleTelemetry(targetVehicleId);
     if (v) {
       setActiveVehicle(v);
-      setConvoys(prev => prev.map(c => c.id === targetVehicleId ? { ...c, ...v } : c));
+      setConvoys(prev => prev.map(c => {
+        const cId = c.id || c.vehicle_id;
+        if (cId === targetVehicleId) {
+          return mergeConvoyWithTelemetry(c, v);
+        }
+        return c;
+      }));
     }
   };
 
@@ -145,7 +208,13 @@ export default function App() {
     try {
       const updated = await api.rerouteVehicle(targetVehicleId);
       setActiveVehicle(updated);
-      setConvoys(prev => prev.map(c => c.id === targetVehicleId ? { ...c, ...updated, lat: updated.current_lat || c.lat, lon: updated.current_lon || c.lon } : c));
+      setConvoys(prev => prev.map(c => {
+        const cId = c.id || c.vehicle_id;
+        if (cId === targetVehicleId) {
+          return mergeConvoyWithTelemetry(c, updated);
+        }
+        return c;
+      }));
       refreshAllData();
     } catch (err) {
       console.error('Reroute failed:', err);

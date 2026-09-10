@@ -261,14 +261,23 @@ export default function PublicPortal({
 
         <div className="space-y-3 pt-1">
           {displayConvoys.map((convoy, idx) => {
-            const isMed = convoy.priority === 'CRITICAL_MEDICAL' || convoy.cargo_type === 'MEDICAL';
-            const isFood = convoy.priority === 'ESSENTIAL_FOOD' || convoy.cargo_type === 'FOOD_PDS';
-            const isFuel = convoy.priority === 'FUEL_POL' || convoy.cargo_type === 'FUEL_POL';
+            const convoyId = convoy.id || convoy.vehicle_id;
+            const linkedDriver = REGISTERED_DRIVERS.find(d => d.assigned_vehicle_id === convoyId || d.id === convoy.driver_id);
+            const priority = convoy.priority || convoy.cargo_priority || linkedDriver?.cargo_priority || 'GENERAL';
+            const isMed = priority === 'CRITICAL_MEDICAL' || convoy.cargo_type === 'MEDICAL';
+            const isFood = priority === 'ESSENTIAL_FOOD' || convoy.cargo_type === 'FOOD_PDS';
+            const isFuel = priority === 'FUEL_POL' || convoy.cargo_type === 'FUEL_POL';
             const badgeBg = isMed ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : isFood ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : isFuel ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20';
+
+            const vehicleReg = convoy.vehicle_reg || linkedDriver?.vehicle_reg || 'AS-01-EC-9042';
+            const driverName = convoy.driver_name || linkedDriver?.name || 'Driver En Route';
+            const driverLicense = convoy.driver_license || linkedDriver?.license_no || 'HMV Certified';
+            const cargo = convoy.cargo || linkedDriver?.cargo_summary || 'Essential Regional Supplies';
+            const destination = convoy.destination || 'Forward Lifeline Depot';
 
             return (
               <div 
-                key={convoy.id || idx} 
+                key={convoyId || idx} 
                 className="p-4 rounded-xl bg-slate-900 border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 hover:border-slate-700 transition-all"
               >
                 <div className="flex items-start gap-3.5">
@@ -277,24 +286,24 @@ export default function PublicPortal({
                   </div>
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-bold text-xs text-white">{convoy.cargo}</span>
+                      <span className="font-bold text-xs text-white">{cargo}</span>
                       <span className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold border ${badgeBg}`}>
-                        {convoy.priority}
+                        {priority}
                       </span>
                       <span className="font-mono text-[10px] text-amber-400 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800 font-bold">
-                        {convoy.vehicle_reg || 'AS-01-EC-9042'}
+                        {vehicleReg}
                       </span>
                     </div>
 
                     <div className="text-[11px] text-slate-300 mt-1">
-                      Target Destination: <b className="text-white">{convoy.destination}</b>
+                      Target Destination: <b className="text-white">{destination}</b>
                     </div>
 
                     {/* Assigned Driver & Security Seal Line */}
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-[10px] font-mono text-slate-400">
                       <span className="flex items-center gap-1 text-slate-300">
                         <User className="w-3 h-3 text-cyan-400" />
-                        Driver: <b className="text-cyan-300">{convoy.driver_name}</b> ({convoy.driver_license || 'HMV Certified'})
+                        Driver: <b className="text-cyan-300">{driverName}</b> ({driverLicense})
                       </span>
                       <span className="flex items-center gap-1 text-emerald-400">
                         <Lock className="w-3 h-3 text-emerald-400" />

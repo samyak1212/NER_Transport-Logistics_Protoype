@@ -129,6 +129,21 @@ class VehicleTelemetry(BaseModel):
     ahead_hazard_detail: Optional[str] = None
     operational_advisory: str = "CONTINUE"  # CONTINUE, REROUTE, SUSPEND
     detour_available: bool = False
+    id: Optional[str] = None
+    cargo: Optional[str] = None
+    cargo_priority: Optional[str] = None
+    priority: Optional[str] = None
+    origin: Optional[str] = None
+    destination: Optional[str] = None
+    driver_id: Optional[str] = None
+    driver_name: Optional[str] = None
+    driver_phone: Optional[str] = None
+    driver_license: Optional[str] = None
+    vehicle_reg: Optional[str] = None
+    vehicle_model: Optional[str] = None
+    corridor: Optional[str] = None
+    lat: Optional[float] = None
+    lon: Optional[float] = None
 
 
 # --- Field Incident Models ---
