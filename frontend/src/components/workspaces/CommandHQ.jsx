@@ -33,7 +33,13 @@ import {
   Snowflake,
   AlertOctagon,
   Clock,
-  MapPin
+  MapPin,
+  ArrowRight,
+  Filter,
+  CheckCircle,
+  Eye,
+  Zap,
+  Info
 } from 'lucide-react';
 import MapCanvas from '../MapCanvas';
 import GeotechnicalDrawer from '../GeotechnicalDrawer';
@@ -48,44 +54,225 @@ import {
   ROADWORKS_AND_CONNECTIVITY
 } from '../../data/defaultData';
 
-const AUTHORITY_PROFILES = {
+export const AUTHORITY_PROFILES = {
+  ASDMA_ASSAM: {
+    id: 'ASDMA_ASSAM',
+    name: 'Assam SDMA (Dispur Central Command)',
+    state: 'Assam',
+    agency: 'Assam State Disaster Management Authority (ASDMA)',
+    project: 'Dispur Logistics & Flood Command Hub',
+    role: 'State Logistics Coordinator & Relief Chief',
+    jurisdiction: 'Kamrup Supply Hub, Brahmaputra Arterials & Transits',
+    clearance: 'TRANSIT_CORRIDOR_COMMAND',
+    badgeColor: 'border-amber-500/60 bg-amber-950/40 text-amber-300'
+  },
+  ARUNACHAL_SDMA: {
+    id: 'ARUNACHAL_SDMA',
+    name: 'Arunachal SDMA (Itanagar SEOC)',
+    state: 'Arunachal Pradesh',
+    agency: 'Arunachal Pradesh Disaster Management Authority',
+    project: 'State Emergency Operations Centre (SEOC Itanagar)',
+    role: 'Director of Disaster Management & Frontier Lifelines',
+    jurisdiction: 'All 26 Frontier Districts, Kameng, Tawang & Siang Sectors',
+    clearance: 'STATE_CIVIL_PROTECTION',
+    badgeColor: 'border-cyan-500/60 bg-cyan-950/40 text-cyan-300'
+  },
+  MANIPUR_SDMA: {
+    id: 'MANIPUR_SDMA',
+    name: 'Manipur SDMA (Imphal Emergency Cell)',
+    state: 'Manipur',
+    agency: 'Manipur State Disaster Management Authority',
+    project: 'Imphal Valley & Hills Logistics Emergency Cell',
+    role: 'State Relief & Supply Logistics Officer',
+    jurisdiction: 'Imphal East/West, Senapati, Churachandpur & NH-2 Corridor',
+    clearance: 'STATE_CIVIL_PROTECTION',
+    badgeColor: 'border-rose-500/60 bg-rose-950/40 text-rose-300'
+  },
+  MEGHALAYA_SDMA: {
+    id: 'MEGHALAYA_SDMA',
+    name: 'Meghalaya SDMA (Shillong Plateau)',
+    state: 'Meghalaya',
+    agency: 'Meghalaya State Disaster Management Authority',
+    project: 'Shillong Plateau Corridor Control & Sonapur Monitoring',
+    role: 'State Relief & Transport Officer',
+    jurisdiction: 'East Khasi Hills, Ri-Bhoi, Jaintia Hills & NH-6 Transit',
+    clearance: 'STATE_CIVIL_PROTECTION',
+    badgeColor: 'border-blue-500/60 bg-blue-950/40 text-blue-300'
+  },
+  MIZORAM_SDMA: {
+    id: 'MIZORAM_SDMA',
+    name: 'DM&R Mizoram (Aizawl Mountain Cell)',
+    state: 'Mizoram',
+    agency: 'Disaster Management & Rehabilitation Department (Mizoram)',
+    project: 'Aizawl Mountain Logistics & Buffer Stock Cell',
+    role: 'Director of Relief Operations',
+    jurisdiction: 'Aizawl, Kolasib, Lunglei & Southern Frontier Transits',
+    clearance: 'STATE_CIVIL_PROTECTION',
+    badgeColor: 'border-teal-500/60 bg-teal-950/40 text-teal-300'
+  },
+  NAGALAND_SDMA: {
+    id: 'NAGALAND_SDMA',
+    name: 'NSDMA Nagaland (Kohima SEOC)',
+    state: 'Nagaland',
+    agency: 'Nagaland State Disaster Management Authority (NSDMA)',
+    project: 'Kohima Critical Ridge & Gorge Coordination SEOC',
+    role: 'Chief Emergency Logistics Coordinator',
+    jurisdiction: 'Kohima, Dimapur Railhead, Mokokchung & NH-29 Lifeline',
+    clearance: 'STATE_CIVIL_PROTECTION',
+    badgeColor: 'border-emerald-500/60 bg-emerald-950/40 text-emerald-300'
+  },
+  TRIPURA_SDMA: {
+    id: 'TRIPURA_SDMA',
+    name: 'Tripura SDMA (Agartala Multimodal)',
+    state: 'Tripura',
+    agency: 'Tripura State Disaster Management Authority',
+    project: 'Agartala Multimodal Transit Hub & Granary Depots',
+    role: 'State Logistics Director',
+    jurisdiction: 'West Tripura, South Tripura & Silchar-Agartala NH-8',
+    clearance: 'STATE_CIVIL_PROTECTION',
+    badgeColor: 'border-orange-500/60 bg-orange-950/40 text-orange-300'
+  },
+  SIKKIM_SDMA: {
+    id: 'SIKKIM_SDMA',
+    name: 'SSDMA Sikkim (Gangtok Teesta Cell)',
+    state: 'Sikkim',
+    agency: 'Sikkim State Disaster Management Authority (SSDMA)',
+    project: 'Gangtok Teesta Basin Operations Cell',
+    role: 'Special Secretary, Disaster Management',
+    jurisdiction: 'East Sikkim, North Sikkim (Lachen/Lachung) & NH-10 Teesta Gorge',
+    clearance: 'STATE_CIVIL_PROTECTION',
+    badgeColor: 'border-indigo-500/60 bg-indigo-950/40 text-indigo-300'
+  },
   VARTAK: {
     id: 'VARTAK',
+    name: 'BRO Project Vartak (Western Arunachal)',
+    state: 'Arunachal Pradesh',
     agency: 'Border Roads Organisation (BRO)',
-    project: 'Project Vartak (42 BRTF)',
+    project: 'Project Vartak (42 BRTF Tactical Headquarters)',
     role: 'Chief Engineer / Task Force Commander',
     jurisdiction: 'Western Arunachal (Kameng & Tawang Frontier Sectors)',
     clearance: 'DEFENSE_STRATEGIC_TIER_1',
     badgeColor: 'border-emerald-500/60 bg-emerald-950/40 text-emerald-300'
   },
-  ARUNACHAL_SDMA: {
-    id: 'ARUNACHAL_SDMA',
-    agency: 'Arunachal Pradesh Disaster Management Authority',
-    project: 'State Emergency Operations Centre (SEOC)',
-    role: 'Director of Disaster Management',
-    jurisdiction: 'All 26 Frontier Districts, Itanagar',
-    clearance: 'STATE_CIVIL_PROTECTION',
-    badgeColor: 'border-cyan-500/60 bg-cyan-950/40 text-cyan-300'
-  },
-  ASDMA_ASSAM: {
-    id: 'ASDMA_ASSAM',
-    agency: 'Assam State Disaster Management Authority',
-    project: 'Dispur Logistics & Flood Command Hub',
-    role: 'State Logistics Coordinator',
-    jurisdiction: 'Kamrup Metro Supply Base & Brahmaputra Arterials',
-    clearance: 'TRANSIT_CORRIDOR_COMMAND',
-    badgeColor: 'border-amber-500/60 bg-amber-950/40 text-amber-300'
-  },
   MDONER: {
     id: 'MDONER',
+    name: 'Ministry of DoNER (Central Oversight)',
+    state: 'ALL',
     agency: 'Ministry of Development of North Eastern Region (MDoNER)',
     project: 'Central Logistics & Accessibility Intelligence Unit',
     role: 'Regional Development Advisor (New Delhi)',
-    jurisdiction: 'Inter-State Multi-Modal Coordination (8 NER States)',
+    jurisdiction: 'Inter-State Multi-Modal Coordination (All 8 NER States)',
     clearance: 'UNION_MINISTRY_DIRECTIVE',
     badgeColor: 'border-purple-500/60 bg-purple-950/40 text-purple-300'
   }
 };
+
+export const DEFAULT_OPERATOR_FLAGS = [
+  {
+    id: 'FLAG-AS-01',
+    state: 'Assam',
+    location: 'Brahmaputra Pancharatna Embankment (Goalpara Sector)',
+    severity: 'WARNING',
+    category: 'WATER_SEEPAGE',
+    timestamp: '12 mins ago',
+    operator_name: 'Inspector H. Baruah (ASDMA Quick Response)',
+    operator_role: 'SEOC Field Hydro-Observer',
+    message: 'Embankment seepage detected near Pier 4. Heavy cargo vehicles throttled to 20 km/h single-lane.',
+    action_status: 'MONITORING_ESCORT',
+    affected_corridor: 'NH-17 / Brahmaputra Artery'
+  },
+  {
+    id: 'FLAG-AR-02',
+    state: 'Arunachal Pradesh',
+    location: 'Sessa Hairpin km 78 (West Kameng)',
+    severity: 'CRITICAL',
+    category: 'SCREE_FALL',
+    timestamp: '18 mins ago',
+    operator_name: 'Driver Subedar R. Thapa (MED_CONVOY_01)',
+    operator_role: 'Senior Mountain Pilot',
+    message: 'Active scree chute discharging shale across road surface. BRO Vartak wheel-loader in clearing operation.',
+    action_status: 'REROUTE_SUGGESTED',
+    affected_corridor: 'NH-13 (Bhalukpong-Bomdila)'
+  },
+  {
+    id: 'FLAG-ML-03',
+    state: 'Meghalaya',
+    location: 'Sonapur Mudflow Tunnel (NH-6 Jaintia Hills)',
+    severity: 'EMERGENCY',
+    category: 'VEHICLE_BREAKDOWN',
+    timestamp: '26 mins ago',
+    operator_name: 'Pilot D. Hazarika (AS_OXYGEN_05)',
+    operator_role: 'Cryogenic Tanker Commander',
+    message: 'Rear suspension axle failure inside mud chute apron. Recovery crane unit dispatched by Pushpak detachment.',
+    action_status: 'RECOVERY_IN_PROGRESS',
+    affected_corridor: 'NH-6 (Shillong-Silchar)'
+  },
+  {
+    id: 'FLAG-NL-04',
+    state: 'Nagaland',
+    location: 'Paglapahar Gorge km 18 (Dimapur-Kohima)',
+    severity: 'HIGH',
+    category: 'ROCKFALL_ALERT',
+    timestamp: '34 mins ago',
+    operator_name: 'Naik K. Ao (FUEL_TANKER_02)',
+    operator_role: 'POL Logistics Escort',
+    message: 'Intermittent falling rocks from shale overhang. Traffic halted momentarily by spotters.',
+    action_status: 'PILOT_ESCORT_ACTIVE',
+    affected_corridor: 'NH-29'
+  },
+  {
+    id: 'FLAG-MN-05',
+    state: 'Manipur',
+    location: 'Mao Gate Border Checkpost (Senapati)',
+    severity: 'WARNING',
+    category: 'TRANSIT_BOTTLENECK',
+    timestamp: '42 mins ago',
+    operator_name: 'Pilot T. Singh (MN_MED_06)',
+    operator_role: 'Medical Relief Driver',
+    message: 'Truck queue congestion extending 3 km due to landslide clearing on south ramp. Medical convoys given green pass.',
+    action_status: 'PRIORITY_CLEARANCE',
+    affected_corridor: 'NH-2 (Kohima-Imphal)'
+  },
+  {
+    id: 'FLAG-SK-06',
+    state: 'Sikkim',
+    location: 'Dikchu River Approach km 24 (North Sikkim)',
+    severity: 'HIGH',
+    category: 'ROAD_SUBSIDENCE',
+    timestamp: '51 mins ago',
+    operator_name: 'Karma Lepcha (SK_BLOOD_09)',
+    operator_role: 'Emergency Blood Courier',
+    message: 'Road shoulder eroded by swollen Teesta tributary. Light vehicles allowed, 10-wheelers restricted.',
+    action_status: 'PILOT_ESCORT_ACTIVE',
+    affected_corridor: 'NH-10 Spur'
+  },
+  {
+    id: 'FLAG-MZ-07',
+    state: 'Mizoram',
+    location: 'Kolasib Northern Defile (Silchar-Aizawl Lifeline)',
+    severity: 'CAUTION',
+    category: 'MUD_SLIP',
+    timestamp: '1 hr ago',
+    operator_name: 'Lalrindika Sailo (MZ_POL_07)',
+    operator_role: 'Heavy Tanker Operator',
+    message: 'Shallow mud runoff cleared; wet pavement slick on descending hairpins. Speed advisory 25 km/h.',
+    action_status: 'NORMAL_CAUTION',
+    affected_corridor: 'NH-306 / NH-6'
+  },
+  {
+    id: 'FLAG-TR-08',
+    state: 'Tripura',
+    location: 'Ambassa Culvert Stretch (Dhalai Sector)',
+    severity: 'CAUTION',
+    category: 'WATERLOGGING',
+    timestamp: '1.4 hrs ago',
+    operator_name: 'B. Debbarma (TR_GRAIN_08)',
+    operator_role: 'FCI Freight Driver',
+    message: 'Culvert drainage overflow after cloudburst. Water receding steadily; no impediment to multi-axles.',
+    action_status: 'CLEAR_TRANSIT',
+    affected_corridor: 'NH-8'
+  }
+];
 
 export default function CommandHQ({
   nodes = [],
@@ -106,24 +293,82 @@ export default function CommandHQ({
   executiveBrief,
   onCalculateRoute = () => {}
 }) {
-  const [activeSubTab, setActiveSubTab] = useState('gis'); // 'gis', 'districts', 'hazards', 'roadworks', 'briefing'
-  const [authorityKey, setAuthorityKey] = useState('VARTAK');
+  const [activeSubTab, setActiveSubTab] = useState('activity'); // 'activity', 'convoys', 'districts', 'hazards', 'roadworks', 'briefing'
+  const [authorityKey, setAuthorityKey] = useState('ASDMA_ASSAM');
   const [briefLang, setBriefLang] = useState('english');
   const [districtFilter, setDistrictFilter] = useState('ALL');
+  const [districtScope, setDistrictScope] = useState('STATE_ONLY'); // 'STATE_ONLY' or 'ALL_NER'
   const [selectedConvoyForManifest, setSelectedConvoyForManifest] = useState(null);
   const [voipCallActive, setVoipCallActive] = useState(false);
   const [advisorySent, setAdvisorySent] = useState(false);
 
-  const authority = AUTHORITY_PROFILES[authorityKey] || AUTHORITY_PROFILES.VARTAK;
+  const authority = AUTHORITY_PROFILES[authorityKey] || AUTHORITY_PROFILES.ASDMA_ASSAM;
+  const authState = authority.state; // 'Assam', 'Arunachal Pradesh', or 'ALL'
 
   const displayDistricts = (districts && districts.length > 0) ? districts : DEFAULT_DISTRICTS;
   const displayMachinery = (broMachinery && broMachinery.length > 0) ? broMachinery : BRO_MACHINERY_UNITS;
   const displayConvoys = (allConvoys && allConvoys.length > 0) ? allConvoys : ACTIVE_CONVOYS;
   const displayDrivers = (drivers && drivers.length > 0) ? drivers : REGISTERED_DRIVERS;
+  const displayReports = (reports && reports.length > 0) ? reports : DEFAULT_OPERATOR_FLAGS;
 
-  const filteredDistricts = displayDistricts.filter(d => {
+  // STRICT STATE INVOLVEMENT FILTERING:
+  // An authority in Assam must strictly only see transport/logistics WITHIN Assam or BETWEEN Assam and other states.
+  // Must NOT see purely intra-state movements of other states.
+  const stateConvoys = displayConvoys.filter(c => {
+    if (!authState || authState === 'ALL') return true;
+    if (c.states && Array.isArray(c.states) && c.states.includes(authState)) return true;
+    if (c.origin_state === authState || c.dest_state === authState) return true;
+    if (typeof c.states === 'string' && c.states.includes(authState)) return true;
+    return false;
+  });
+
+  // Alerted or damaged convoys for quick operations monitoring
+  const alertedConvoys = stateConvoys.filter(c => 
+    c.ahead_hazard_detected || 
+    c.mechanical_breakdown || 
+    c.status?.includes('SLOW') || 
+    c.status?.includes('DAMAGED') || 
+    c.status?.includes('WARNING') || 
+    c.status?.includes('CAUTION') ||
+    c.priority === 'CRITICAL_MEDICAL'
+  );
+
+  // Districts within this state
+  const stateDistricts = displayDistricts.filter(d => {
+    if (!authState || authState === 'ALL') return true;
+    return d.state === authState;
+  });
+
+  // Table districts honoring the districtScope toggle ('STATE_ONLY' vs 'ALL_NER')
+  const tableDistricts = (districtScope === 'STATE_ONLY' && authState !== 'ALL') ? stateDistricts : displayDistricts;
+  const filteredDistricts = tableDistricts.filter(d => {
     if (districtFilter === 'ALL') return true;
     return d.status === districtFilter;
+  });
+
+  // Single-lifeline gaps for this state
+  const stateGaps = (ROADWORKS_AND_CONNECTIVITY?.connectivity_gaps || []).filter(g => {
+    if (!authState || authState === 'ALL') return true;
+    return g.state?.includes(authState) || g.district_or_sector?.includes(authState);
+  });
+
+  // Roadworks for this state
+  const stateRoadworks = (ROADWORKS_AND_CONNECTIVITY?.ongoing_roadworks || []).filter(rw => {
+    if (!authState || authState === 'ALL') return true;
+    if (authState === 'Arunachal Pradesh' && rw.corridor === 'CORRIDOR_NH13') return true;
+    if (authState === 'Assam' && (rw.corridor === 'CORRIDOR_NH13' || rw.corridor === 'CORRIDOR_NH6')) return true;
+    if (authState === 'Nagaland' && rw.corridor === 'CORRIDOR_NH29') return true;
+    if (authState === 'Manipur' && rw.corridor === 'CORRIDOR_NH29') return true;
+    if (authState === 'Sikkim' && rw.corridor === 'CORRIDOR_NH10') return true;
+    if (authState === 'Meghalaya' && rw.corridor === 'CORRIDOR_NH6') return true;
+    if (authState === 'Tripura' && rw.corridor === 'CORRIDOR_NH6') return true;
+    return rw.stretch?.includes(authState) || rw.corridor?.includes(authState);
+  });
+
+  // Ground reports filtered by state
+  const stateFilteredReports = displayReports.filter(r => {
+    if (!authState || authState === 'ALL') return true;
+    return r.state === authState || (r.affected_corridor && r.affected_corridor.includes(authState));
   });
 
   // Find linked driver for selected manifest convoy
@@ -181,26 +426,49 @@ export default function CommandHQ({
             onChange={(e) => setAuthorityKey(e.target.value)}
             className="bg-slate-800 border border-slate-700 text-slate-100 font-mono text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:border-cyan-500 cursor-pointer shadow-inner"
           >
-            <option value="VARTAK">BRO Project Vartak (Western Arunachal)</option>
+            <option value="ASDMA_ASSAM">Assam SDMA (Dispur Logistics Hub)</option>
             <option value="ARUNACHAL_SDMA">Arunachal SDMA (Itanagar SEOC)</option>
-            <option value="ASDMA_ASSAM">Assam ASDMA (Dispur Supply Hub)</option>
-            <option value="MDONER">Ministry of DoNER (Central Oversight)</option>
+            <option value="MANIPUR_SDMA">Manipur SDMA (Imphal Emergency Cell)</option>
+            <option value="MEGHALAYA_SDMA">Meghalaya SDMA (Shillong Plateau Control)</option>
+            <option value="MIZORAM_SDMA">DM&R Mizoram (Aizawl Mountain Cell)</option>
+            <option value="NAGALAND_SDMA">NSDMA Nagaland (Kohima SEOC)</option>
+            <option value="TRIPURA_SDMA">Tripura SDMA (Agartala Multimodal Hub)</option>
+            <option value="SIKKIM_SDMA">SSDMA Sikkim (Gangtok Teesta Cell)</option>
+            <option value="VARTAK">BRO Project Vartak (Western Arunachal)</option>
+            <option value="MDONER">Ministry of DoNER (All 8 NER States)</option>
           </select>
         </div>
       </div>
 
-      {/* 2. Authority Sub-Tabs Bar (Clumped Information Architecture) */}
+      {/* 2. Authority Sub-Tabs Bar (Live Operations Feed, Strategic Fleet, Districts, Hazards, Roadworks, AI Briefing) */}
       <div className="flex items-center gap-1.5 p-1 bg-slate-900/90 border border-slate-800 rounded-xl overflow-x-auto shadow-inner">
         <button
-          onClick={() => setActiveSubTab('gis')}
+          onClick={() => setActiveSubTab('activity')}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-            activeSubTab === 'gis'
+            activeSubTab === 'activity'
               ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/30'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
           }`}
         >
-          <Layers className="w-4 h-4 text-cyan-400" />
-          <span>Strategic GIS & Convoys</span>
+          <Activity className="w-4 h-4 text-cyan-400" />
+          <span>Live Operations & Activity Feed</span>
+          {alertedConvoys.length > 0 && (
+            <span className="px-1.5 py-0.2 rounded-full text-[9px] font-mono font-bold bg-rose-500 text-white animate-pulse">
+              {alertedConvoys.length}
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('convoys')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeSubTab === 'convoys'
+              ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+          }`}
+        >
+          <Truck className="w-4 h-4 text-blue-400" />
+          <span>Strategic Fleet & Convoys ({stateConvoys.length})</span>
         </button>
 
         <button
@@ -211,8 +479,8 @@ export default function CommandHQ({
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
           }`}
         >
-          <Activity className="w-4 h-4 text-emerald-400" />
-          <span>District Lifelines & Gaps ({displayDistricts.length})</span>
+          <Layers className="w-4 h-4 text-emerald-400" />
+          <span>District Lifelines & Gaps ({stateDistricts.length})</span>
         </button>
 
         <button
@@ -252,8 +520,8 @@ export default function CommandHQ({
         </button>
       </div>
 
-      {/* 3. Sub-Tab 1: STRATEGIC GIS MAP & CONVOYS */}
-      {activeSubTab === 'gis' && (
+      {/* 3. Sub-Tab 1: LIVE OPERATIONS & ACTIVITY FEED (Main Map + Damaged/Alerted Convoys + Disrupted Roads + Operator Flags) */}
+      {activeSubTab === 'activity' && (
         <div className="space-y-4">
           {/* Interactive GIS Map Canvas & Geotechnical Drawer */}
           <div className="relative w-full h-[500px] md:h-[560px] flex rounded-xl overflow-hidden border border-slate-800 shadow-2xl">
@@ -267,6 +535,7 @@ export default function CommandHQ({
                 selectedSegment={selectedSegment}
                 onSelectSegment={(seg) => onSelectSegment(seg)}
                 onSelectConvoy={(convoy) => setSelectedConvoyForManifest(convoy)}
+                selectedAuthorityState={authority.state}
                 activeWorkspace="command"
               />
             </div>
@@ -280,23 +549,386 @@ export default function CommandHQ({
             )}
           </div>
 
-          {/* Active Emergency Convoys & Medical Inflow Roster */}
+          {/* Operations Activity Panel: Vital signs, Damaged/Alerted Convoys, Disrupted Roads, Field Operator Flags */}
+          <div className="space-y-4">
+            {/* Jurisdiction & Vital Signs Bar */}
+            <div className="glass-panel p-4 rounded-xl border border-slate-800 bg-gradient-to-r from-slate-900 via-defense-950 to-slate-900 space-y-3">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 pb-2 border-b border-slate-800">
+                <div className="flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-cyan-400" />
+                  <h3 className="font-bold text-xs uppercase tracking-wider text-slate-200">
+                    Live Operational Activity Feed & Vital Telemetry
+                  </h3>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-950 text-cyan-400 border border-cyan-800">
+                    {authority.state === 'ALL' ? 'ALL 8 NER STATES' : `STATE SCOPE: ${authority.state.toUpperCase()}`}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setActiveSubTab('convoys')}
+                  className="text-xs font-mono text-cyan-400 hover:text-cyan-300 flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <span>View Full Fleet Roster ({stateConvoys.length} Convoys)</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* 4 KPI Metrics */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800/80 space-y-1">
+                  <span className="text-[10px] font-mono text-slate-400 uppercase">Active State Convoys</span>
+                  <div className="text-xl font-mono font-black text-white flex items-center gap-2">
+                    <span>{stateConvoys.length}</span>
+                    <span className="text-[10px] font-sans font-normal text-slate-400">vehicles</span>
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-mono">
+                    {authority.state === 'ALL' ? 'Trans-regional network' : `In-transit / transiting ${authority.state}`}
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800/80 space-y-1">
+                  <span className="text-[10px] font-mono text-amber-400 uppercase">Alerted / Delayed Convoys</span>
+                  <div className="text-xl font-mono font-black text-amber-300 flex items-center gap-2">
+                    <span>{alertedConvoys.length}</span>
+                    <span className="text-[10px] font-sans font-normal text-slate-400">need action</span>
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-mono">
+                    {alertedConvoys.length > 0 ? 'Hazard / Breakdown reported' : 'All running on schedule'}
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800/80 space-y-1">
+                  <span className="text-[10px] font-mono text-rose-400 uppercase">Disrupted Arterials</span>
+                  <div className="text-xl font-mono font-black text-rose-300 flex items-center gap-2">
+                    <span>{stateGaps.length + stateRoadworks.filter(rw => rw.lane_status?.includes('SINGLE') || rw.lane_status?.includes('STOP')).length}</span>
+                    <span className="text-[10px] font-sans font-normal text-slate-400">bottlenecks</span>
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-mono">
+                    Active scree / gorge chokepoints
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800/80 space-y-1">
+                  <span className="text-[10px] font-mono text-emerald-400 uppercase">State Districts Tracked</span>
+                  <div className="text-xl font-mono font-black text-emerald-300 flex items-center gap-2">
+                    <span>{stateDistricts.length}</span>
+                    <span className="text-[10px] font-sans font-normal text-slate-400">districts</span>
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-mono">
+                    {stateDistricts.filter(d => d.medicine_stock_days <= 5).length > 0 ? (
+                      <span className="text-rose-400 font-bold">{stateDistricts.filter(d => d.medicine_stock_days <= 5).length} Critical stock reserve</span>
+                    ) : (
+                      <span className="text-emerald-400">Buffer reserves stable</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Activity Grid: 2 Columns */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Left Column: Damaged/Alerted Convoys + Disrupted Roads */}
+              <div className="space-y-4">
+                {/* 1. Damaged & Alerted Convoys Card */}
+                <div className="glass-panel p-4 rounded-xl border border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-amber-400" />
+                      <h4 className="font-bold text-xs uppercase tracking-wider text-slate-200">
+                        Active Incidents & Alerted Convoys
+                      </h4>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                        {alertedConvoys.length} FLAGGED
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-mono text-slate-400">SAT-Telemetry Stream</span>
+                  </div>
+
+                  {alertedConvoys.length === 0 ? (
+                    <div className="p-6 rounded-xl bg-slate-900/60 border border-emerald-500/20 text-center space-y-2">
+                      <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto" />
+                      <div className="text-sm font-bold text-emerald-300">All Convoys Operating Smoothly</div>
+                      <p className="text-xs text-slate-400">
+                        No mechanical failures, scree slide halts, or telemetry hazards reported on routes within {authority.state}.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5">
+                      {alertedConvoys.map((c) => {
+                        const cId = c.id || c.vehicle_id;
+                        const isBreakdown = c.mechanical_breakdown;
+                        return (
+                          <div
+                            key={cId}
+                            className={`p-3.5 rounded-xl border transition-all space-y-2.5 ${
+                              isBreakdown 
+                                ? 'bg-rose-950/30 border-rose-500/40 hover:border-rose-400' 
+                                : 'bg-slate-900 border-amber-500/30 hover:border-amber-400'
+                            }`}
+                          >
+                            <div className="flex justify-between items-start">
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono font-black text-sm text-white">{cId}</span>
+                                  <span className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold ${
+                                    isBreakdown 
+                                      ? 'bg-rose-600 text-white animate-pulse' 
+                                      : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                                  }`}>
+                                    {c.status || (isBreakdown ? 'MECHANICAL BREAKDOWN' : 'HAZARD AHEAD')}
+                                  </span>
+                                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                                    {c.vehicle_reg}
+                                  </span>
+                                </div>
+                                <div className="text-xs text-slate-300 font-sans">
+                                  <b>Driver:</b> {c.driver_name} &bull; <span className="text-cyan-400 font-mono">{c.origin} &rarr; {c.destination}</span>
+                                </div>
+                              </div>
+                              <div className="text-right font-mono text-xs">
+                                <span className="text-cyan-300 font-bold">{c.speed_kmh} km/h</span>
+                                <div className="text-[10px] text-slate-500">Progress {c.progress_pct}%</div>
+                              </div>
+                            </div>
+
+                            {/* Alert Reason Banner */}
+                            <div className="p-2 rounded-lg bg-slate-950/80 border border-slate-800 text-xs font-mono space-y-1">
+                              <div className="text-amber-300 flex items-center gap-1.5">
+                                <AlertOctagon className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+                                <span>{c.alert_reason || 'Route chokepoint telemetry triggered warning'}</span>
+                              </div>
+                              {c.current_landmark && (
+                                <div className="text-[10px] text-slate-400">
+                                  Near: <span className="text-slate-200">{c.current_landmark}</span> &bull; Advisory: <b className="text-cyan-400">{c.operational_advisory}</b>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex items-center justify-between pt-1 text-xs">
+                              <span className="text-[10px] text-slate-400 font-mono">
+                                Cargo: <b className="text-slate-200">{c.cargo}</b>
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => {
+                                    setSelectedConvoyForManifest(c);
+                                    setVoipCallActive(true);
+                                  }}
+                                  className="px-2.5 py-1 rounded bg-cyan-600/20 hover:bg-cyan-600/40 text-cyan-300 border border-cyan-500/30 text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                                >
+                                  <PhoneCall className="w-3 h-3" />
+                                  <span>SAT-Link Call</span>
+                                </button>
+                                <button
+                                  onClick={() => setSelectedConvoyForManifest(c)}
+                                  className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[10px] font-bold cursor-pointer transition-colors"
+                                >
+                                  Inspect Manifest
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. Disrupted Roads & Single-Point Failures in State */}
+                <div className="glass-panel p-4 rounded-xl border border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                    <div className="flex items-center gap-2">
+                      <AlertOctagon className="w-4 h-4 text-rose-400" />
+                      <h4 className="font-bold text-xs uppercase tracking-wider text-slate-200">
+                        Disrupted Arterials & Vulnerable Gaps in Jurisdiction
+                      </h4>
+                    </div>
+                    <span className="text-[10px] font-mono text-cyan-400">
+                      {stateGaps.length} Chokepoints
+                    </span>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    {stateGaps.map((gap, idx) => (
+                      <div key={idx} className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h5 className="font-bold text-xs text-white">{gap.district_or_sector}</h5>
+                            <div className="text-[10px] font-mono text-cyan-400">{gap.single_lifeline_artery}</div>
+                          </div>
+                          <span className="px-2 py-0.5 rounded text-[9px] font-mono font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                            {gap.vulnerability_rating}
+                          </span>
+                        </div>
+                        <div className="text-xs text-slate-300 font-sans">
+                          <span className="text-slate-500">Chokepoint:</span> <b className="text-amber-300">{gap.isolated_if_chokepoint_fails}</b>
+                        </div>
+                        <div className="text-[11px] text-emerald-400 font-sans pt-1 border-t border-slate-800/80 flex items-center justify-between">
+                          <span><b>Bypass:</b> {gap.alternative_bypass}</span>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Also show relevant ongoing roadwork if any */}
+                    {stateRoadworks.slice(0, 2).map((rw) => (
+                      <div key={rw.id} className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800/80 flex justify-between items-center text-xs">
+                        <div>
+                          <div className="font-bold text-slate-200">{rw.stretch}</div>
+                          <div className="text-[10px] text-slate-400 font-mono">{rw.work_type} &bull; {rw.agency}</div>
+                        </div>
+                        <span className="px-2 py-0.5 rounded text-[9px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                          {rw.lane_status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Field Operator SOS Flags & Incident Telemetry */}
+              <div className="space-y-4">
+                {/* 3. Field Operator SOS Flags Feed */}
+                <div className="glass-panel p-4 rounded-xl border border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                    <div className="flex items-center gap-2">
+                      <Radio className="w-4 h-4 text-cyan-400 animate-pulse" />
+                      <h4 className="font-bold text-xs uppercase tracking-wider text-slate-200">
+                        Field Operator Flags & Ground Incident Feed
+                      </h4>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-950 text-cyan-400 border border-cyan-800">
+                        {stateFilteredReports.length} REPORTS
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-mono text-slate-400">Live Telemetry</span>
+                  </div>
+
+                  <div className="space-y-2.5 max-h-[520px] overflow-y-auto pr-1">
+                    {stateFilteredReports.length === 0 ? (
+                      <div className="p-6 rounded-xl bg-slate-900/60 border border-slate-800 text-center text-xs text-slate-400">
+                        No ground incidents flagged for {authority.state} in the last 6 hours.
+                      </div>
+                    ) : (
+                      stateFilteredReports.map((report) => {
+                        const sev = report.severity;
+                        const sevColor = 
+                          sev === 'EMERGENCY' ? 'bg-rose-600 text-white' :
+                          sev === 'CRITICAL' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' :
+                          sev === 'HIGH' ? 'bg-orange-500/20 text-orange-300 border border-orange-500/40' :
+                          sev === 'WARNING' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' :
+                          'bg-blue-500/20 text-blue-300 border border-blue-500/40';
+
+                        return (
+                          <div key={report.id} className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-2 hover:bg-slate-800/50 transition-colors">
+                            <div className="flex justify-between items-start">
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-2">
+                                  <span className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold ${sevColor}`}>
+                                    {sev}
+                                  </span>
+                                  <span className="font-mono text-xs font-bold text-white">{report.id}</span>
+                                  <span className="text-[10px] font-mono text-cyan-400">📍 {report.state}</span>
+                                </div>
+                                <div className="text-xs font-bold text-slate-200 mt-1">
+                                  {report.location}
+                                </div>
+                              </div>
+                              <span className="text-[10px] font-mono text-slate-400">{report.timestamp}</span>
+                            </div>
+
+                            <p className="text-xs text-slate-300 font-sans leading-relaxed bg-slate-950/60 p-2 rounded-lg border border-slate-800/80">
+                              "{report.message}"
+                            </p>
+
+                            <div className="flex items-center justify-between pt-1 border-t border-slate-800/60 text-[10px] font-mono text-slate-400">
+                              <div>
+                                Operator: <b className="text-slate-200">{report.operator_name}</b> ({report.operator_role})
+                              </div>
+                              <span className="text-cyan-400 font-bold px-2 py-0.5 rounded bg-slate-800">
+                                {report.action_status}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                {/* 4. State Lifelines & Depots Snapshot */}
+                <div className="glass-panel p-4 rounded-xl border border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                    <div className="flex items-center gap-2">
+                      <Layers className="w-4 h-4 text-emerald-400" />
+                      <h4 className="font-bold text-xs uppercase tracking-wider text-slate-200">
+                        State District Buffer Reservoirs
+                      </h4>
+                    </div>
+                    <button
+                      onClick={() => setActiveSubTab('districts')}
+                      className="text-xs font-mono text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer transition-colors"
+                    >
+                      <span>Open District Matrix &rarr;</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    {stateDistricts.slice(0, 4).map((d, i) => (
+                      <div key={i} className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 space-y-1">
+                        <div className="flex justify-between items-center">
+                          <span className="font-bold text-white">{d.name}</span>
+                          <span className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-bold ${
+                            d.status === 'ISOLATED_RISK' ? 'bg-rose-500/20 text-rose-400' :
+                            d.status === 'DEGRADED' ? 'bg-amber-500/20 text-amber-400' :
+                            'bg-emerald-500/20 text-emerald-400'
+                          }`}>
+                            {d.status}
+                          </span>
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-mono">
+                          Med Stock: <b className={d.medicine_stock_days <= 5 ? 'text-rose-400' : 'text-emerald-400'}>{d.medicine_stock_days}d</b> &bull; Food: <b className="text-emerald-400">{d.food_stock_days}d</b>
+                        </div>
+                        <div className="text-[10px] text-slate-500 font-sans truncate">
+                          Depot: {d.priority_depot}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4. Dedicated Sub-Tab 2: STRATEGIC FLEET & CONVOYS (Full Fleet Table Roster) */}
+      {activeSubTab === 'convoys' && (
+        <div className="space-y-4">
           <div className="glass-panel p-4 rounded-xl border border-slate-800 space-y-3">
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 pb-2 border-b border-slate-800">
               <div className="flex items-center gap-2">
                 <Truck className="w-4 h-4 text-cyan-400" />
                 <h3 className="font-bold text-xs uppercase tracking-wider text-slate-200">
-                  Strategic Convoys & Life-Support Vehicles in Transit
+                  Strategic Convoys & Fleet Operations Roster
                 </h3>
-                <span className="px-2 py-0.2 rounded text-[10px] font-mono font-bold bg-cyan-950 text-cyan-400 border border-cyan-800">
-                  {displayConvoys.length} ACTIVE
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-950 text-cyan-400 border border-cyan-800">
+                  {stateConvoys.length} ACTIVE IN JURISDICTION
                 </span>
               </div>
-              <span className="text-[10px] text-slate-400 font-mono">
-                Click any convoy row to inspect military/civil manifest & initiate driver SAT-Link call
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">
+                  Scope: <b className="text-cyan-400">{authority.state === 'ALL' ? 'All NER States' : `${authority.state} (Intra & Transit)`}</b>
+                </span>
+                <button
+                  onClick={() => setActiveSubTab('activity')}
+                  className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-mono font-bold border border-slate-700 transition cursor-pointer flex items-center gap-1"
+                >
+                  <Layers className="w-3 h-3 text-cyan-400" />
+                  <span>Return to Map & Feed</span>
+                </button>
+              </div>
             </div>
 
+            {/* Convoy Table */}
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs font-sans">
                 <thead>
@@ -306,13 +938,15 @@ export default function CommandHQ({
                     <th className="p-2.5">Corridor Route</th>
                     <th className="p-2.5">Cargo Priority</th>
                     <th className="p-2.5">Speed / Status</th>
+                    <th className="p-2.5">Telemetry Condition</th>
                     <th className="p-2.5 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60 font-mono text-[11px]">
-                  {displayConvoys.map((convoy) => {
+                  {stateConvoys.map((convoy) => {
                     const cId = convoy.id || convoy.vehicle_id;
                     const isHazard = convoy.ahead_hazard_detected;
+                    const isBreakdown = convoy.mechanical_breakdown;
                     const linkedDriver = displayDrivers.find(d => d.id === convoy.driver_id || d.assigned_vehicle_id === cId);
                     const driverName = convoy.driver_name || linkedDriver?.name || 'Subedar R. Thapa';
                     const vehicleModel = convoy.vehicle_model || linkedDriver?.vehicle_model || 'Tata 1618 SE 4x4';
@@ -323,11 +957,11 @@ export default function CommandHQ({
                         key={cId}
                         onClick={() => setSelectedConvoyForManifest(convoy)}
                         className={`hover:bg-slate-800/60 cursor-pointer transition-all ${
-                          isHazard ? 'bg-rose-950/20' : ''
+                          isBreakdown ? 'bg-rose-950/30' : isHazard ? 'bg-amber-950/20' : ''
                         }`}
                       >
                         <td className="p-2.5 font-bold text-white flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+                          <span className={`w-2 h-2 rounded-full ${isBreakdown ? 'bg-rose-500 animate-ping' : isHazard ? 'bg-amber-400 animate-ping' : 'bg-cyan-400'}`}></span>
                           <span>{cId}</span>
                         </td>
                         <td className="p-2.5 font-sans">
@@ -336,12 +970,19 @@ export default function CommandHQ({
                         </td>
                         <td className="p-2.5 font-sans text-slate-300">
                           <div>{convoy.origin} &rarr; <b>{convoy.destination}</b></div>
-                          <div className="text-[10px] text-slate-500 font-mono">{convoy.corridor || 'NH-13'}</div>
+                          <div className="text-[10px] text-slate-500 font-mono flex items-center gap-1">
+                            <span>{convoy.corridor || 'NH-13'}</span>
+                            {convoy.states && (
+                              <span className="text-cyan-400 font-sans">[{Array.isArray(convoy.states) ? convoy.states.join(', ') : convoy.states}]</span>
+                            )}
+                          </div>
                         </td>
                         <td className="p-2.5">
                           <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                             convoy.priority === 'CRITICAL_MEDICAL' 
                               ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                              : convoy.priority === 'FUEL_POL'
+                              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
                               : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
                           }`}>
                             {convoy.priority || 'ESSENTIAL_RELIEF'}
@@ -351,16 +992,35 @@ export default function CommandHQ({
                           <span className="text-cyan-400 font-bold">{convoy.speed_kmh || 38} km/h</span>
                           <div className="text-[10px] text-slate-400">{convoy.status || 'IN_TRANSIT'}</div>
                         </td>
+                        <td className="p-2.5 font-sans">
+                          {isBreakdown ? (
+                            <span className="text-rose-400 font-mono text-[10px] font-bold">MECH_FAILURE: {convoy.alert_reason?.slice(0, 32)}...</span>
+                          ) : isHazard ? (
+                            <span className="text-amber-400 font-mono text-[10px]">HAZARD: {convoy.alert_reason?.slice(0, 32)}...</span>
+                          ) : (
+                            <span className="text-emerald-400 font-mono text-[10px]">CLEAR_PASSAGE</span>
+                          )}
+                        </td>
                         <td className="p-2.5 text-right font-sans">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedConvoyForManifest(convoy);
-                            }}
-                            className="px-2.5 py-1 rounded bg-cyan-600/20 hover:bg-cyan-600/40 text-cyan-300 border border-cyan-500/30 text-[10px] font-bold transition-all cursor-pointer"
-                          >
-                            Inspect Manifest
-                          </button>
+                          <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => {
+                                setSelectedConvoyForManifest(convoy);
+                                setVoipCallActive(true);
+                              }}
+                              className="px-2 py-1 rounded bg-cyan-600/20 hover:bg-cyan-600/40 text-cyan-300 border border-cyan-500/30 text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1"
+                              title="Direct SAT-Link Voice Call"
+                            >
+                              <PhoneCall className="w-3 h-3" />
+                              <span className="hidden md:inline">Call</span>
+                            </button>
+                            <button
+                              onClick={() => setSelectedConvoyForManifest(convoy)}
+                              className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[10px] font-bold transition-all cursor-pointer"
+                            >
+                              Inspect
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -371,6 +1031,7 @@ export default function CommandHQ({
           </div>
         </div>
       )}
+
 
       {/* 4. Sub-Tab 2: DISTRICT LIFELINES & CONNECTIVITY GAPS */}
       {activeSubTab === 'districts' && (
@@ -388,21 +1049,48 @@ export default function CommandHQ({
                 </p>
               </div>
 
-              {/* Status Filter Buttons */}
-              <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-lg border border-slate-800">
-                {['ALL', 'ISOLATED_RISK', 'DEGRADED', 'ACCESSIBLE'].map((f) => (
-                  <button
-                    key={f}
-                    onClick={() => setDistrictFilter(f)}
-                    className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
-                      districtFilter === f 
-                        ? 'bg-cyan-600 text-white shadow'
-                        : 'text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    {f}
-                  </button>
-                ))}
+              {/* Scope & Status Filter Buttons */}
+              <div className="flex flex-wrap items-center gap-2">
+                {authState !== 'ALL' && (
+                  <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-lg border border-slate-800">
+                    <button
+                      onClick={() => setDistrictScope('STATE_ONLY')}
+                      className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                        districtScope === 'STATE_ONLY'
+                          ? 'bg-emerald-600 text-white shadow'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      {authority.state} ({stateDistricts.length})
+                    </button>
+                    <button
+                      onClick={() => setDistrictScope('ALL_NER')}
+                      className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                        districtScope === 'ALL_NER'
+                          ? 'bg-emerald-600 text-white shadow'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      All 8 NER States ({displayDistricts.length})
+                    </button>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-lg border border-slate-800">
+                  {['ALL', 'ISOLATED_RISK', 'DEGRADED', 'ACCESSIBLE'].map((f) => (
+                    <button
+                      key={f}
+                      onClick={() => setDistrictFilter(f)}
+                      className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                        districtFilter === f 
+                          ? 'bg-cyan-600 text-white shadow'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      {f}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -453,7 +1141,7 @@ export default function CommandHQ({
                       </td>
                       <td className="p-2.5 text-center">
                         <button
-                          onClick={() => setActiveSubTab('gis')}
+                          onClick={() => setActiveSubTab('activity')}
                           className="px-2 py-1 rounded bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 text-[10px] font-bold border border-cyan-500/40 transition flex items-center gap-1 mx-auto"
                         >
                           <MapPin className="w-3 h-3" /> Inspect
@@ -479,7 +1167,7 @@ export default function CommandHQ({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-              {ROADWORKS_AND_CONNECTIVITY.connectivity_gaps.map((gap, idx) => (
+              {(stateGaps.length > 0 ? stateGaps : ROADWORKS_AND_CONNECTIVITY.connectivity_gaps).map((gap, idx) => (
                 <div key={idx} className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-2.5">
                   <div className="flex justify-between items-start">
                     <div>
@@ -510,7 +1198,7 @@ export default function CommandHQ({
                         <span className="text-emerald-400 font-medium">{gap.alternative_bypass}</span>
                       </div>
                       <button
-                        onClick={() => setActiveSubTab('gis')}
+                        onClick={() => setActiveSubTab('activity')}
                         className="px-2 py-0.5 rounded bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 text-[10px] font-bold border border-cyan-500/30 transition flex items-center gap-1"
                       >
                         <MapPin className="w-3 h-3" /> Inspect on GIS

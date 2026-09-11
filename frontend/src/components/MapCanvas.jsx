@@ -26,7 +26,11 @@ import {
   DEFAULT_WEATHER_STATIONS, 
   BRO_MACHINERY_UNITS, 
   ACTIVE_CONVOYS, 
-  REGIONAL_CORRIDORS 
+  REGIONAL_CORRIDORS,
+  DISTRICT_CONNECTIVITY_ROUTES,
+  DISTRICT_CENTROIDS,
+  getRoutesForState,
+  getDistrictsForState
 } from '../data/defaultData';
 import { CORRIDOR_DRIVING_ROUTES } from '../data/corridorDrivingRoutes';
 import { getMediaUrl } from '../services/api';
@@ -419,6 +423,50 @@ const getActiveVehicleIcon = (pct) =>
 const getIncidentReportIcon = (type, severity) => 
   getOrCreateIcon(`inc_${type}_${severity}`, () => createIncidentReportIcon(type, severity));
 
+// District Headquarters Waypoint Pin
+const createDistrictMarkerIcon = (districtName, state, isSelected, trafficStatus) => {
+  const statusColor = trafficStatus === 'BLOCKED' ? '#ef4444' : trafficStatus === 'CONGESTED' ? '#f97316' : trafficStatus === 'MODERATE' ? '#eab308' : '#06b6d4';
+  return new L.DivIcon({
+    className: 'custom-district-marker',
+    html: `
+      <div style="display: flex; flex-direction: column; align-items: center; transform: translate(-50%, -100%); pointer-events: auto; cursor: pointer; z-index: 500;">
+        <div style="
+          background: #090d16;
+          color: #ffffff;
+          padding: 2.5px 7px;
+          border-radius: 6px;
+          font-family: system-ui, -apple-system, sans-serif;
+          font-size: 10.5px;
+          font-weight: 700;
+          white-space: nowrap;
+          border: 1.5px solid ${isSelected ? '#38bdf8' : statusColor};
+          box-shadow: 0 4px 12px rgba(0,0,0,0.85);
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        ">
+          <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: ${statusColor}; box-shadow: 0 0 6px ${statusColor};"></span>
+          <span>${districtName}</span>
+          <span style="font-size: 8.5px; color: #94a3b8; font-family: monospace;">(${state})</span>
+        </div>
+        <div style="
+          width: 0;
+          height: 0;
+          border-left: 4px solid transparent;
+          border-right: 4px solid transparent;
+          border-top: 5px solid ${isSelected ? '#38bdf8' : statusColor};
+          margin-top: -1px;
+        "></div>
+      </div>
+    `,
+    iconSize: [0, 0],
+    iconAnchor: [0, 0]
+  });
+};
+
+const getDistrictMarkerIcon = (districtName, state, isSelected, trafficStatus) => 
+  getOrCreateIcon(`dist_${districtName}_${state}_${isSelected}_${trafficStatus}`, () => createDistrictMarkerIcon(districtName, state, isSelected, trafficStatus));
+
 // Corridor Route Metadata for Google Directions View
 const CORRIDOR_ROUTE_META = {
   CORRIDOR_NH13: {
@@ -489,7 +537,10 @@ function MapCanvas({
   selectedSegment = null,
   onSelectSegment = () => {},
   onSelectConvoy = null,
-  activeWorkspace = 'command'
+  activeWorkspace = 'command',
+  selectedAuthorityState = 'ALL',
+  selectedDistrictRoute = null,
+  onSelectDistrictRoute = () => {}
 }) {
   const [selectedCorridor, setSelectedCorridor] = useState('ALL');
   const [basemap, setBasemap] = useState('dark');
@@ -498,6 +549,27 @@ function MapCanvas({
   const [showGoogleDirections, setShowGoogleDirections] = useState(true);
   const [useAlternateBypass, setUseAlternateBypass] = useState(false);
   const [focusRoadOnly, setFocusRoadOnly] = useState(false);
+
+  // District Connectivity & Live Traffic State
+  const [showDistrictConnectivity, setShowDistrictConnectivity] = useState(true);
+  const [selectedOriginDistrict, setSelectedOriginDistrict] = useState('ALL');
+  const [selectedDestDistrict, setSelectedDestDistrict] = useState('ALL');
+  const [selectedRouteDetail, setSelectedRouteDetail] = useState(null);
+  const [showTrafficLayer, setShowTrafficLayer] = useState(true);
+
+  // Reset district dropdowns when authority state changes
+  useEffect(() => {
+    setSelectedOriginDistrict('ALL');
+    setSelectedDestDistrict('ALL');
+    setSelectedRouteDetail(null);
+  }, [selectedAuthorityState]);
+
+  useEffect(() => {
+    if (selectedDistrictRoute) {
+      setSelectedRouteDetail(selectedDistrictRoute);
+      setShowDistrictConnectivity(true);
+    }
+  }, [selectedDistrictRoute]);
 
   // Layer Toggles
   const [showLifelines, setShowLifelines] = useState(true);
@@ -577,6 +649,53 @@ function MapCanvas({
       ? ACTIVE_CONVOYS
       : ACTIVE_CONVOYS.filter(c => c.corridor === selectedCorridor);
   }, [selectedCorridor]);
+
+  // Filter Convoys by Authority State (Intra-state & Inter-state involving the state)
+  const stateFilteredConvoys = useMemo(() => {
+    const base = filteredConvoys;
+    if (!selectedAuthorityState || selectedAuthorityState === 'ALL' || selectedAuthorityState === 'MDoNER' || selectedAuthorityState === 'Central') {
+      return base;
+    }
+    return base.filter(c => {
+      if (c.states && Array.isArray(c.states)) {
+        return c.states.includes(selectedAuthorityState);
+      }
+      if (c.origin_state === selectedAuthorityState || c.dest_state === selectedAuthorityState) return true;
+      if (c.origin?.toLowerCase().includes(selectedAuthorityState.toLowerCase()) || 
+          c.destination?.toLowerCase().includes(selectedAuthorityState.toLowerCase())) return true;
+      return false;
+    });
+  }, [filteredConvoys, selectedAuthorityState]);
+
+  // District Connectivity Routes for selected state
+  const stateRoutes = useMemo(() => {
+    return getRoutesForState(selectedAuthorityState);
+  }, [selectedAuthorityState]);
+
+  // District Centroids for selected state and its connecting corridors
+  const stateDistricts = useMemo(() => {
+    return getDistrictsForState(selectedAuthorityState);
+  }, [selectedAuthorityState]);
+
+  // Active District Routes to render on map based on Origin/Destination filter
+  const activeDistrictRoutes = useMemo(() => {
+    if (!showDistrictConnectivity) return [];
+    return stateRoutes.filter(r => {
+      if (selectedOriginDistrict !== 'ALL' && selectedDestDistrict !== 'ALL') {
+        return (
+          (r.fromDistrict === selectedOriginDistrict && r.toDistrict === selectedDestDistrict) ||
+          (r.fromDistrict === selectedDestDistrict && r.toDistrict === selectedOriginDistrict)
+        );
+      }
+      if (selectedOriginDistrict !== 'ALL') {
+        return r.fromDistrict === selectedOriginDistrict || r.toDistrict === selectedOriginDistrict;
+      }
+      if (selectedDestDistrict !== 'ALL') {
+        return r.fromDistrict === selectedDestDistrict || r.toDistrict === selectedDestDistrict;
+      }
+      return true;
+    });
+  }, [showDistrictConnectivity, stateRoutes, selectedOriginDistrict, selectedDestDistrict]);
 
   // Determine active Google Maps Highway Route to render
   const isSpecificCorridor = selectedCorridor !== 'ALL' && Boolean(CORRIDOR_ROUTE_META[selectedCorridor]);
@@ -756,6 +875,96 @@ function MapCanvas({
         )}
       </div>
 
+      {/* 2b. District Connectivity & Google Live Traffic Flow Explorer Bar */}
+      <div className="absolute top-26 sm:top-[94px] left-3 z-[1000] glass-panel px-3 py-2 rounded-xl flex flex-wrap items-center gap-2.5 border border-slate-700/80 shadow-2xl text-xs font-sans max-w-[calc(100%-24px)] pointer-events-auto bg-slate-900/95 backdrop-blur-md">
+        <div className="flex items-center gap-1.5 text-cyan-400 font-bold font-mono text-[11px] pr-2 border-r border-slate-700">
+          <Route className="w-4 h-4 text-cyan-400 shrink-0" />
+          <span>DISTRICT CONNECTIVITY</span>
+        </div>
+
+        {/* Origin District Dropdown */}
+        <div className="flex items-center gap-1">
+          <span className="text-[10px] font-mono text-slate-400">From:</span>
+          <select
+            value={selectedOriginDistrict}
+            onChange={(e) => setSelectedOriginDistrict(e.target.value)}
+            className="bg-defense-900 border border-slate-700 text-slate-100 font-mono text-[11px] rounded px-2 py-1 focus:outline-none focus:border-cyan-500 cursor-pointer max-w-[150px]"
+          >
+            <option value="ALL">All Districts (Select All)</option>
+            {stateDistricts.map(d => (
+              <option key={`orig-${d.name}`} value={d.name}>
+                {d.name} ({d.state})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Destination District Dropdown */}
+        <div className="flex items-center gap-1">
+          <span className="text-[10px] font-mono text-slate-400">To:</span>
+          <select
+            value={selectedDestDistrict}
+            onChange={(e) => setSelectedDestDistrict(e.target.value)}
+            className="bg-defense-900 border border-slate-700 text-slate-100 font-mono text-[11px] rounded px-2 py-1 focus:outline-none focus:border-cyan-500 cursor-pointer max-w-[150px]"
+          >
+            <option value="ALL">All Connections</option>
+            {stateDistricts.map(d => (
+              <option key={`dest-${d.name}`} value={d.name}>
+                {d.name} ({d.state})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Select All Routes Button */}
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedOriginDistrict('ALL');
+            setSelectedDestDistrict('ALL');
+            setShowDistrictConnectivity(true);
+          }}
+          className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
+            selectedOriginDistrict === 'ALL' && selectedDestDistrict === 'ALL' && showDistrictConnectivity
+              ? 'bg-cyan-600 text-white shadow-md'
+              : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+          }`}
+        >
+          Select All ({activeDistrictRoutes.length} Routes)
+        </button>
+
+        {/* Live Traffic Color Legend / Toggle */}
+        <button
+          type="button"
+          onClick={() => setShowTrafficLayer(!showTrafficLayer)}
+          className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer border ${
+            showTrafficLayer
+              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm'
+              : 'bg-slate-800/80 text-slate-400 border-slate-700'
+          }`}
+          title="Toggle Google Maps-style live traffic speed colors (Green = Smooth, Yellow = Moderate, Orange = Congested, Red = Blocked)"
+        >
+          <div className="flex items-center gap-0.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-400" title="Smooth (>45 km/h)"></span>
+            <span className="w-2 h-2 rounded-full bg-amber-400" title="Moderate (30-45 km/h)"></span>
+            <span className="w-2 h-2 rounded-full bg-orange-500" title="Congested (15-30 km/h)"></span>
+            <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" title="Blocked (<15 km/h)"></span>
+          </div>
+          <span>Traffic Colors: {showTrafficLayer ? 'ON' : 'OFF'}</span>
+        </button>
+
+        {/* Connectivity Layer Visibility Toggle */}
+        <label className="flex items-center gap-1.5 cursor-pointer text-slate-300 text-[11px] font-mono ml-auto">
+          <input
+            type="checkbox"
+            checked={showDistrictConnectivity}
+            onChange={(e) => setShowDistrictConnectivity(e.target.checked)}
+            className="accent-cyan-500 rounded"
+          />
+          <span className="font-bold text-cyan-400">Routes Visible</span>
+        </label>
+      </div>
+
       <MapContainer
         center={currentCorridorConfig.center}
         zoom={currentCorridorConfig.zoom}
@@ -925,6 +1134,150 @@ function MapCanvas({
             </Polyline>
           );
         })}
+
+        {/* ========================================================================= */}
+        {/* 4b. INTER-DISTRICT CONNECTIVITY ROUTES (Google Traffic Color Coded)       */}
+        {/* ========================================================================= */}
+        {showDistrictConnectivity && activeDistrictRoutes.map((route) => {
+          const isSelected = selectedRouteDetail && selectedRouteDetail.id === route.id;
+          const baseColor = showTrafficLayer ? route.traffic_color : '#06b6d4';
+
+          return (
+            <React.Fragment key={`dist-route-${route.id}`}>
+              {/* Outer Contrast Casing */}
+              <Polyline
+                positions={route.coordinates}
+                pathOptions={{
+                  color: isSelected ? '#ffffff' : '#090d16',
+                  weight: isSelected ? 10 : 7.5,
+                  opacity: isSelected ? 0.95 : 0.8,
+                  lineCap: 'round',
+                  lineJoin: 'round'
+                }}
+                eventHandlers={{
+                  click: () => {
+                    setSelectedRouteDetail(route);
+                    if (onSelectDistrictRoute) onSelectDistrictRoute(route);
+                  }
+                }}
+              />
+              {/* Inner Live Traffic Flow Polyline */}
+              <Polyline
+                positions={route.coordinates}
+                pathOptions={{
+                  color: isSelected ? '#38bdf8' : baseColor,
+                  weight: isSelected ? 6.5 : 4.5,
+                  opacity: 1.0,
+                  lineCap: 'round',
+                  lineJoin: 'round',
+                  dashArray: route.traffic_status === 'BLOCKED' ? '6, 6' : null
+                }}
+                eventHandlers={{
+                  click: () => {
+                    setSelectedRouteDetail(route);
+                    if (onSelectDistrictRoute) onSelectDistrictRoute(route);
+                  }
+                }}
+              >
+                <Popup>
+                  <div className="p-1.5 text-slate-900 font-sans text-xs min-w-[240px]">
+                    <div className="flex items-center justify-between pb-1 border-b border-slate-200">
+                      <span className="font-bold text-slate-900">{route.highway}</span>
+                      <span 
+                        className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold text-white uppercase"
+                        style={{ background: route.traffic_color }}
+                      >
+                        {route.traffic_status}
+                      </span>
+                    </div>
+                    <div className="mt-1 font-bold text-slate-800 text-xs">
+                      {route.name}
+                    </div>
+                    <div className="text-[11px] text-slate-600 mt-1 font-mono space-y-0.5">
+                      <div>Connects: <b>{route.fromDistrict} ({route.fromState}) ↔ {route.toDistrict} ({route.toState})</b></div>
+                      <div>Distance: <b>{route.distance_km} km</b> • Est: <b>{route.travel_time_hrs} hrs</b></div>
+                      <div>Traffic Speed: <b style={{ color: route.traffic_color }}>{route.traffic_speed_kmh} km/h</b> (Normal: {route.normal_speed_kmh} km/h)</div>
+                      {route.delay_mins > 0 && (
+                        <div className="text-amber-700 font-bold">Delay: +{route.delay_mins} mins</div>
+                      )}
+                    </div>
+                    <div className="mt-1.5 p-1 rounded bg-slate-100 border border-slate-300 text-[10px] text-slate-700">
+                      <b>Condition:</b> {route.condition}
+                    </div>
+                    {route.active_chokepoints && (
+                      <div className="mt-1 text-[10px] text-rose-700">
+                        <b>Chokepoint:</b> {route.active_chokepoints}
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedRouteDetail(route);
+                        if (onSelectDistrictRoute) onSelectDistrictRoute(route);
+                      }}
+                      className="mt-2 w-full py-1 text-[10px] font-bold text-white rounded bg-cyan-700 hover:bg-cyan-800 cursor-pointer"
+                    >
+                      View Full Route Diagnostics ➔
+                    </button>
+                  </div>
+                </Popup>
+              </Polyline>
+            </React.Fragment>
+          );
+        })}
+
+        {/* 4c. DISTRICT HEADQUARTERS PINS & INTERACTION */}
+        {showDistrictConnectivity && stateDistricts.map((d) => (
+          <Marker
+            key={`dist-marker-${d.name}`}
+            position={d.coords}
+            icon={getDistrictMarkerIcon(
+              d.name,
+              d.state,
+              selectedOriginDistrict === d.name || selectedDestDistrict === d.name,
+              d.isHub ? 'SMOOTH' : 'MODERATE'
+            )}
+            eventHandlers={{
+              click: () => {
+                if (selectedOriginDistrict === 'ALL' || selectedOriginDistrict === d.name) {
+                  setSelectedOriginDistrict(d.name);
+                } else {
+                  setSelectedDestDistrict(d.name);
+                }
+              }
+            }}
+          >
+            <Popup>
+              <div className="p-1.5 text-slate-900 font-sans text-xs min-w-[190px]">
+                <div className="font-bold text-cyan-800 flex items-center justify-between pb-1 border-b border-slate-200">
+                  <span>📍 {d.name} HQ</span>
+                  <span className="font-mono text-[9px] bg-slate-100 px-1 py-0.2 rounded text-slate-600">
+                    {d.state}
+                  </span>
+                </div>
+                <div className="text-[11px] text-slate-700 mt-1 font-mono">
+                  Depot: <b>{d.hq}</b>
+                </div>
+                <div className="mt-2 flex gap-1.5 pt-1 border-t border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedOriginDistrict(d.name)}
+                    className="flex-1 py-1 px-1.5 rounded bg-cyan-700 hover:bg-cyan-800 text-white text-[10px] font-bold cursor-pointer"
+                  >
+                    Set Origin
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDestDistrict(d.name)}
+                    className="flex-1 py-1 px-1.5 rounded bg-blue-700 hover:bg-blue-800 text-white text-[10px] font-bold cursor-pointer"
+                  >
+                    Set Dest
+                  </button>
+                </div>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
 
         {/* ========================================================================= */}
         {/* 5. GOOGLE MAPS DIRECTIONS HIGHWAY PATH RENDERING (Turn-by-Turn Asphalt)    */}
@@ -1109,7 +1462,7 @@ function MapCanvas({
         ))}
 
         {/* 8. Regional Monitored Fleet Convoys */}
-        {showConvoys && !focusRoadOnly && filteredConvoys
+        {showConvoys && !focusRoadOnly && stateFilteredConvoys
           .filter(c => !(activeVehicle && (c.id === activeVehicle.id || c.id === activeVehicle.vehicle_id)))
           .map((convoy) => (
           <Marker
@@ -1376,6 +1729,78 @@ function MapCanvas({
 
           <div className="mt-2 text-xs text-slate-300 bg-slate-800/80 p-2 rounded-lg border border-slate-700/60 truncate font-mono">
             {activeRoute.path_nodes ? activeRoute.path_nodes.join(' → ') : activeRoute.summary}
+          </div>
+        </div>
+      )}
+
+      {/* Floating District Route Inspection Card */}
+      {selectedRouteDetail && (
+        <div className="absolute bottom-4 right-4 z-[1000] max-w-sm w-[350px] bg-slate-900/95 border border-slate-700/90 backdrop-blur-md rounded-2xl p-4 shadow-2xl text-slate-100 font-sans pointer-events-auto transition-all animate-fadeIn">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+            <div className="flex items-center gap-2">
+              <span 
+                className="w-3 h-3 rounded-full" 
+                style={{ background: selectedRouteDetail.traffic_color }}
+              />
+              <span className="font-bold text-xs text-white">{selectedRouteDetail.highway}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span 
+                className="px-2 py-0.5 rounded text-[10px] font-mono font-bold text-white uppercase"
+                style={{ background: selectedRouteDetail.traffic_color }}
+              >
+                {selectedRouteDetail.traffic_status}
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedRouteDetail(null)}
+                className="w-6 h-6 rounded flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 text-xs transition-colors cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-2.5 text-sm font-bold text-slate-100">
+            {selectedRouteDetail.name}
+          </div>
+          <div className="text-xs text-cyan-400 font-mono mt-0.5">
+            {selectedRouteDetail.fromDistrict} ({selectedRouteDetail.fromState}) ➔ {selectedRouteDetail.toDistrict} ({selectedRouteDetail.toState})
+          </div>
+
+          <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-mono">
+            <div className="p-2 rounded-lg bg-slate-950 border border-slate-800">
+              <span className="text-[10px] text-slate-400">Length & Travel Time:</span>
+              <div className="font-bold text-emerald-400 mt-0.5">{selectedRouteDetail.distance_km} km • {selectedRouteDetail.travel_time_hrs} hrs</div>
+            </div>
+            <div className="p-2 rounded-lg bg-slate-950 border border-slate-800">
+              <span className="text-[10px] text-slate-400">Live Traffic Speed:</span>
+              <div className="font-bold mt-0.5" style={{ color: selectedRouteDetail.traffic_color }}>
+                {selectedRouteDetail.traffic_speed_kmh} km/h {selectedRouteDetail.delay_mins > 0 ? `(+${selectedRouteDetail.delay_mins}m)` : ''}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-2 p-2.5 rounded-lg bg-slate-950/80 border border-slate-800 text-[11px] space-y-1.5 font-sans">
+            <div>
+              <span className="text-slate-400 font-semibold">Road Condition:</span>{' '}
+              <span className="text-slate-200">{selectedRouteDetail.condition}</span>
+            </div>
+            {selectedRouteDetail.active_chokepoints && (
+              <div className="text-amber-300">
+                <span className="text-slate-400 font-semibold">Chokepoint:</span> {selectedRouteDetail.active_chokepoints}
+              </div>
+            )}
+            {selectedRouteDetail.alternative_bypass && (
+              <div className="text-emerald-400">
+                <span className="text-slate-400 font-semibold">Alternative Bypass:</span> {selectedRouteDetail.alternative_bypass}
+              </div>
+            )}
+            {selectedRouteDetail.bridge_or_tunnel && (
+              <div className="text-cyan-300">
+                <span className="text-slate-400 font-semibold">Key Infrastructure:</span> {selectedRouteDetail.bridge_or_tunnel}
+              </div>
+            )}
           </div>
         </div>
       )}
