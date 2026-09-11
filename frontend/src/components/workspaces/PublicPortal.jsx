@@ -7,23 +7,33 @@ import {
   Truck, 
   ShieldCheck, 
   CloudRain, 
-  Info,
-  PhoneCall,
-  Globe,
-  AlertOctagon,
-  Languages,
-  Shield,
-  User,
-  BadgeCheck,
-  Thermometer,
-  Lock
+  Info, 
+  PhoneCall, 
+  Globe, 
+  AlertOctagon, 
+  Languages, 
+  Shield, 
+  User, 
+  BadgeCheck, 
+  Thermometer, 
+  Lock,
+  Fuel,
+  Waves,
+  Snowflake,
+  Flame,
+  LifeBuoy
 } from 'lucide-react';
-import { ACTIVE_CONVOYS, REGISTERED_DRIVERS } from '../../data/defaultData';
+import { 
+  ACTIVE_CONVOYS, 
+  REGISTERED_DRIVERS,
+  FUEL_AND_ENERGY_RESERVES,
+  REGIONAL_HAZARD_INTELLIGENCE
+} from '../../data/defaultData';
 
 const TRANSLATIONS = {
   en: {
     portalTitle: 'Public & District Health Accessibility Portal',
-    portalSub: 'Real-time highway passability status and transparent delivery tracking of lifesaving medicines, oxygen & food rations',
+    portalSub: 'Real-time highway passability status, hospital supply inflows, and district fuel/firewood reserves',
     transparencyBadge: 'Citizen & Hospital Transparency Hub',
     corridorsHeader: 'Highway Corridor Passability Status',
     corridorsSub: 'Plain-language road status updated directly by on-ground police checkposts and BRO engineers',
@@ -93,103 +103,106 @@ export default function PublicPortal({
   allConvoys = [],
   weatherData = []
 }) {
+  const [activeTab, setActiveTab] = useState('roads'); // 'roads', 'inflow', 'energy', 'hazards'
   const [lang, setLang] = useState('en');
   const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
 
   const corridorSectors = [
     {
-      name: 'Guwahati ➔ Tezpur (NH-15 Plains Sector)',
-      status: t.statusOpen,
-      level: 'NORMAL',
-      detail: 'Clear dual-lane traffic. All bridges operational. No waterlogging.',
-      badgeColor: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+      name: 'NH-13: Guwahati -> Tezpur -> Balipara',
+      status: 'OPEN',
+      statusText: t.statusOpen,
+      statusClass: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40',
+      advisory: 'Plains sector. Smooth multi-lane transit. Clear visibility.',
+      checkpoint: 'Tezpur Traffic Police Checkpost'
     },
     {
-      name: 'Tezpur ➔ Bhalukpong Border (Foothill Gate)',
-      status: t.statusOpen,
-      level: 'NORMAL',
-      detail: 'Assam-Arunachal border gate clear. Normal commercial vehicle clearance.',
-      badgeColor: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+      name: 'NH-13: Balipara -> Bhalukpong -> Tippi',
+      status: 'CAUTION',
+      statusText: t.statusCaution,
+      statusClass: 'bg-amber-500/20 text-amber-400 border-amber-500/40',
+      advisory: 'Foothill gorge entry. 2-lane road widening ongoing. 15-min alternating pulses.',
+      checkpoint: 'Bhalukpong Border Checkpost (ILP Verification)'
     },
     {
-      name: 'Bhalukpong ➔ Sessa ➔ Bomdila (Gorge Sector NH-13)',
-      status: t.statusCaution,
-      level: 'CAUTION',
-      detail: 'Active scree rockfall near km 114 Sessa. Single-lane alternating traffic regulated by BRO.',
-      badgeColor: 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+      name: 'NH-13: Tippi -> Sessa -> Nag Mandir',
+      status: 'RESTRICTED',
+      statusText: t.statusRestricted,
+      statusClass: 'bg-rose-500/20 text-rose-400 border-rose-500/40 animate-pulse',
+      advisory: 'Active scree debris slide at km 78. Heavy civilian trucks diverted via BRO Kalaktang Bypass.',
+      checkpoint: 'Sessa BRO Field Detachment Post'
     },
     {
-      name: 'Bomdila ➔ Sela Pass ➔ Tawang (Alpine Mountain Sector)',
-      status: t.statusOpen,
-      level: 'NORMAL',
-      detail: 'Sela Tunnel is fully operational for all traffic. Snow chains advised for summit pass.',
-      badgeColor: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+      name: 'NH-13: Dirang -> Sela Tunnel -> Tawang',
+      status: 'CAUTION',
+      statusText: t.statusCaution,
+      statusClass: 'bg-amber-500/20 text-amber-400 border-amber-500/40',
+      advisory: 'Sela Tunnel is all-weather clear. Old high summit has sub-zero sleet. Snow chains advised.',
+      checkpoint: 'Jaswant Garh High-Altitude Army Checkpoint'
     },
     {
-      name: 'Dimapur ➔ Paglapahar ➔ Kohima (NH-29 Lifeline)',
-      status: t.statusCaution,
-      level: 'CAUTION',
-      detail: 'Paglapahar defile restricted to single-lane convoy traffic due to rockfall clearance.',
-      badgeColor: 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+      name: 'NH-10: Siliguri -> Sevoke -> Teesta -> Gangtok',
+      status: 'CAUTION',
+      statusText: t.statusCaution,
+      statusClass: 'bg-amber-500/20 text-amber-400 border-amber-500/40',
+      advisory: 'Teesta river scour repair active. Heavy goods trucks restricted to nighttime hours.',
+      checkpoint: 'Rangpo Sikkim Gate Checkpost'
     },
     {
-      name: 'Siliguri ➔ Teesta ➔ Gangtok (NH-10 Himalayan)',
-      status: t.statusCaution,
-      level: 'CAUTION',
-      detail: 'Teesta River in spate. Heavy vehicles diverted via Lava-Algarah detour.',
-      badgeColor: 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+      name: 'NH-29: Dimapur -> Paglapahar -> Kohima',
+      status: 'CAUTION',
+      statusText: t.statusCaution,
+      statusClass: 'bg-amber-500/20 text-amber-400 border-amber-500/40',
+      advisory: 'Rockfall netting ongoing at Paglapahar. Alternating police convoy control.',
+      checkpoint: 'Chumukedima Foothill Barrier'
     }
   ];
 
-  const displayConvoys = (allConvoys && allConvoys.length > 0) ? allConvoys : ACTIVE_CONVOYS;
-
-  const emergencyHelplines = [
-    { name: 'Arunachal Pradesh State Disaster Control (SEOC)', number: '1070 / 1077', desc: '24x7 State Emergency Management Room, Itanagar' },
-    { name: 'BRO Project Vartak Control HQ', number: '03782-222144', desc: 'Border Roads Engineering & Landslide Clearance Hotline' },
-    { name: 'Tawang Civil Hospital Emergency Desk', number: '03794-222214', desc: 'Trauma & Emergency Blood Bank Direct Line' },
-    { name: 'Bhalukpong Border Police Checkpost', number: '03782-234202', desc: 'Inter-State Border Passability & Escort Desk' },
-    { name: 'Assam State Disaster Management (ASDMA)', number: '1079', desc: 'Dispur Flood & Transit Logistics Control' }
-  ];
+  const convoys = (allConvoys && allConvoys.length > 0) ? allConvoys : ACTIVE_CONVOYS;
+  const driversList = REGISTERED_DRIVERS;
 
   return (
-    <div className="space-y-4 text-slate-200 font-sans">
-      {/* 1. Header Banner & Multilingual Switcher */}
-      <div className="glass-panel p-4 rounded-xl border border-rose-900/50 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-3 bg-gradient-to-r from-slate-900 to-defense-900">
+    <div className="space-y-4 text-slate-100 font-sans">
+      {/* 1. Header Banner with Language Switcher */}
+      <div className="glass-panel p-4 rounded-xl border border-rose-500/30 bg-gradient-to-r from-rose-950/40 via-slate-900 to-defense-950 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 shrink-0">
             <HeartPulse className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="font-bold text-sm text-slate-100">
-                {t.portalTitle}
-              </h2>
-              <span className="hidden sm:inline px-2 py-0.5 rounded text-[10px] font-mono bg-rose-500/10 text-rose-300 border border-rose-500/20">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-rose-400">
                 {t.transparencyBadge}
               </span>
+              <span className="px-2 py-0.2 rounded text-[10px] bg-cyan-950 text-cyan-400 border border-cyan-800 font-mono">
+                PUBLIC DOMAIN
+              </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <h2 className="text-base md:text-lg font-black text-white tracking-wide mt-0.5">
+              {t.portalTitle}
+            </h2>
+            <p className="text-xs text-slate-300">
               {t.portalSub}
             </p>
           </div>
         </div>
 
-        {/* Multilingual Selector (Clause h) */}
-        <div className="flex items-center gap-1.5 self-stretch md:self-auto justify-end">
-          <Languages className="w-4 h-4 text-slate-400 mr-1" />
+        {/* Multi-Language Selector */}
+        <div className="flex items-center gap-1.5 self-stretch md:self-auto justify-end bg-slate-900 p-1 rounded-xl border border-slate-800">
+          <Languages className="w-4 h-4 text-slate-400 ml-1.5" />
           {[
-            { id: 'en', label: 'English' },
-            { id: 'hi', label: 'हिन्दी' },
-            { id: 'as', label: 'অসমীয়া' },
-            { id: 'bn', label: 'বাংলা' }
+            { key: 'en', label: 'English' },
+            { key: 'hi', label: 'हिंदी' },
+            { key: 'as', label: 'অসমীয়া' },
+            { key: 'bn', label: 'বাংলা' }
           ].map((l) => (
             <button
-              key={l.id}
-              onClick={() => setLang(l.id)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                lang === l.id 
-                  ? 'bg-rose-600 text-white shadow-md shadow-rose-900/50' 
-                  : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+              key={l.key}
+              onClick={() => setLang(l.key)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                lang === l.key 
+                  ? 'bg-rose-600 text-white shadow' 
+                  : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               {l.label}
@@ -198,179 +211,247 @@ export default function PublicPortal({
         </div>
       </div>
 
-      {/* 2. Plain-Language Highway Corridor Passability */}
-      <div className="glass-panel p-5 rounded-2xl border border-slate-800 shadow-xl space-y-3">
-        <div className="flex justify-between items-center pb-2 border-b border-slate-800">
-          <div>
-            <h3 className="font-bold text-xs uppercase tracking-wider text-slate-200 flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              {t.corridorsHeader}
-            </h3>
-            <p className="text-[11px] text-slate-400">
-              {t.corridorsSub}
-            </p>
-          </div>
-          <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-            Updated 5 mins ago
-          </span>
-        </div>
+      {/* 2. Sub-Tabs Bar */}
+      <div className="flex items-center gap-1.5 p-1 bg-slate-900/90 border border-slate-800 rounded-xl overflow-x-auto shadow-inner">
+        <button
+          onClick={() => setActiveTab('roads')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === 'roads'
+              ? 'bg-rose-600 text-white shadow-md shadow-rose-600/30'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+          }`}
+        >
+          <ShieldCheck className="w-4 h-4 text-rose-400" />
+          <span>Highway Passability ({corridorSectors.length} Sectors)</span>
+        </button>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
-          {corridorSectors.map((sector, idx) => (
-            <div 
-              key={idx} 
-              className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 flex flex-col justify-between space-y-2 hover:border-slate-700 transition-all"
-            >
-              <div>
-                <div className="flex justify-between items-start gap-2">
-                  <span className="font-bold text-xs text-white leading-snug">{sector.name}</span>
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border whitespace-nowrap ${sector.badgeColor}`}>
-                    {sector.status}
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-400 mt-2 font-sans leading-relaxed">
-                  {sector.detail}
-                </p>
-              </div>
+        <button
+          onClick={() => setActiveTab('inflow')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === 'inflow'
+              ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/30'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+          }`}
+        >
+          <Truck className="w-4 h-4 text-cyan-400" />
+          <span>Hospital Supplies & Oxygen Inflow</span>
+        </button>
 
-              <div className="pt-2 border-t border-slate-800/80 text-[10px] font-mono text-slate-500 flex justify-between">
-                <span>Verified by BRO Checkpost</span>
-                <span className="text-emerald-400">Passable</span>
-              </div>
-            </div>
-          ))}
-        </div>
+        <button
+          onClick={() => setActiveTab('energy')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === 'energy'
+              ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+          }`}
+        >
+          <Flame className="w-4 h-4 text-amber-400" />
+          <span>Fuel, Gas & Tribal Firewood Reserves</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('hazards')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === 'hazards'
+              ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+          }`}
+        >
+          <Waves className="w-4 h-4 text-cyan-400" />
+          <span>Flood & Snow Alerts & Helplines</span>
+        </button>
       </div>
 
-      {/* 3. Hospital & Essential Supplies Inflow Radar (Connected Entities: Drivers & Vehicles) */}
-      <div className="glass-panel p-5 rounded-2xl border border-slate-800 shadow-xl space-y-3">
-        <div className="flex justify-between items-center pb-2 border-b border-slate-800">
-          <div>
+      {/* 3. Sub-Tab 1: Highway Passability */}
+      {activeTab === 'roads' && (
+        <div className="space-y-4">
+          <div className="glass-panel p-4 rounded-xl border border-slate-800 space-y-3">
+            <div className="pb-2 border-b border-slate-800">
+              <h3 className="font-bold text-xs uppercase tracking-wider text-slate-200 flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <span>{t.corridorsHeader}</span>
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">{t.corridorsSub}</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {corridorSectors.map((sector, idx) => (
+                <div key={idx} className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 flex flex-col justify-between space-y-2">
+                  <div>
+                    <div className="flex justify-between items-start">
+                      <span className="font-bold text-xs text-white">{sector.name}</span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono border ${sector.statusClass}`}>
+                        {sector.statusText}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-300 mt-2 font-sans">{sector.advisory}</p>
+                  </div>
+                  <div className="pt-2 border-t border-slate-800 text-[10px] text-slate-500 font-mono flex items-center gap-1">
+                    <span>Checkpost:</span>
+                    <b className="text-slate-400 truncate">{sector.checkpoint}</b>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4. Sub-Tab 2: Hospital Supplies & Oxygen Inflow */}
+      {activeTab === 'inflow' && (
+        <div className="glass-panel p-4 rounded-xl border border-slate-800 space-y-3">
+          <div className="pb-2 border-b border-slate-800">
             <h3 className="font-bold text-xs uppercase tracking-wider text-slate-200 flex items-center gap-2">
               <Truck className="w-4 h-4 text-cyan-400" />
-              {t.inflowHeader}
+              <span>{t.inflowHeader}</span>
             </h3>
-            <p className="text-[11px] text-slate-400">
-              {t.inflowSub}
-            </p>
+            <p className="text-xs text-slate-400 mt-0.5">{t.inflowSub}</p>
           </div>
-          <span className="text-[10px] font-mono text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
-            GPS Live Inflow &bull; Verified Seals
-          </span>
-        </div>
 
-        <div className="space-y-3 pt-1">
-          {displayConvoys.map((convoy, idx) => {
-            const convoyId = convoy.id || convoy.vehicle_id;
-            const linkedDriver = REGISTERED_DRIVERS.find(d => d.assigned_vehicle_id === convoyId || d.id === convoy.driver_id);
-            const priority = convoy.priority || convoy.cargo_priority || linkedDriver?.cargo_priority || 'GENERAL';
-            const isMed = priority === 'CRITICAL_MEDICAL' || convoy.cargo_type === 'MEDICAL';
-            const isFood = priority === 'ESSENTIAL_FOOD' || convoy.cargo_type === 'FOOD_PDS';
-            const isFuel = priority === 'FUEL_POL' || convoy.cargo_type === 'FUEL_POL';
-            const badgeBg = isMed ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : isFood ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : isFuel ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20';
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {convoys.map((convoy) => {
+              const cId = convoy.id || convoy.vehicle_id;
+              const linkedDriver = driversList.find(d => d.id === convoy.driver_id || d.assigned_vehicle_id === cId);
+              const driverName = convoy.driver_name || linkedDriver?.name || 'Subedar R. Thapa';
+              const vehicleReg = convoy.vehicle_reg || linkedDriver?.vehicle_reg || 'AS-01-EC-9042';
 
-            const vehicleReg = convoy.vehicle_reg || linkedDriver?.vehicle_reg || 'AS-01-EC-9042';
-            const driverName = convoy.driver_name || linkedDriver?.name || 'Driver En Route';
-            const driverLicense = convoy.driver_license || linkedDriver?.license_no || 'HMV Certified';
-            const cargo = convoy.cargo || linkedDriver?.cargo_summary || 'Essential Regional Supplies';
-            const destination = convoy.destination || 'Forward Lifeline Depot';
-
-            return (
-              <div 
-                key={convoyId || idx} 
-                className="p-4 rounded-xl bg-slate-900 border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 hover:border-slate-700 transition-all"
-              >
-                <div className="flex items-start gap-3.5">
-                  <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-bold shrink-0 mt-0.5 text-base">
-                    {isMed ? '🚑' : isFood ? '🌾' : isFuel ? '⛽' : '🚚'}
+              return (
+                <div key={cId} className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-2.5">
+                  <div className="flex justify-between items-start">
+                    <span className="font-bold text-xs text-white">{cId}</span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      {convoy.priority || 'CRITICAL_MEDICAL'}
+                    </span>
                   </div>
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-bold text-xs text-white">{cargo}</span>
-                      <span className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold border ${badgeBg}`}>
-                        {priority}
-                      </span>
-                      <span className="font-mono text-[10px] text-amber-400 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800 font-bold">
-                        {vehicleReg}
-                      </span>
-                    </div>
 
-                    <div className="text-[11px] text-slate-300 mt-1">
-                      Target Destination: <b className="text-white">{destination}</b>
-                    </div>
+                  <div className="p-2 rounded bg-slate-950 border border-slate-800 text-[11px] text-slate-200">
+                    <span className="text-slate-500 font-mono text-[10px]">CARGO:</span>
+                    <div className="font-bold mt-0.5">{convoy.cargo || 'Emergency Medical Supplies & Oxygen'}</div>
+                  </div>
 
-                    {/* Assigned Driver & Security Seal Line */}
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-[10px] font-mono text-slate-400">
-                      <span className="flex items-center gap-1 text-slate-300">
-                        <User className="w-3 h-3 text-cyan-400" />
-                        Driver: <b className="text-cyan-300">{driverName}</b> ({driverLicense})
-                      </span>
-                      <span className="flex items-center gap-1 text-emerald-400">
-                        <Lock className="w-3 h-3 text-emerald-400" />
-                        Seal: {convoy.seal_number || 'BRO-SEAL-VERIFIED'}
-                      </span>
-                      {convoy.temperature_c && (
-                        <span className="flex items-center gap-1 text-cyan-300">
-                          <Thermometer className="w-3 h-3 text-cyan-400" />
-                          Temp: <b className="text-emerald-400">{convoy.temperature_c}°C (Cold-Chain Safe)</b>
-                        </span>
-                      )}
-                    </div>
+                  <div className="space-y-1 text-xs text-slate-300 font-mono">
+                    <div>Route: <b className="text-slate-100">{convoy.origin} &rarr; {convoy.destination}</b></div>
+                    <div>Driver: <b className="text-cyan-300">{driverName}</b> (<span className="text-amber-400">{vehicleReg}</span>)</div>
+                    <div>Speed: <b className="text-white">{convoy.speed_kmh || 38} km/h</b> &bull; Progress: <b className="text-emerald-400">{convoy.progress_pct || 65}%</b></div>
                   </div>
                 </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
-                <div className="flex items-center gap-5 self-stretch md:self-auto justify-between border-t md:border-t-0 pt-2.5 md:pt-0 border-slate-800 font-mono text-xs shrink-0">
-                  <div className="text-right">
-                    <span className="text-[10px] text-slate-500 block">Est. Delivery</span>
-                    <span className="font-bold text-emerald-400">{convoy.eta_hours || (isMed ? 7.5 : 14.0)} hrs</span>
+      {/* 5. Sub-Tab 3: Fuel, Gas & Firewood Reserves */}
+      {activeTab === 'energy' && (
+        <div className="space-y-4">
+          {/* Firewood and Biomass Dependence Card */}
+          <div className="glass-panel p-4 rounded-xl border border-amber-500/30 bg-gradient-to-r from-amber-950/20 via-slate-900 to-defense-950 space-y-3">
+            <div className="pb-2 border-b border-slate-800">
+              <h3 className="font-bold text-xs uppercase tracking-wider text-slate-200 flex items-center gap-2">
+                <Flame className="w-4 h-4 text-amber-400" />
+                <span>Remote High-Altitude Firewood & Biomass Energy Security</span>
+              </h3>
+              <p className="text-xs text-slate-400">
+                In sub-zero Himalayan winters, remote tribal communities rely on regulated community firewood reserves for heating and survival when fuel highways are blocked.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              {FUEL_AND_ENERGY_RESERVES.local_energy_and_forest_biomass_dependence.map((dep, idx) => (
+                <div key={idx} className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+                  <div className="flex justify-between items-start">
+                    <span className="font-bold text-xs text-white">{dep.district}</span>
+                    <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-500/20 text-amber-300">
+                      {dep.firewood_biomass_dependence_pct}% BIOMASS
+                    </span>
                   </div>
-
-                  <div className="text-right min-w-[70px]">
-                    <span className="text-[10px] text-slate-500 block">Progress</span>
-                    <span className="font-bold text-cyan-400">{(convoy.progress_pct || 45).toFixed(0)}%</span>
+                  <div className="text-[11px] text-slate-300 font-sans">{dep.remote_communities}</div>
+                  <div className="p-2 rounded bg-slate-950 border border-slate-800 font-mono text-[11px] space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Firewood Stock:</span>
+                      <b className="text-emerald-400">{dep.firewood_stock_days} Days</b>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Community Depots:</span>
+                      <b className="text-white">{dep.community_firewood_depots} Depots</b>
+                    </div>
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-mono">
+                    LPG Backlog: <b className="text-amber-400">{dep.lpg_refill_backlog_days} days</b>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 4. Public Monsoon & Night Travel Advisory Banner */}
-      <div className="glass-panel p-4 rounded-xl border border-amber-500/40 bg-amber-950/20 flex items-start gap-3">
-        <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-        <div className="text-xs space-y-1">
-          <div className="font-bold text-amber-200">
-            {t.advisoryHeader}
+              ))}
+            </div>
           </div>
-          <p className="text-amber-300/80 leading-relaxed">
-            {t.advisoryText}
-          </p>
+
+          {/* District Fuel & Gas Stocks */}
+          <div className="glass-panel p-4 rounded-xl border border-slate-800 space-y-3">
+            <div className="pb-2 border-b border-slate-800">
+              <h3 className="font-bold text-xs uppercase tracking-wider text-slate-200 flex items-center gap-2">
+                <Fuel className="w-4 h-4 text-cyan-400" />
+                <span>District Fuel, Petrol & Domestic LPG Cylinder Buffer Days</span>
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {FUEL_AND_ENERGY_RESERVES.district_energy_stock_days.map((d, i) => (
+                <div key={i} className="p-3 rounded-xl bg-slate-900 border border-slate-800 font-mono text-xs space-y-1">
+                  <div className="font-bold text-white truncate">{d.district}</div>
+                  <div className="text-[10px] text-slate-400">{d.state}</div>
+                  <div className="pt-1 border-t border-slate-800 text-[11px] flex justify-between">
+                    <span className="text-slate-500">Diesel:</span>
+                    <b className={d.diesel_days <= 7 ? 'text-rose-400' : 'text-emerald-400'}>{d.diesel_days} days</b>
+                  </div>
+                  <div className="text-[11px] flex justify-between">
+                    <span className="text-slate-500">LPG Gas:</span>
+                    <b className={d.lpg_cylinder_days <= 10 ? 'text-amber-400' : 'text-emerald-400'}>{d.lpg_cylinder_days} days</b>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* 5. Emergency Helplines & Checkpost Directory (Clause h) */}
-      <div className="glass-panel p-5 rounded-2xl border border-slate-800 shadow-xl space-y-3">
-        <h3 className="font-bold text-xs uppercase tracking-wider text-slate-200 flex items-center gap-2 pb-2 border-b border-slate-800">
-          <PhoneCall className="w-4 h-4 text-cyan-400" />
-          {t.helplinesHeader}
-        </h3>
+      {/* 6. Sub-Tab 4: Flood & Snow Alerts + Helplines */}
+      {activeTab === 'hazards' && (
+        <div className="space-y-4">
+          <div className="glass-panel p-4 rounded-xl border border-slate-800 space-y-3">
+            <h3 className="font-bold text-xs uppercase tracking-wider text-slate-200 flex items-center gap-2">
+              <PhoneCall className="w-4 h-4 text-cyan-400" />
+              <span>{t.helplinesHeader}</span>
+            </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
-          {emergencyHelplines.map((item, idx) => (
-            <div key={idx} className="p-3 rounded-lg bg-defense-900 border border-slate-800 text-xs flex flex-col justify-between space-y-2">
-              <div>
-                <div className="font-bold text-slate-100">{item.name}</div>
-                <div className="text-[11px] text-slate-400 mt-1 font-sans">{item.desc}</div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs font-mono">
+              <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
+                <div className="text-slate-400 font-bold">STATE EMERGENCY OPS (SEOC)</div>
+                <div className="text-base font-bold text-white mt-1">1070 / 112</div>
+                <p className="text-[10px] text-slate-500 mt-1 font-sans">Toll-free 24/7 disaster distress line</p>
               </div>
-              <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between font-mono">
-                <span className="text-[10px] text-slate-500">24x7 Direct:</span>
-                <span className="text-sm font-bold text-cyan-400">{item.number}</span>
+
+              <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
+                <div className="text-slate-400 font-bold">BRO VARTAK ROAD HELPLINE</div>
+                <div className="text-base font-bold text-cyan-300 mt-1">+91 94350-12844</div>
+                <p className="text-[10px] text-slate-500 mt-1 font-sans">Direct road clearance & dozer dispatch</p>
+              </div>
+
+              <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
+                <div className="text-slate-400 font-bold">TAWANG CIVIL HOSPITAL OXYGEN</div>
+                <div className="text-base font-bold text-emerald-400 mt-1">+91 94350-99001</div>
+                <p className="text-[10px] text-slate-500 mt-1 font-sans">Medical emergency & blood transfusion</p>
               </div>
             </div>
-          ))}
+          </div>
+
+          <div className="p-4 rounded-xl bg-amber-950/30 border border-amber-500/40 text-xs font-sans text-amber-200 space-y-1">
+            <b className="font-bold text-white flex items-center gap-1.5">
+              <AlertTriangle className="w-4 h-4 text-amber-400" />
+              <span>{t.advisoryHeader}</span>
+            </b>
+            <p className="mt-1">{t.advisoryText}</p>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

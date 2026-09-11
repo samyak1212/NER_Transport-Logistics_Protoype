@@ -5632,3 +5632,765 @@ export const DEFAULT_DISTRICTS = [
 
 
 export { CORRIDOR_DRIVING_ROUTES } from './corridorDrivingRoutes.js';
+
+// ==============================================================================
+// FEATURE 1: ARMY & EMERGENCY RESPONSE RESOURCES
+// ==============================================================================
+export const ARMY_EMERGENCY_RESOURCES = {
+  algs_and_helipads: [
+    {
+      id: "ALG_TAWANG",
+      name: "Tawang Advanced Landing Ground & Helipad Base",
+      location: "Tawang Frontier Sector",
+      state: "Arunachal Pradesh",
+      elevation_m: 3048.0,
+      coordinates: [27.5861, 91.8594],
+      aircraft_compatibility: ["ALH_DHRUV", "MI_17_V5", "CH_47_CHINOOK"],
+      capacity_helo: 6,
+      fuel_atf_available: true,
+      status: "OPERATIONAL",
+      assigned_squad: "105 Helicopter Unit (Siachen Pioneers Det.)",
+      contact_freq: "123.45 MHz (Tawang Air Ops)"
+    },
+    {
+      id: "AFS_TEZPUR",
+      name: "Tezpur Air Force Station & Tri-Service Staging Hub",
+      location: "Tezpur Plains",
+      state: "Assam",
+      elevation_m: 78.0,
+      coordinates: [26.7095, 92.7844],
+      aircraft_compatibility: ["C_130J_SUPER_HERCULES", "AN_32", "MI_17_V5", "CH_47_CHINOOK", "ALH_DHRUV"],
+      capacity_helo: 18,
+      fuel_atf_available: true,
+      status: "STRATEGIC_MASTER_HUB",
+      assigned_squad: "Eastern Air Command (4 Corps Liaison)",
+      contact_freq: "128.80 MHz (Tezpur Tower)"
+    },
+    {
+      id: "ALG_MECHUKA",
+      name: "Mechuka Advanced Landing Ground",
+      location: "Shi Yomi District",
+      state: "Arunachal Pradesh",
+      elevation_m: 1828.0,
+      coordinates: [28.6012, 94.1352],
+      aircraft_compatibility: ["C_130J", "AN_32", "CH_47_CHINOOK", "ALH_DHRUV"],
+      capacity_helo: 4,
+      fuel_atf_available: true,
+      status: "OPERATIONAL",
+      assigned_squad: "48 Squadron IAF / Army Avn Flight",
+      contact_freq: "121.50 MHz (Mechuka Ops)"
+    },
+    {
+      id: "ALG_WALONG",
+      name: "Walong Helipad & Tactical Staging Post",
+      location: "Anjaw Valley (Eastern Frontier)",
+      state: "Arunachal Pradesh",
+      elevation_m: 1090.0,
+      coordinates: [28.1345, 97.0123],
+      aircraft_compatibility: ["ALH_DHRUV", "MI_17_V5", "CH_47_CHINOOK"],
+      capacity_helo: 4,
+      fuel_atf_available: true,
+      status: "OPERATIONAL",
+      assigned_squad: "Army Aviation R&R Detachment",
+      contact_freq: "124.10 MHz"
+    },
+    {
+      id: "ALG_TUTING",
+      name: "Tuting Advanced Landing Ground",
+      location: "Upper Siang Brahmaputra Entry",
+      state: "Arunachal Pradesh",
+      elevation_m: 610.0,
+      coordinates: [28.9912, 94.8987],
+      aircraft_compatibility: ["C_130J", "AN_32", "CH_47_CHINOOK", "ALH_DHRUV"],
+      capacity_helo: 5,
+      fuel_atf_available: true,
+      status: "OPERATIONAL",
+      assigned_squad: "Siang HADR Air Wing",
+      contact_freq: "122.90 MHz"
+    },
+    {
+      id: "HELI_SUKNA",
+      name: "Sukna Helipad (33 Corps Trishakti Command)",
+      location: "Siliguri Gateway",
+      state: "West Bengal",
+      elevation_m: 135.0,
+      coordinates: [26.7912, 88.3614],
+      aircraft_compatibility: ["ALH_DHRUV", "MI_17_V5", "CH_47_CHINOOK"],
+      capacity_helo: 8,
+      fuel_atf_available: true,
+      status: "OPERATIONAL",
+      assigned_squad: "33 Corps Aviation Flight (Sikkim Air-Bridge)",
+      contact_freq: "126.70 MHz"
+    },
+    {
+      id: "HELI_DIMAPUR",
+      name: "Dimapur Military Helipad Hub (3 Corps)",
+      location: "Dimapur Rail Gateway",
+      state: "Nagaland",
+      elevation_m: 145.0,
+      coordinates: [25.8839, 93.7712],
+      aircraft_compatibility: ["ALH_DHRUV", "MI_17_V5", "CH_47_CHINOOK"],
+      capacity_helo: 10,
+      fuel_atf_available: true,
+      status: "OPERATIONAL",
+      assigned_squad: "Spear Corps Aviation Sqn",
+      contact_freq: "119.30 MHz"
+    }
+  ],
+  combat_engineer_units: [
+    {
+      id: "ENG_14_REGT",
+      regiment: "14 Engineer Regiment (The Bombay Sappers)",
+      base_location: "Bhalukpong Staging Post (km 48)",
+      task_force: "Project Vartak (42 BRTF Integration)",
+      equipment: ["Class 70 Extra-Wide Bailey Bridges (120 ft)", "Tracked High-Reach Excavators (3)", "Pneumatic Rock Drillers (4)"],
+      bailey_bridge_class: "CLASS_70_HEAVY_ASSAULT",
+      tracked_dozers: 4,
+      snow_cutters: 2,
+      status: "COMBAT_READY",
+      readiness: "15 MIN RAPID RESPONSE",
+      eta_to_chokepoints: { Sessa_Landslide: "35 mins", NagMandir: "50 mins", Kaspi_Bridge: "65 mins" }
+    },
+    {
+      id: "ENG_411_FLD",
+      regiment: "411 Field Company (Engineers)",
+      base_location: "Balipara Strategic Junction",
+      task_force: "Gajraj Corps River Crossing Detachment",
+      equipment: ["Class 40 Bailey Bridges (180 ft)", "Brahmaputra Pontoon Rescue Rafts (6)", "Heavy Winch Recovery Tractors (2)"],
+      bailey_bridge_class: "CLASS_40_CIVIL_RELIEF",
+      tracked_dozers: 3,
+      snow_cutters: 0,
+      status: "DEPLOYABLE",
+      readiness: "30 MINS",
+      eta_to_chokepoints: { Bhalukpong: "25 mins", Tezpur: "20 mins", Orang_Bypass: "40 mins" }
+    },
+    {
+      id: "ENG_58_BRTF",
+      regiment: "58 Border Roads Task Force Heavy Plant Platoon",
+      base_location: "Dirang Sub-Depot (km 172)",
+      task_force: "Project Vartak Alpine Sector",
+      equipment: ["Schmidt Rotary Snow Cutters (2)", "Caterpillar D8R Heavy Mountain Dozers (2)", "Salt & Grit Spreader Trucks (4)"],
+      bailey_bridge_class: "CLASS_24_EXPEDIENT",
+      tracked_dozers: 5,
+      snow_cutters: 4,
+      status: "ACTIVE_ALPINES",
+      readiness: "IMMEDIATE (ON PATROL)",
+      eta_to_chokepoints: { Sela_Pass_Summit: "25 mins", Jaswant_Garh: "40 mins", Jang_Bridge: "50 mins" }
+    },
+    {
+      id: "NDRF_12_BN",
+      regiment: "12th Battalion National Disaster Response Force (NDRF)",
+      base_location: "Doimukh / Itanagar Regional HQ",
+      task_force: "NER Inter-Agency Disaster Task Force",
+      equipment: ["Inflatable Motorized Boats (18)", "Deep Trench Shoring Kits", "Acoustic Life Locators (K-9 Squads)", "Hydraulic Debris Spreaders"],
+      bailey_bridge_class: "COLLAPSE_RESCUE_ONLY",
+      tracked_dozers: 2,
+      snow_cutters: 1,
+      status: "DISASTER_DEPLOYED",
+      readiness: "20 MINS",
+      eta_to_chokepoints: { Bhalukpong: "45 mins", Tezpur: "55 mins", Kaziranga: "70 mins" }
+    }
+  ],
+  field_medical_units: [
+    {
+      id: "MH_181_TAWANG",
+      name: "181 Military Hospital (High-Altitude Trauma Center)",
+      location: "Tawang Cantonment",
+      beds: 120,
+      icu_ventilators: 14,
+      hyperbaric_chambers: 2,
+      cryogenic_oxygen_days: 18,
+      blood_reserve_units: 85,
+      mobile_surgical_units: 2,
+      air_evac_helipad: "ON_CAMPUS"
+    },
+    {
+      id: "BH_155_TEZPUR",
+      name: "155 Base Hospital (Level-3 Regional Tertiary Command)",
+      location: "Tezpur Defence Enclave",
+      beds: 450,
+      icu_ventilators: 35,
+      hyperbaric_chambers: 4,
+      cryogenic_oxygen_days: 30,
+      blood_reserve_units: 240,
+      mobile_surgical_units: 4,
+      air_evac_helipad: "CONNECTED_AFS_TEZPUR"
+    },
+    {
+      id: "FMA_404_SELA",
+      name: "404 Field Ambulance Post & Oxygen Staging Hub",
+      location: "Sela Tunnel South Portal (km 208)",
+      beds: 25,
+      icu_ventilators: 4,
+      hyperbaric_chambers: 1,
+      cryogenic_oxygen_days: 12,
+      blood_reserve_units: 30,
+      mobile_surgical_units: 1,
+      air_evac_helipad: "SELA_SOUTH_LZ"
+    }
+  ],
+  active_rescue_missions: [
+    {
+      id: "OP_HIMRAHAT_24",
+      title: "Operation Himrahat: Sela Pass Sudden Blizzard Evacuation",
+      sector: "Sela Pass Summit (Elevation 3,733m)",
+      incident_type: "HIGH_ALTITUDE_BLIZZARD",
+      severity: "CRITICAL_LIFE_THREAT",
+      personnel_deployed: 48,
+      helo_deployed: "2x ALH Dhruv (105 Helo Unit)",
+      civilian_casualties_prevented: 34,
+      status: "ACTIVE_SUCCESSFUL",
+      start_time: "04:15 IST Today",
+      narrative: "BRO Project Vartak dozers and 14 Sappers successfully cleared 4-foot snowdrifts between Jaswant Garh and Sela Summit. 14 civilian SUVs and 2 civil milk tankers safely escorted through Sela Tunnel south portal."
+    },
+    {
+      id: "OP_BRAHMA_SEVA",
+      title: "Operation Brahma Seva: Majuli Island Inundation Relief",
+      sector: "Majuli River Island / Brahmaputra Reach",
+      incident_type: "RIVERINE_FLOOD_BREACH",
+      severity: "HIGH_VULNERABILITY",
+      personnel_deployed: 62,
+      helo_deployed: "1x Mi-17 V5 (Airdrop Ration Drops)",
+      civilian_casualties_prevented: 120,
+      status: "ONGOING_MONITORING",
+      start_time: "Yesterday 18:30 IST",
+      narrative: "Brahmaputra overflow breached protective ring bund near Kamalabari Ghat. 411 Field Company deployed 4 pontoon rescue boats, evacuating vulnerable households and delivering 4 tonnes of purified drinking water and baby food."
+    },
+    {
+      id: "OP_TEESTA_SHORE",
+      title: "Operation Teesta Shore: NH-10 River Scour Emergency Bailey Bridge",
+      sector: "Teesta Bazaar Defile (km 42)",
+      incident_type: "RIVER_FOUNDATION_COLLAPSE",
+      severity: "LIFELINE_SEVERED",
+      personnel_deployed: 55,
+      helo_deployed: "Air Recon ALH Dhruv",
+      civilian_casualties_prevented: 0,
+      status: "ENGINEERING_LAUNCH",
+      start_time: "06:00 IST Today",
+      narrative: "Flash flood scouring by Teesta River washed out a 28-meter asphalt apron. 33 Corps Engineers and BRO Project Swastik are launching a 100-ft Class 70 Bailey bridge to restore Sikkim's only lifeline to Siliguri."
+    }
+  ]
+};
+
+// ==============================================================================
+// FEATURE 2: REGIONAL HAZARDS & HYDROLOGY DATA
+// ==============================================================================
+export const REGIONAL_HAZARD_INTELLIGENCE = {
+  brahmaputra_flood_system: {
+    river_name: "Brahmaputra (Yarlung Tsangpo downstream)",
+    annual_monsoon_discharge_max_cumecs: 72400.0,
+    current_regional_state: "ACTIVE_MONSOON_SURGE",
+    river_stations: [
+      {
+        station: "Guwahati (DC Court Ghat)",
+        river: "Brahmaputra",
+        state: "Assam",
+        danger_level_m: 49.68,
+        current_level_m: 49.85,
+        status: "ABOVE_DANGER_LEVEL",
+        trend: "RISING (+0.08m/6h)",
+        discharge_cumecs: 52400.0,
+        ferry_transit_status: "INLAND_WATERWAYS_FERRY_SUSPENDED"
+      },
+      {
+        station: "Tezpur (Jahaj Ghat)",
+        river: "Brahmaputra",
+        state: "Assam",
+        danger_level_m: 65.23,
+        current_level_m: 65.05,
+        status: "WARNING_HIGH_VELOCITY",
+        trend: "RISING (+0.12m/6h)",
+        discharge_cumecs: 48900.0,
+        ferry_transit_status: "RESTRICTED_DAYLIGHT_ONLY"
+      },
+      {
+        station: "Dibrugarh (Overman Ghat)",
+        river: "Brahmaputra",
+        state: "Assam",
+        danger_level_m: 105.70,
+        current_level_m: 106.12,
+        status: "CRITICAL_INUNDATION",
+        trend: "STEADY_AT_PEAK",
+        discharge_cumecs: 58200.0,
+        ferry_transit_status: "TOTAL_SUSPENSION"
+      },
+      {
+        station: "Majuli (Kamalabari Ghat)",
+        river: "Brahmaputra & Subansiri Confluence",
+        state: "Assam",
+        danger_level_m: 85.50,
+        current_level_m: 85.92,
+        status: "EMBANKMENT_BREACH_ALERT",
+        trend: "RISING (+0.05m/6h)",
+        discharge_cumecs: 56100.0,
+        ferry_transit_status: "EMERGENCY_ARMY_BOATS_ONLY"
+      },
+      {
+        station: "Goalpara (Steamer Ghat)",
+        river: "Brahmaputra",
+        state: "Assam",
+        danger_level_m: 36.27,
+        current_level_m: 35.80,
+        status: "NORMAL_WATCH",
+        trend: "RISING_SLOWLY",
+        discharge_cumecs: 44000.0,
+        ferry_transit_status: "OPERATIONAL"
+      }
+    ],
+    flood_impact_summary: "Brahmaputra river volume is surging due to intense cloudbursts in Arunachal foothills and upper Tibet. Kaziranga highway animal corridors (NH-27) have speed restrictions enforced (40 km/h) to protect migrating wildlife. Majuli approach ferry service is suspended."
+  },
+  transboundary_nepal_catchments: [
+    {
+      id: "RISK_KOSHI_RUNOFF",
+      origin_country: "Nepal (Eastern Catchment)",
+      basin: "Saptakoshi Basin (Sun Kosi, Arun, Tamur)",
+      vulnerable_districts: ["Darjeeling (WB)", "Jalpaiguri (WB)", "Koch Bihar (WB)", "Dhubri (Assam)"],
+      upstream_rain_24h_mm: 184.5,
+      risk_level: "HIGH_SURGE_RISK",
+      warning_narrative: "Intense Himalayan orographic downpours across Eastern Nepal are creating massive silt runoff into the Koshi and Teesta river basins. Downstream flash inundations threaten North Bengal road-rail lifelines connecting mainland India to Assam."
+    },
+    {
+      id: "RISK_MECHI_KANKAI",
+      origin_country: "Nepal (Southern Terai Hills)",
+      basin: "Mechi & Mahananda Basins",
+      vulnerable_districts: ["Siliguri Corridor / Siliguri 'Chicken's Neck'", "Kishanganj Gateway"],
+      upstream_rain_24h_mm: 142.0,
+      risk_level: "MODERATE_WATCH",
+      warning_narrative: "Mechi river discharge is overflowing local banks near the Indo-Nepal border, with backwater eddies eroding foundation embankments along the NH-27 bypass link."
+    }
+  ],
+  sikkim_snow_and_ice_zones: [
+    {
+      pass_name: "Sela Pass Alpine Summit & Tunnel Bypass",
+      corridor: "CORRIDOR_NH13",
+      state: "Arunachal Pradesh",
+      elevation_m: 3733.0,
+      temperature_c: -2.8,
+      snow_depth_cm: 38.0,
+      snow_chain_mandate: true,
+      tunnel_bypass_name: "Twin-Tube Sela Tunnel (Elevation 3,000m)",
+      tunnel_status: "ALL_WEATHER_OPERATIONAL",
+      pass_status: "SUMMIT_SURFACE_RESTRICTED"
+    },
+    {
+      pass_name: "Nathu La International Border Pass",
+      corridor: "CORRIDOR_NH10_EXT",
+      state: "Sikkim",
+      elevation_m: 4310.0,
+      temperature_c: -6.5,
+      snow_depth_cm: 65.0,
+      snow_chain_mandate: true,
+      tunnel_bypass_name: "None (High Surface Pass)",
+      tunnel_status: "NO_TUNNEL",
+      pass_status: "BLIZZARD_CLOSED_TO_CIVILIAN"
+    },
+    {
+      pass_name: "Teesta Valley Defile (Sevoke to Teesta Bazaar)",
+      corridor: "CORRIDOR_NH10",
+      state: "West Bengal / Sikkim Border",
+      elevation_m: 220.0,
+      temperature_c: 19.5,
+      snow_depth_cm: 0.0,
+      snow_chain_mandate: false,
+      tunnel_bypass_name: "Sevoke-Rangpo Railway Tunnel (Under Construction)",
+      tunnel_status: "RAILWAY_TUNNEL_IN_PROGRESS",
+      pass_status: "RESTRICTED_RIVER_SCOUR"
+    },
+    {
+      pass_name: "Sonapur Mudflow Tunnel Escarpment",
+      corridor: "CORRIDOR_NH6",
+      state: "Meghalaya",
+      elevation_m: 580.0,
+      temperature_c: 21.0,
+      snow_depth_cm: 0.0,
+      snow_chain_mandate: false,
+      tunnel_bypass_name: "Sonapur Concrete Deflection Tunnel (130m)",
+      tunnel_status: "OPERATIONAL_SINGLE_LANE",
+      pass_status: "MUD_SLURRY_CAUTION"
+    }
+  ]
+};
+
+// ==============================================================================
+// FEATURE 3: ROADWORKS, SEASONAL CLOSURES & CONNECTIVITY GAPS
+// ==============================================================================
+export const ROADWORKS_AND_CONNECTIVITY = {
+  ongoing_roadworks: [
+    {
+      id: "RW_NH13_01",
+      corridor: "CORRIDOR_NH13",
+      stretch: "Bhalukpong -> Tippi Orchid Gorge (km 34 to 48)",
+      agency: "BRO Project Vartak (42 BRTF)",
+      work_type: "2-Lane National Highway Widening & Concrete Paving",
+      traffic_impact: "Single-lane escorted transit with 15-min alternating pulses",
+      lane_status: "SINGLE_LANE_ALTERNATING",
+      progress_pct: 74.0,
+      target_completion: "December 2026"
+    },
+    {
+      id: "RW_NH13_02",
+      corridor: "CORRIDOR_NH13",
+      stretch: "Sessa Scree Slide Chokepoint (km 78)",
+      agency: "BRO & National Highways Infrastructure Development Corp (NHIDCL)",
+      work_type: "High-Tensile Steel Wire Slope Netting & Rockfall Deflection Berm",
+      traffic_impact: "Rolling 20-min work closures during drilling hours (10:00 - 15:00)",
+      lane_status: "CAUTION_STOP_AND_GO",
+      progress_pct: 82.0,
+      target_completion: "November 2026"
+    },
+    {
+      id: "RW_NH10_01",
+      corridor: "CORRIDOR_NH10",
+      stretch: "Sevoke Bridge to Teesta Bazaar (km 18 to 32)",
+      agency: "West Bengal PWD & Project Swastik",
+      work_type: "Teesta River Gabion Box Shoring & Concrete Scour Skirt Construction",
+      traffic_impact: "Heavy vehicles >18 tonnes diverted via Melli / Kalimpong loop",
+      lane_status: "RESTRICTED_WEIGHT_LIMIT",
+      progress_pct: 58.0,
+      target_completion: "March 2027"
+    },
+    {
+      id: "RW_NH6_01",
+      corridor: "CORRIDOR_NH6",
+      stretch: "Sonapur Mudflow Tunnel Roof Chute (km 112)",
+      agency: "Project Pushpak & Meghalaya PWD",
+      work_type: "Concrete Over-Tunnel Debris Deflection Flume Extension",
+      traffic_impact: "No road stoppage; debris channeled over tunnel roof",
+      lane_status: "OPEN_CONTROLLED",
+      progress_pct: 91.0,
+      target_completion: "October 2026"
+    }
+  ],
+  seasonal_closures: [
+    {
+      corridor: "NH-13 (Kameng Gorge)",
+      stretch: "Bhalukpong to Bomdila (km 48 - 135)",
+      closure_type: "MONSOON_NIGHT_TRAVEL_RESTRICTION",
+      hours: "19:00 IST to 05:00 IST Daily (During Active Monsoon)",
+      reason: "Sudden unlit rockfalls, zero-visibility hill fog, and flash torrents crossing pavement.",
+      authorized_exceptions: "Emergency Military & Medical Convoys with BRO Pilot Vehicle"
+    },
+    {
+      corridor: "NH-13 (Sela High Summit Pass)",
+      stretch: "Jaswant Garh to Sela Pass Top (3,733m)",
+      closure_type: "WINTER_SNOW_CLOSURE",
+      hours: "November to April Annually",
+      reason: "Sub-zero blizzard accumulation up to 6 feet of snow on old high summit.",
+      authorized_exceptions: "All normal and heavy traffic is routed through the all-weather Sela Twin-Tube Tunnel (Elevation 3,000m)"
+    },
+    {
+      corridor: "NH-29 (Paglapahar Gorge)",
+      stretch: "Chumukedima to Paglapahar (km 14 - 22)",
+      closure_type: "HEAVY_RAINFALL_HOURLY_HALT",
+      hours: "Triggered when rainfall exceeds 35mm/hr",
+      reason: "Vertical shale-sandstone cliffs shed boulders onto highway during downpours.",
+      authorized_exceptions: "None until BRO spotters declare slope stable"
+    }
+  ],
+  connectivity_gaps: [
+    {
+      district_or_sector: "Tawang Frontier District",
+      state: "Arunachal Pradesh",
+      isolated_if_chokepoint_fails: "Sessa Scree Slide (km 78) or Jang River Bridge (km 218)",
+      population_at_risk: 49977,
+      single_lifeline_artery: "NH-13 (Balipara - Bomdila - Tawang)",
+      alternative_bypass: "Balipara -> Orang -> Bhairabkunda -> Kalaktang -> Shergaon -> Rupa (NH-13 Bypass)",
+      vulnerability_rating: "HIGH_SINGLE_POINT_VULNERABILITY"
+    },
+    {
+      district_or_sector: "Barak Valley (Silchar, Karimganj) & Tripura",
+      state: "Assam & Tripura",
+      isolated_if_chokepoint_fails: "Sonapur Mudflow Tunnel (NH-6 Meghalaya)",
+      population_at_risk: 4120000,
+      single_lifeline_artery: "NH-6 (Shillong - Jowai - Sonapur - Silchar)",
+      alternative_bypass: "Lumding - Badarpur Broad Gauge Rail Link (Zero all-weather road alternative)",
+      vulnerability_rating: "CRITICAL_STRATEGIC_CHOKEPOINT"
+    },
+    {
+      district_or_sector: "Sikkim Himalayan State (Gangtok & North Sikkim)",
+      state: "Sikkim",
+      isolated_if_chokepoint_fails: "Sevoke Coronation Bridge or Teesta Bazaar Foundation",
+      population_at_risk: 690000,
+      single_lifeline_artery: "NH-10 (Siliguri - Teesta - Gangtok)",
+      alternative_bypass: "Siliguri -> Damdim -> Gorubathan -> Lava -> Damthang (Long mountain winding detour)",
+      vulnerability_rating: "HIGH_SINGLE_POINT_VULNERABILITY"
+    },
+    {
+      district_or_sector: "Imphal Valley & Manipur Interior",
+      state: "Manipur",
+      isolated_if_chokepoint_fails: "Paglapahar Gorge or Zubza Sinking Zone (NH-29)",
+      population_at_risk: 2855000,
+      single_lifeline_artery: "NH-29 / NH-2 (Dimapur - Kohima - Imphal)",
+      alternative_bypass: "NH-37 (Silchar - Jiribam - Noney - Imphal Lifeline)",
+      vulnerability_rating: "CRITICAL_DUAL_CORRIDOR_RISK"
+    }
+  ]
+};
+
+// ==============================================================================
+// FEATURE 4: MULTI-MODAL LOGISTICS & CORRIDOR THROUGHPUT
+// ==============================================================================
+export const MULTIMODAL_LOGISTICS = {
+  railhead_terminals: [
+    {
+      id: "RAIL_SILIGURI",
+      name: "Siliguri Junction NFR Freight Terminal & ICD",
+      gauge: "1,676 mm Broad Gauge (Electrified)",
+      daily_freight_rakes: 12,
+      terminal_capacity_tonnes: 18000.0,
+      connected_highway: "NH-10 to Sikkim & NH-27 East-West Arterial",
+      transshipment_modes: ["HEAVY_CIVIL_TRUCKS", "CONVOY_4X4", "MILITARY_SPECIALS"],
+      status: "OPERATIONAL_HIGH_CAPACITY"
+    },
+    {
+      id: "RAIL_DIMAPUR",
+      name: "Dimapur Railway Goods Shed & Staging Yard",
+      gauge: "1,676 mm Broad Gauge",
+      daily_freight_rakes: 6,
+      terminal_capacity_tonnes: 9000.0,
+      connected_highway: "NH-29 to Kohima & Imphal",
+      transshipment_modes: ["FOOD_GRAIN_PDS", "POL_FUEL_TANKERS", "ARMY_ESCORTED_TRUCKS"],
+      status: "OPERATIONAL"
+    },
+    {
+      id: "RAIL_BHALUKPONG",
+      name: "Bhalukpong Railway Terminus (Arunachal Foothill Gate)",
+      gauge: "1,676 mm Broad Gauge (Branch line from Dekargaon)",
+      daily_freight_rakes: 2,
+      terminal_capacity_tonnes: 3500.0,
+      connected_highway: "NH-13 to Bomdila & Tawang",
+      transshipment_modes: ["MOUNTAIN_COLD_CHAIN", "4X4_MEDIUM_CARRIERS", "ARMY_SUPPLY_CORPS"],
+      status: "OPERATIONAL"
+    },
+    {
+      id: "RAIL_GUWAHATI",
+      name: "Guwahati Inland Container Depot (ICD Amingaon)",
+      gauge: "1,676 mm Broad Gauge (Electrified Double Track)",
+      daily_freight_rakes: 20,
+      terminal_capacity_tonnes: 35000.0,
+      connected_highway: "NH-27, NH-15, NH-6, NH-13",
+      transshipment_modes: ["INTER_STATE_CONTAINERS", "CRYOGENIC_OXYGEN", "PETROLEUM_RAKES"],
+      status: "REGIONAL_MEGA_TERMINAL"
+    }
+  ],
+  vehicle_accommodation_matrix: [
+    {
+      vehicle_class: "HEAVY_CIVIL_TRUCK_10_TO_14_WHEEL",
+      max_gross_weight_tonnes: 42.0,
+      max_height_m: 4.2,
+      turning_radius_m: 14.5,
+      permitted_on_passes: false,
+      permitted_in_sela_tunnel: true,
+      restricted_corridors: ["NH-13 Bhalukpong to Tawang (Tight hairpin bends <10m radius)", "NH-10 Sevoke Gorge (Bridge weight Class 24 limit)"],
+      recommended_use: "Plains arterial freight (Guwahati - Tezpur - Siliguri - Dimapur)"
+    },
+    {
+      vehicle_class: "MEDIUM_ALL_TERRAIN_TATA_1618_4X4",
+      max_gross_weight_tonnes: 16.2,
+      max_height_m: 3.4,
+      turning_radius_m: 9.8,
+      permitted_on_passes: true,
+      permitted_in_sela_tunnel: true,
+      restricted_corridors: [],
+      recommended_use: "Standard mountain lifeline freight, cold-chain pharma, emergency oxygen cylinders"
+    },
+    {
+      vehicle_class: "LIGHT_MOUNTAIN_PICKUP_4X4_BOLERO",
+      max_gross_weight_tonnes: 3.4,
+      max_height_m: 2.2,
+      turning_radius_m: 6.2,
+      permitted_on_passes: true,
+      permitted_in_sela_tunnel: true,
+      restricted_corridors: [],
+      recommended_use: "High-speed trauma delivery, remote village feeder roads, single-lane bypass tracks"
+    }
+  ],
+  corridor_hourly_throughput: [
+    {
+      corridor_segment: "NH-13: Sela Pass Old Summit Track (3,733m)",
+      terrain_type: "Extreme High-Altitude Alpine Single Lane",
+      max_safe_vehicles_per_hour: 15,
+      current_vehicle_load_per_hour: 8,
+      congestion_index: "CONTROLLED_CONVOY_INTERVAL",
+      convoy_control_mode: "PILOT_VEHICLE_ESCORTED"
+    },
+    {
+      corridor_segment: "NH-13: Sela Twin-Tube Tunnel (Elevation 3,000m)",
+      terrain_type: "Engineered Modern 2-Lane All-Weather Tunnel",
+      max_safe_vehicles_per_hour: 140,
+      current_vehicle_load_per_hour: 42,
+      congestion_index: "FREE_FLOW",
+      convoy_control_mode: "AUTONOMOUS_RADAR_MONITORED"
+    },
+    {
+      corridor_segment: "NH-13 Bypass: Kalaktang -> Shergaon -> Rupa",
+      terrain_type: "BRO Mountain Paved Double Lane",
+      max_safe_vehicles_per_hour: 55,
+      current_vehicle_load_per_hour: 24,
+      congestion_index: "NORMAL_STABLE",
+      convoy_control_mode: "STANDARD_TWO_WAY"
+    },
+    {
+      corridor_segment: "NH-29: Chumukedima -> Paglapahar Gorge",
+      terrain_type: "Narrow Gorge Escarpment Single Lane Defile",
+      max_safe_vehicles_per_hour: 25,
+      current_vehicle_load_per_hour: 22,
+      congestion_index: "NEAR_CAPACITY_BOTTLENECK",
+      convoy_control_mode: "POLICE_ALTERNATING_CONVOY"
+    },
+    {
+      corridor_segment: "NH-27: Guwahati -> Tezpur Plains Arterial",
+      terrain_type: "4-Lane National Highway Plains",
+      max_safe_vehicles_per_hour: 380,
+      current_vehicle_load_per_hour: 165,
+      congestion_index: "SMOOTH_RAPID",
+      convoy_control_mode: "UNRESTRICTED_MULTILANE"
+    }
+  ]
+};
+
+// ==============================================================================
+// FEATURE 5: FUEL & ENERGY AVAILABILITY
+// ==============================================================================
+export const FUEL_AND_ENERGY_RESERVES = {
+  fuel_stations: [
+    {
+      id: "IOCL_BOMDILA",
+      name: "Indian Oil (IOCL) High-Altitude Fuel Station",
+      operator: "Indian Oil Corporation Ltd",
+      corridor: "CORRIDOR_NH13",
+      chainage_km: "NH-13 km 135 (Bomdila)",
+      coordinates: [27.2644, 92.4241],
+      winter_diesel_available: true,
+      regular_diesel_kl: 65.0,
+      petrol_kl: 38.0,
+      atf_available: false,
+      lpg_depot: true,
+      emergency_generator_fuel_kl: 12.0,
+      status: "OPERATIONAL_FULL_STOCK"
+    },
+    {
+      id: "HPCL_DIRANG",
+      name: "Hindustan Petroleum (HPCL) Dirang Outpost Bunk",
+      operator: "HPCL",
+      corridor: "CORRIDOR_NH13",
+      chainage_km: "NH-13 km 172 (Dirang)",
+      coordinates: [27.3578, 92.2394],
+      winter_diesel_available: true,
+      regular_diesel_kl: 42.0,
+      petrol_kl: 25.0,
+      atf_available: false,
+      lpg_depot: true,
+      emergency_generator_fuel_kl: 8.0,
+      status: "OPERATIONAL"
+    },
+    {
+      id: "IOCL_SELA_SOUTH",
+      name: "IOCL Sela Tunnel Strategic Fuel Reserve Point",
+      operator: "IOCL / BRO Joint Depot",
+      corridor: "CORRIDOR_NH13",
+      chainage_km: "NH-13 km 208 (Sela South Portal)",
+      coordinates: [27.4868, 92.1126],
+      winter_diesel_available: true,
+      regular_diesel_kl: 90.0,
+      petrol_kl: 15.0,
+      atf_available: true,
+      lpg_depot: false,
+      emergency_generator_fuel_kl: 35.0,
+      status: "DEFENCE_AND_EMERGENCY_PRIORITY"
+    },
+    {
+      id: "IOCL_TAWANG",
+      name: "Indian Oil (IOCL) Tawang Civil & Military Fuel Base",
+      operator: "Indian Oil Corporation Ltd",
+      corridor: "CORRIDOR_NH13",
+      chainage_km: "NH-13 km 248 (Tawang)",
+      coordinates: [27.5861, 91.8594],
+      winter_diesel_available: true,
+      regular_diesel_kl: 75.0,
+      petrol_kl: 44.0,
+      atf_available: true,
+      lpg_depot: true,
+      emergency_generator_fuel_kl: 28.0,
+      status: "OPERATIONAL"
+    },
+    {
+      id: "IOCL_BHALUKPONG",
+      name: "Bhalukpong Foothill Gateway Fuel Station",
+      operator: "Indian Oil Corporation Ltd",
+      corridor: "CORRIDOR_NH13",
+      chainage_km: "NH-13 km 48 (Bhalukpong)",
+      coordinates: [27.0125, 92.6514],
+      winter_diesel_available: false,
+      regular_diesel_kl: 120.0,
+      petrol_kl: 80.0,
+      atf_available: false,
+      lpg_depot: true,
+      emergency_generator_fuel_kl: 15.0,
+      status: "OPERATIONAL"
+    },
+    {
+      id: "HPCL_TEESTA",
+      name: "HPCL Teesta Valley Outpost",
+      operator: "HPCL",
+      corridor: "CORRIDOR_NH10",
+      chainage_km: "NH-10 km 42 (Teesta Bazaar)",
+      coordinates: [27.058, 88.435],
+      winter_diesel_available: false,
+      regular_diesel_kl: 22.0,
+      petrol_kl: 14.0,
+      atf_available: false,
+      lpg_depot: false,
+      emergency_generator_fuel_kl: 6.0,
+      status: "LOW_STOCK_FLOOD_RESTRICTED"
+    }
+  ],
+  district_energy_stock_days: [
+    { district: "Kamrup Metro (Guwahati)", state: "Assam", diesel_days: 32, petrol_days: 28, lpg_cylinder_days: 45, hospital_gen_fuel_days: 60 },
+    { district: "Sonitpur (Tezpur)", state: "Assam", diesel_days: 25, petrol_days: 22, lpg_cylinder_days: 35, hospital_gen_fuel_days: 45 },
+    { district: "West Kameng (Bomdila)", state: "Arunachal Pradesh", diesel_days: 14, petrol_days: 12, lpg_cylinder_days: 16, hospital_gen_fuel_days: 24 },
+    { district: "Tawang", state: "Arunachal Pradesh", diesel_days: 6, petrol_days: 5, lpg_cylinder_days: 7, hospital_gen_fuel_days: 18 },
+    { district: "East Jaintia Hills", state: "Meghalaya", diesel_days: 12, petrol_days: 10, lpg_cylinder_days: 14, hospital_gen_fuel_days: 20 },
+    { district: "Gangtok", state: "Sikkim", diesel_days: 9, petrol_days: 8, lpg_cylinder_days: 11, hospital_gen_fuel_days: 21 },
+    { district: "Kohima", state: "Nagaland", diesel_days: 11, petrol_days: 9, lpg_cylinder_days: 13, hospital_gen_fuel_days: 22 },
+    { district: "Imphal West", state: "Manipur", diesel_days: 5, petrol_days: 4, lpg_cylinder_days: 6, hospital_gen_fuel_days: 12 }
+  ],
+  local_energy_and_forest_biomass_dependence: [
+    {
+      district: "Tawang Frontier",
+      remote_communities: "Monpa & Sharchop High-Altitude Hamlets (Mukto, Zemithang, Lumla, Kitpi)",
+      firewood_biomass_dependence_pct: 74.5,
+      community_firewood_depots: 22,
+      firewood_stock_days: 45,
+      winter_heating_status: "SUFFICIENT_DRY_STOCK_PREPARED",
+      lpg_refill_backlog_days: 14
+    },
+    {
+      district: "West Kameng (Upper Reach)",
+      remote_communities: "Shergaon, Nafra, Thembang Tribal Settlements",
+      firewood_biomass_dependence_pct: 58.0,
+      community_firewood_depots: 15,
+      firewood_stock_days: 38,
+      winter_heating_status: "STABLE",
+      lpg_refill_backlog_days: 8
+    },
+    {
+      district: "North Sikkim",
+      remote_communities: "Lachen, Lachung, Dzongu Tribal Pockets",
+      firewood_biomass_dependence_pct: 68.2,
+      community_firewood_depots: 12,
+      firewood_stock_days: 35,
+      winter_heating_status: "MODERATE_GLOF_DISRUPTION_RISK",
+      lpg_refill_backlog_days: 18
+    },
+    {
+      district: "Nagaland & Manipur Hill Pockets",
+      remote_communities: "Phek, Kiphire, Senapati Ridge Villages",
+      firewood_biomass_dependence_pct: 62.0,
+      community_firewood_depots: 18,
+      firewood_stock_days: 32,
+      winter_heating_status: "STABLE_COMMUNITY_MANAGED",
+      lpg_refill_backlog_days: 12
+    }
+  ]
+};

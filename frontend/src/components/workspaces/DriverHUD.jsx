@@ -22,8 +22,11 @@ import {
   Thermometer,
   Package,
   KeyRound,
-  ShieldAlert
+  ShieldAlert,
+  Snowflake,
+  LifeBuoy
 } from 'lucide-react';
+import { FUEL_AND_ENERGY_RESERVES, REGIONAL_HAZARD_INTELLIGENCE } from '../../data/defaultData';
 
 export default function DriverHUD({ 
   activeVehicle,
@@ -33,6 +36,7 @@ export default function DriverHUD({
   onSelectDriver = () => {},
   onRerouteVehicle = () => {}
 }) {
+  const [activeDriverTab, setActiveDriverTab] = useState('fuel'); // 'fuel', 'pass', 'shelters', 'license'
   const [sosSent, setSosSent] = useState(false);
   const [audioMuted, setAudioMuted] = useState(false);
   const [showDriverModal, setShowDriverModal] = useState(false);
@@ -84,17 +88,17 @@ export default function DriverHUD({
       status: 'OPEN'
     },
     {
-      name: 'Indian Oil (IOCL) High-Altitude Fuel Bunk',
-      location: 'Bomdila km 135',
-      distance: '52 km ahead',
-      services: ['Winter Diesel', 'Engine Coolant', 'Air Pressure'],
-      status: 'OPERATIONAL'
-    },
-    {
       name: 'Dirang Highway Rest & Food Canteen',
       location: 'Dirang km 172',
-      distance: '84 km ahead',
+      distance: '52 km ahead',
       services: ['Hot Meals', 'Driver Dormitory', 'Tire Repair'],
+      status: 'OPEN'
+    },
+    {
+      name: 'Jaswant Garh High-Altitude Shelter',
+      location: 'Jaswant Garh km 215',
+      distance: '86 km ahead',
+      services: ['Heated Barracks', 'Oxygen Cylinders', 'Snow Chain Fitting'],
       status: 'OPEN'
     }
   ];
@@ -122,6 +126,8 @@ export default function DriverHUD({
     operational_advisory: 'CONTINUE',
     temperature_c: 3.8
   };
+
+  const fuelStations = FUEL_AND_ENERGY_RESERVES?.fuel_stations || [];
 
   return (
     <div className="space-y-4 text-slate-100 font-mono select-none">
@@ -155,7 +161,7 @@ export default function DriverHUD({
 
         {/* Switch Driver Profile / Login Button & GPS Mode */}
         <div className="flex flex-wrap items-center gap-2 self-stretch md:self-auto justify-end">
-          {/* GPS Mode Toggle (Simulated vs Live Device) */}
+          {/* GPS Mode Toggle */}
           <div className="flex rounded-xl bg-slate-950 p-1 border border-slate-700">
             <button
               type="button"
@@ -210,7 +216,7 @@ export default function DriverHUD({
               </div>
               <button
                 onClick={() => setShowDriverModal(false)}
-                className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-xs"
+                className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-xs cursor-pointer"
               >
                 ✕
               </button>
@@ -279,7 +285,7 @@ export default function DriverHUD({
         </div>
       )}
 
-      {/* 3. Ahead Hazard Radar Banner with 1-Touch Detour Prompt */}
+      {/* 3. Ahead Hazard Radar Banner with 1-Touch Detour Prompt (PRIMARY FOCUS) */}
       <div className={`p-4 rounded-xl border-2 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all ${
         isHazardAhead
           ? 'bg-rose-950/90 border-rose-500 text-rose-100 animate-pulse shadow-xl shadow-rose-950/80'
@@ -319,7 +325,7 @@ export default function DriverHUD({
         )}
       </div>
 
-      {/* 4. Large Cockpit Instruments Row */}
+      {/* 4. Large Cockpit Instruments Row (PRIMARY COCKPIT VIEW) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Speedometer & Live Altitude Readout */}
         <div className="glass-panel p-6 rounded-2xl border-2 border-slate-700 flex flex-col items-center justify-center text-center bg-slate-900/80">
@@ -335,7 +341,7 @@ export default function DriverHUD({
           <span className="text-sm font-bold text-slate-400 mt-1">KM / HOUR</span>
           <div className="mt-3 px-3 py-1 rounded-full bg-slate-800 text-[11px] text-slate-300 font-mono">
             {gpsMode === 'LIVE_DEVICE' && liveGpsData
-              ? `GPS Fix: ${liveGpsData.lat.toFixed(4)}°N, ${liveGpsData.lon.toFixed(4)}°E (±${liveGpsData.accuracy_m || 5}m)`
+              ? `GPS: ${liveGpsData.lat.toFixed(4)}°N, ${liveGpsData.lon.toFixed(4)}°E (±${liveGpsData.accuracy_m || 5}m)`
               : `Speed Limit: 45 km/h • Altitude: 2,850m`}
           </div>
         </div>
@@ -419,78 +425,154 @@ export default function DriverHUD({
         </div>
       </div>
 
-      {/* 5. Alpine Mountain Pass & High-Altitude Weather Advisory */}
-      <div className="glass-panel p-4 rounded-xl border border-amber-500/40 bg-amber-950/20 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
-            <Mountain className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-xs font-bold text-amber-300 flex items-center gap-2">
-              <span>ALPINE PASS WEATHER ADVISORY: SELA PASS SUMMIT (3,733 METERS)</span>
-              <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-[9px] text-amber-300 font-mono">
-                LIVE SENSOR
-              </span>
-            </div>
-            <div className="text-xs text-slate-300 font-sans mt-0.5">
-              Current Temp: <b>-2.4°C</b> &bull; Dense fog & sleet reported. <b>Snow chains required</b> above Jaswant Garh. Sela Tunnel bypass is clear.
-            </div>
-          </div>
+      {/* 5. Clustered Sub-Tabs for Auxiliary Driver Needs (Zero Clutter on Main Driving HUD) */}
+      <div className="glass-panel p-4 rounded-xl border border-slate-800 space-y-3">
+        {/* Sub-Tabs Switcher */}
+        <div className="flex items-center gap-1.5 p-1 bg-slate-950 border border-slate-800 rounded-xl overflow-x-auto">
+          <button
+            onClick={() => setActiveDriverTab('fuel')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+              activeDriverTab === 'fuel'
+                ? 'bg-cyan-600 text-white shadow'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Fuel className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Next Fuel & Winter Diesel Bunks</span>
+          </button>
+
+          <button
+            onClick={() => setActiveDriverTab('pass')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+              activeDriverTab === 'pass'
+                ? 'bg-amber-600 text-white shadow'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Snowflake className="w-3.5 h-3.5 text-amber-400" />
+            <span>Sela Pass Weather & Tunnel Bypass</span>
+          </button>
+
+          <button
+            onClick={() => setActiveDriverTab('shelters')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+              activeDriverTab === 'shelters'
+                ? 'bg-emerald-600 text-white shadow'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Coffee className="w-3.5 h-3.5 text-emerald-400" />
+            <span>BRO Transit Shelters & Dorms</span>
+          </button>
+
+          <button
+            onClick={() => setActiveDriverTab('license')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+              activeDriverTab === 'license'
+                ? 'bg-purple-600 text-white shadow'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <CreditCard className="w-3.5 h-3.5 text-purple-400" />
+            <span>Digital Mountain Transit Pass</span>
+          </button>
         </div>
 
-        <div className="text-right hidden md:block">
-          <span className="text-[10px] text-slate-400 font-mono">Sela Pass Distance</span>
-          <div className="text-sm font-bold text-amber-400 font-mono">28 km ahead</div>
-        </div>
-      </div>
+        {/* Tab 1: Fuel & Winter Diesel Points */}
+        {activeDriverTab === 'fuel' && (
+          <div className="space-y-3">
+            <div className="flex justify-between items-center text-xs font-sans pb-1 border-b border-slate-800">
+              <span className="text-slate-300 font-bold">High-Altitude Alpine Diesel (IOCL 527 Pour Point -33°C) Along Route</span>
+              <span className="text-cyan-400 font-mono text-[10px]">Next Bunk: 52 km ahead</span>
+            </div>
 
-      {/* 6. Rest Stops, Shelters & Fuel Bunks Along Corridor */}
-      <div className="glass-panel p-4 rounded-xl border border-slate-800">
-        <h3 className="font-bold text-xs uppercase tracking-wider text-slate-200 flex items-center gap-2 mb-3 font-sans">
-          <Coffee className="w-4 h-4 text-cyan-400" />
-          Upcoming Mountain Rest Stops, Shelters & Fuel Stations Ahead
-        </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 font-sans text-xs">
+              {fuelStations.slice(0, 3).map((stn) => (
+                <div key={stn.id} className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5">
+                  <div className="flex justify-between items-start">
+                    <span className="font-bold text-white">{stn.name}</span>
+                    <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-emerald-500/20 text-emerald-400">
+                      {stn.status.replace(/_/g, ' ')}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-cyan-400 font-mono">{stn.chainage_km}</div>
+                  <div className="text-[11px] text-slate-300">
+                    Winter Diesel: <b className={stn.winter_diesel_available ? 'text-emerald-400' : 'text-slate-500'}>{stn.winter_diesel_available ? 'AVAILABLE' : 'REGULAR ONLY'}</b>
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-mono">
+                    Stock: {stn.regular_diesel_kl} KL Diesel &bull; {stn.petrol_kl} KL Petrol
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {restStops.map((stop, idx) => (
-            <div key={idx} className="p-3 rounded-lg bg-slate-900 border border-slate-800 flex flex-col justify-between text-xs space-y-2">
+        {/* Tab 2: Sela Pass Weather & Tunnel Bypass */}
+        {activeDriverTab === 'pass' && (
+          <div className="p-4 rounded-xl bg-amber-950/20 border border-amber-500/40 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
+                <Mountain className="w-5 h-5" />
+              </div>
               <div>
-                <div className="flex justify-between items-start">
-                  <span className="font-bold text-slate-100">{stop.name}</span>
-                  <span className="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded">
-                    {stop.distance}
+                <div className="text-xs font-bold text-amber-300 flex items-center gap-2">
+                  <span>ALPINE PASS WEATHER: SELA PASS SUMMIT (3,733 METERS)</span>
+                  <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-[9px] text-amber-300 font-mono">
+                    LIVE SENSOR
                   </span>
                 </div>
-                <div className="text-[11px] text-slate-400 mt-1">
-                  Location: {stop.location}
+                <div className="text-xs text-slate-300 font-sans mt-0.5">
+                  Current Temp: <b>-2.8°C</b> &bull; Dense fog & sleet reported. <b>Snow chains required</b> above Jaswant Garh. 
+                  <span className="text-emerald-400 font-bold ml-1">Twin-tube Sela Tunnel (Elevation 3,000m) is fully clear and open.</span>
                 </div>
-              </div>
-
-              <div className="flex flex-wrap gap-1 pt-2 border-t border-slate-800">
-                {stop.services.map((srv, sIdx) => (
-                  <span key={sIdx} className="px-1.5 py-0.5 rounded bg-slate-800 text-[10px] text-slate-300">
-                    {srv}
-                  </span>
-                ))}
               </div>
             </div>
-          ))}
-        </div>
-      </div>
 
-      {/* 7. Journey Progress Gauge */}
-      <div className="glass-panel p-4 rounded-xl border border-slate-800">
-        <div className="flex justify-between text-xs text-slate-400 mb-2 font-mono">
-          <span>{vehicle.origin || 'Guwahati Hub'}</span>
-          <span className="text-cyan-400 font-bold">{(vehicle.progress_pct || 0).toFixed(1)}% Traversed</span>
-          <span>{vehicle.destination || 'Tawang Civil Hospital'}</span>
-        </div>
-        <div className="w-full h-4 bg-defense-900 rounded-full overflow-hidden border border-slate-700">
-          <div
-            className="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 transition-all duration-500"
-            style={{ width: `${vehicle.progress_pct || 0}%` }}
-          ></div>
-        </div>
+            <div className="text-right hidden md:block font-mono">
+              <span className="text-[10px] text-slate-400">Sela Tunnel Distance</span>
+              <div className="text-sm font-bold text-emerald-400">28 km ahead</div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 3: Shelters & Dormitories */}
+        {activeDriverTab === 'shelters' && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 font-sans text-xs">
+            {restStops.map((stop, idx) => (
+              <div key={idx} className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5">
+                <div className="flex justify-between items-start">
+                  <span className="font-bold text-white">{stop.name}</span>
+                  <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-emerald-500/20 text-emerald-300">
+                    {stop.status}
+                  </span>
+                </div>
+                <div className="text-[11px] text-slate-400 font-mono">{stop.location} &bull; <span className="text-cyan-400">{stop.distance}</span></div>
+                <div className="flex flex-wrap gap-1 pt-1">
+                  {stop.services.map((s, i) => (
+                    <span key={i} className="px-1.5 py-0.2 rounded text-[9px] bg-slate-950 text-slate-300 border border-slate-800">
+                      ✓ {s}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Tab 4: Digital Transit Pass */}
+        {activeDriverTab === 'license' && (
+          <div className="p-4 rounded-xl bg-defense-900 border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs font-mono">
+            <div className="space-y-1">
+              <div className="text-white font-bold">DIGITAL ARUNACHAL INNER-LINE TRANSIT CREDENTIAL</div>
+              <div className="text-slate-400">Driver: <b className="text-slate-200">{driver.name}</b> &bull; License: <b className="text-cyan-300">{driver.license_no}</b></div>
+              <div className="text-slate-400">Duty Hours Today: <b className="text-emerald-400">4.5 / 8.0 hrs</b> &bull; Blood: <b className="text-red-400">{driver.blood_group}</b></div>
+            </div>
+            <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold">
+              VERIFIED VALID (CHECKPOST CLEARED)
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

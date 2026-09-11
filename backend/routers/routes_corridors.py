@@ -64,3 +64,38 @@ def get_segment_detail(segment_id: str, engine: RoutingEngine = Depends(get_rout
 def get_bro_machinery():
     """Returns BRO 42 BRTF heavy machinery and clearance task force status."""
     return BRO_MACHINERY_STATUS
+
+
+@router.get("/emergency-resources")
+def get_emergency_resources():
+    """Returns Tri-Service Army, IAF Helipads, Combat Engineers, and active HADR rescue missions."""
+    from backend.data.corridor_data import ARMY_EMERGENCY_RESOURCES
+    return ARMY_EMERGENCY_RESOURCES
+
+
+@router.get("/regional-hazards")
+def get_regional_hazards():
+    """Returns Brahmaputra river flood gauges, Nepal catchment risks, Sikkim snow zones, and critical tunnels/passes."""
+    from backend.data.corridor_data import REGIONAL_HAZARD_INTELLIGENCE
+    return REGIONAL_HAZARD_INTELLIGENCE
+
+
+@router.get("/roadworks-connectivity")
+def get_roadworks_and_connectivity():
+    """Returns ongoing roadworks, seasonal closure schedules, connectivity gaps, and bypass routes."""
+    from backend.data.corridor_data import ROADWORKS_AND_CONNECTIVITY
+    return ROADWORKS_AND_CONNECTIVITY
+
+
+@router.get("/multimodal-logistics")
+def get_multimodal_logistics():
+    """Returns railhead terminals, vehicle accommodation matrix, and corridor hourly throughput capacities."""
+    from backend.data.corridor_data import MULTIMODAL_LOGISTICS
+    return MULTIMODAL_LOGISTICS
+
+
+@router.get("/fuel-energy")
+def get_fuel_and_energy():
+    """Returns highway fuel stations, district energy stock levels, and remote firewood/biomass heating dependence."""
+    from backend.data.corridor_data import FUEL_AND_ENERGY_RESERVES
+    return FUEL_AND_ENERGY_RESERVES

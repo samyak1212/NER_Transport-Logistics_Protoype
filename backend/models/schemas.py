@@ -186,3 +186,163 @@ class HazardInjectionRequest(BaseModel):
 class WeatherSimulationRequest(BaseModel):
     rainfall_multiplier: float = 1.0  # 0.0 to 3.0
     rain_scenario: str = "MONSOON_SURGE"  # DRY, NORMAL_RAIN, MONSOON_SURGE, CLOUDBURST
+
+
+# --- Emergency & Army Response Models ---
+class HelipadResource(BaseModel):
+    id: str
+    name: str
+    location: str
+    state: str
+    elevation_m: float
+    coordinates: List[float]
+    aircraft_compatibility: List[str]
+    capacity_helo: int
+    fuel_atf_available: bool
+    status: str
+    assigned_squad: str
+    contact_freq: str
+
+
+class CombatEngineerUnit(BaseModel):
+    id: str
+    regiment: str
+    base_location: str
+    task_force: str
+    equipment: List[str]
+    bailey_bridge_class: str
+    tracked_dozers: int
+    snow_cutters: int
+    status: str
+    readiness: str
+    eta_to_chokepoints: Dict[str, str]
+
+
+class ActiveRescueMission(BaseModel):
+    id: str
+    title: str
+    sector: str
+    incident_type: str
+    severity: str
+    personnel_deployed: int
+    helo_deployed: Optional[str] = None
+    civilian_casualties_prevented: int
+    status: str
+    start_time: str
+    narrative: str
+
+
+# --- Regional Hazard & Hydrology Models ---
+class RiverFloodGauge(BaseModel):
+    station: str
+    river: str
+    state: str
+    danger_level_m: float
+    current_level_m: float
+    status: str
+    trend: str
+    discharge_cumecs: float
+    ferry_transit_status: str
+
+
+class CrossBorderRisk(BaseModel):
+    id: str
+    origin_country: str
+    basin: str
+    vulnerable_districts: List[str]
+    upstream_rain_24h_mm: float
+    risk_level: str
+    warning_narrative: str
+
+
+class HighAltitudeSnowPass(BaseModel):
+    pass_name: str
+    state: str
+    elevation_m: float
+    temperature_c: float
+    snow_depth_cm: float
+    snow_chain_mandate: bool
+    tunnel_bypass_name: Optional[str] = None
+    tunnel_status: str
+    pass_status: str
+
+
+# --- Roadworks & Connectivity Models ---
+class OngoingRoadwork(BaseModel):
+    id: str
+    corridor: str
+    stretch: str
+    agency: str
+    work_type: str
+    traffic_impact: str
+    lane_status: str
+    progress_pct: float
+    target_completion: str
+
+
+class ConnectivityGap(BaseModel):
+    district_or_sector: str
+    state: str
+    isolated_if_chokepoint_fails: str
+    population_at_risk: int
+    single_lifeline_artery: str
+    alternative_bypass: str
+    vulnerability_rating: str
+
+
+# --- Multi-Modal & Freight Models ---
+class RailheadHub(BaseModel):
+    id: str
+    name: str
+    gauge: str
+    daily_freight_rakes: int
+    terminal_capacity_tonnes: float
+    connected_highway: str
+    transshipment_modes: List[str]
+    status: str
+
+
+class VehicleAccommodation(BaseModel):
+    vehicle_class: str
+    max_gross_weight_tonnes: float
+    max_height_m: float
+    turning_radius_m: float
+    permitted_on_passes: bool
+    permitted_in_sela_tunnel: bool
+    restricted_corridors: List[str]
+
+
+class RouteThroughputCapacity(BaseModel):
+    corridor_segment: str
+    terrain_type: str
+    max_safe_vehicles_per_hour: int
+    current_vehicle_load_per_hour: int
+    congestion_index: str
+    convoy_control_mode: str
+
+
+# --- Fuel & Energy Models ---
+class FuelStation(BaseModel):
+    id: str
+    name: str
+    operator: str
+    corridor: str
+    chainage_km: str
+    coordinates: List[float]
+    winter_diesel_available: bool
+    regular_diesel_kl: float
+    petrol_kl: float
+    atf_available: bool
+    lpg_depot: bool
+    emergency_generator_fuel_kl: float
+    status: str
+
+
+class LocalEnergyDependence(BaseModel):
+    district: str
+    remote_communities: str
+    firewood_biomass_dependence_pct: float
+    community_firewood_depots: int
+    firewood_stock_days: int
+    winter_heating_status: str
+    lpg_refill_backlog_days: int

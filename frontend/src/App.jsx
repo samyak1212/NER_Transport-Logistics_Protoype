@@ -6,6 +6,7 @@ import FieldOps from './components/workspaces/FieldOps';
 import DriverHUD from './components/workspaces/DriverHUD';
 import PublicPortal from './components/workspaces/PublicPortal';
 import SimulationLab from './components/workspaces/SimulationLab';
+import ArmyEmergencyPanel from './components/workspaces/ArmyEmergencyPanel';
 import { 
   DEFAULT_NODES, 
   DEFAULT_SEGMENTS, 
@@ -13,7 +14,8 @@ import {
   DEFAULT_CORRIDOR_HEALTH, 
   DEFAULT_DISTRICTS,
   REGISTERED_DRIVERS,
-  ACTIVE_CONVOYS
+  ACTIVE_CONVOYS,
+  ARMY_EMERGENCY_RESOURCES
 } from './data/defaultData';
 import { api } from './services/api';
 
@@ -35,6 +37,7 @@ export default function App() {
   const [executiveBrief, setExecutiveBrief] = useState(null);
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
   const [selectedCoordinates, setSelectedCoordinates] = useState(null);
+  const [emergencyData, setEmergencyData] = useState(ARMY_EMERGENCY_RESOURCES);
 
   const currentDriver = REGISTERED_DRIVERS.find(d => d.id === selectedDriverId) || REGISTERED_DRIVERS[0];
   const targetVehicleId = currentDriver?.assigned_vehicle_id || 'MED_CONVOY_01';
@@ -73,7 +76,7 @@ export default function App() {
   // Initial Data Fetch
   const refreshAllData = async () => {
     try {
-      const [cHealth, dists, segs, nds, reps, bro, wthr, brief, vTele, allV] = await Promise.all([
+      const [cHealth, dists, segs, nds, reps, bro, wthr, brief, vTele, allV, emgRes] = await Promise.all([
         api.getCorridorHealth().catch(() => null),
         api.getDistricts().catch(() => []),
         api.getSegments().catch(() => []),
@@ -83,7 +86,8 @@ export default function App() {
         api.getCorridorWeather().catch(() => []),
         api.getExecutiveBrief().catch(() => null),
         api.getVehicleTelemetry(targetVehicleId).catch(() => null),
-        api.getAllVehicles().catch(() => [])
+        api.getAllVehicles().catch(() => []),
+        api.getEmergencyResources().catch(() => null)
       ]);
 
       if (cHealth) setCorridorHealth(cHealth);
@@ -95,6 +99,7 @@ export default function App() {
       if (wthr) setWeatherData(wthr);
       if (brief) setExecutiveBrief(brief);
       if (vTele) setActiveVehicle(vTele);
+      if (emgRes) setEmergencyData(emgRes);
       if (allV && allV.length > 0) {
         setConvoys(prev => {
           const base = (prev && prev.length > 0) ? prev : ACTIVE_CONVOYS;
@@ -274,6 +279,13 @@ export default function App() {
               weatherData={weatherData}
               executiveBrief={executiveBrief}
               onCalculateRoute={handleCalculateRoute}
+            />
+          )}
+
+          {activeWorkspace === 'army' && (
+            <ArmyEmergencyPanel
+              emergencyData={emergencyData}
+              onAirDropTriggered={refreshAllData}
             />
           )}
 

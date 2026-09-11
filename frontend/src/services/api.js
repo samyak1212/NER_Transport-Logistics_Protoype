@@ -1,6 +1,13 @@
 /**
  * API Client with Offline Queue and Fallback Support.
  */
+import {
+  ARMY_EMERGENCY_RESOURCES,
+  REGIONAL_HAZARD_INTELLIGENCE,
+  ROADWORKS_AND_CONNECTIVITY,
+  MULTIMODAL_LOGISTICS,
+  FUEL_AND_ENERGY_RESERVES,
+} from '../data/defaultData';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ? import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '') : '/api';
 
@@ -43,6 +50,46 @@ export const api = {
     const res = await fetch(`${API_BASE}/corridors/bro-machinery`);
     if (!res.ok) throw new Error('Failed to fetch BRO machinery status');
     return res.json();
+  },
+
+  async getEmergencyResources() {
+    try {
+      const res = await fetch(`${API_BASE}/corridors/emergency-resources`);
+      if (res.ok) return await res.json();
+    } catch (_) {}
+    return ARMY_EMERGENCY_RESOURCES;
+  },
+
+  async getRegionalHazards() {
+    try {
+      const res = await fetch(`${API_BASE}/corridors/regional-hazards`);
+      if (res.ok) return await res.json();
+    } catch (_) {}
+    return REGIONAL_HAZARD_INTELLIGENCE;
+  },
+
+  async getRoadworksAndConnectivity() {
+    try {
+      const res = await fetch(`${API_BASE}/corridors/roadworks-connectivity`);
+      if (res.ok) return await res.json();
+    } catch (_) {}
+    return ROADWORKS_AND_CONNECTIVITY;
+  },
+
+  async getMultimodalLogistics() {
+    try {
+      const res = await fetch(`${API_BASE}/corridors/multimodal-logistics`);
+      if (res.ok) return await res.json();
+    } catch (_) {}
+    return MULTIMODAL_LOGISTICS;
+  },
+
+  async getFuelAndEnergy() {
+    try {
+      const res = await fetch(`${API_BASE}/corridors/fuel-energy`);
+      if (res.ok) return await res.json();
+    } catch (_) {}
+    return FUEL_AND_ENERGY_RESERVES;
   },
 
   // --- Weather ---

@@ -9,7 +9,9 @@ import {
   Wifi, 
   WifiOff, 
   Bell, 
-  AlertTriangle 
+  AlertTriangle,
+  Crosshair,
+  Shield
 } from 'lucide-react';
 
 export default function Header({ activeWorkspace, setActiveWorkspace, activeAlertsCount = 0 }) {
@@ -46,9 +48,10 @@ export default function Header({ activeWorkspace, setActiveWorkspace, activeAler
 
   const workspaces = [
     { id: 'command', label: 'Command HQ', icon: ShieldAlert, color: 'hover:text-cyan-400' },
+    { id: 'army', label: 'Army & Emergency', icon: Crosshair, color: 'hover:text-red-400', badge: 'HADR' },
     { id: 'dispatch', label: 'Logistics Dispatch', icon: Truck, color: 'hover:text-emerald-400' },
-    { id: 'field', label: 'Field Ops', icon: MapPin, color: 'hover:text-amber-400', badge: offlineQueueCount > 0 ? `${offlineQueueCount} queued` : null },
     { id: 'driver', label: 'Driver HUD', icon: Gauge, color: 'hover:text-blue-400' },
+    { id: 'field', label: 'Field Ops', icon: MapPin, color: 'hover:text-amber-400', badge: offlineQueueCount > 0 ? `${offlineQueueCount} queued` : null },
     { id: 'public', label: 'Public Portal', icon: HeartPulse, color: 'hover:text-rose-400' },
     { id: 'lab', label: 'Simulation Lab', icon: FlaskConical, color: 'hover:text-purple-400' },
   ];
