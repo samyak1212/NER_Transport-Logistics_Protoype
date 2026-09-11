@@ -8,18 +8,20 @@ export const REGIONAL_CORRIDORS = [
   {
     "id": "ALL",
     "name": "All Strategic Lifelines (NER Regional Overview)",
-    "states": "Arunachal, Assam, Nagaland, Manipur, Sikkim, Meghalaya, Tripura",
+    "states": "Arunachal, Assam, Nagaland, Manipur, Sikkim, Meghalaya, Mizoram, Tripura",
+    "statesList": ["Arunachal Pradesh", "Assam", "Nagaland", "Manipur", "Sikkim", "Meghalaya", "Mizoram", "Tripura"],
     "center": [
       26.2,
       92.5
     ],
     "zoom": 7,
-    "description": "Comprehensive situational awareness of all 4 vital lifelines across the 8 North Eastern states."
+    "description": "Comprehensive situational awareness of all vital lifelines across the 8 North Eastern states."
   },
   {
     "id": "CORRIDOR_NH13",
     "name": "Western Arunachal Lifeline (NH-13 & BRO Bypass)",
     "states": "Assam & Arunachal Pradesh",
+    "statesList": ["Assam", "Arunachal Pradesh"],
     "center": [
       27.15,
       92.35
@@ -32,6 +34,7 @@ export const REGIONAL_CORRIDORS = [
     "id": "CORRIDOR_NH29",
     "name": "Nagaland & Manipur Arterial Lifeline (NH-29 / NH-2)",
     "states": "Assam, Nagaland & Manipur",
+    "statesList": ["Assam", "Nagaland", "Manipur"],
     "center": [
       25.35,
       93.9
@@ -44,6 +47,7 @@ export const REGIONAL_CORRIDORS = [
     "id": "CORRIDOR_NH10",
     "name": "Sikkim Himalayan Lifeline (NH-10)",
     "states": "West Bengal & Sikkim",
+    "statesList": ["Sikkim", "West Bengal / Gateway"],
     "center": [
       27.05,
       88.5
@@ -55,7 +59,8 @@ export const REGIONAL_CORRIDORS = [
   {
     "id": "CORRIDOR_NH6",
     "name": "Meghalaya, Barak Valley & Tripura Lifeline (NH-6 / NH-8)",
-    "states": "Meghalaya, Assam & Tripura",
+    "states": "Meghalaya, Assam, Mizoram & Tripura",
+    "statesList": ["Meghalaya", "Assam", "Mizoram", "Tripura"],
     "center": [
       24.8,
       92.1
@@ -65,6 +70,32 @@ export const REGIONAL_CORRIDORS = [
     "description": "Shillong -> Jowai -> Sonapur Mudflow Tunnel -> Silchar -> Agartala"
   }
 ];
+
+/**
+ * Returns the list of regional corridors relevant to the given state authority.
+ */
+export function getCorridorsForState(targetState) {
+  if (!targetState || targetState === 'ALL' || targetState === 'Central' || targetState === 'MDoNER') {
+    return REGIONAL_CORRIDORS;
+  }
+
+  const matchingCorridors = REGIONAL_CORRIDORS.filter(c => 
+    c.id !== 'ALL' && c.statesList && c.statesList.includes(targetState)
+  );
+
+  const stateOverview = {
+    id: 'ALL',
+    name: `All ${targetState} Corridors`,
+    states: targetState,
+    statesList: [targetState],
+    center: matchingCorridors.length > 0 ? matchingCorridors[0].center : [26.2, 92.5],
+    zoom: matchingCorridors.length === 1 ? matchingCorridors[0].zoom : 7.8,
+    description: `All strategic arterial corridors connected to ${targetState}.`
+  };
+
+  return [stateOverview, ...matchingCorridors];
+}
+
 
 export const DEFAULT_NODES = [
   {

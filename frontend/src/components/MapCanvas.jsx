@@ -30,7 +30,8 @@ import {
   DISTRICT_CONNECTIVITY_ROUTES,
   DISTRICT_CENTROIDS,
   getRoutesForState,
-  getDistrictsForState
+  getDistrictsForState,
+  getCorridorsForState
 } from '../data/defaultData';
 import { CORRIDOR_DRIVING_ROUTES } from '../data/corridorDrivingRoutes';
 import { getMediaUrl } from '../services/api';
@@ -517,7 +518,19 @@ const CORRIDOR_ROUTE_META = {
   }
 };
 
-// Helper to center/fly map when corridor selection changes
+// Centroids and default zooms for state authority jurisdictions
+const STATE_VIEW_CENTERS = {
+  'Assam': { center: [26.2, 92.8], zoom: 7.5 },
+  'Arunachal Pradesh': { center: [27.5, 93.8], zoom: 7.5 },
+  'Nagaland': { center: [25.8, 94.1], zoom: 8.5 },
+  'Manipur': { center: [24.8, 93.9], zoom: 8.5 },
+  'Sikkim': { center: [27.4, 88.5], zoom: 9.2 },
+  'Meghalaya': { center: [25.5, 91.6], zoom: 8.5 },
+  'Mizoram': { center: [23.5, 92.8], zoom: 8.5 },
+  'Tripura': { center: [23.8, 91.5], zoom: 9.0 },
+};
+
+// Helper to center/fly map when corridor or authority state selection changes
 function MapController({ center, zoom }) {
   const map = useMap();
   useEffect(() => {
@@ -543,6 +556,11 @@ function MapCanvas({
   onSelectDistrictRoute = () => {},
   sideDrawer = null
 }) {
+  // Main viewing mode: 'connectivity' (District Connectivity Explorer) vs 'transport' (Strategic Transport & Convoys)
+  const [viewMode, setViewMode] = useState('connectivity');
+  // In transport mode: filter between all routes, active routes with convoys, and inactive routes without convoys
+  const [convoyRouteFilter, setConvoyRouteFilter] = useState('ALL_ROUTES'); // 'ALL_ROUTES' | 'ACTIVE_WITH_CONVOYS' | 'INACTIVE_NO_CONVOYS'
+
   const [selectedCorridor, setSelectedCorridor] = useState('ALL');
   const [basemap, setBasemap] = useState('dark');
   
@@ -552,14 +570,20 @@ function MapCanvas({
   const [focusRoadOnly, setFocusRoadOnly] = useState(false);
 
   // District Connectivity & Live Traffic State
-  const [showDistrictConnectivity, setShowDistrictConnectivity] = useState(true);
   const [selectedOriginDistrict, setSelectedOriginDistrict] = useState('ALL');
   const [selectedDestDistrict, setSelectedDestDistrict] = useState('ALL');
   const [selectedRouteDetail, setSelectedRouteDetail] = useState(null);
   const [showTrafficLayer, setShowTrafficLayer] = useState(true);
 
-  // Reset district dropdowns when authority state changes
+  // Corridors dynamically filtered by the selected State Authority
+  const availableCorridors = useMemo(() => {
+    return getCorridorsForState(selectedAuthorityState);
+  }, [selectedAuthorityState]);
+
+  // Reset corridor and district dropdowns when authority state changes
   useEffect(() => {
+    setSelectedCorridor('ALL');
+    setUseAlternateBypass(false);
     setSelectedOriginDistrict('ALL');
     setSelectedDestDistrict('ALL');
     setSelectedRouteDetail(null);
@@ -568,11 +592,11 @@ function MapCanvas({
   useEffect(() => {
     if (selectedDistrictRoute) {
       setSelectedRouteDetail(selectedDistrictRoute);
-      setShowDistrictConnectivity(true);
+      setViewMode('connectivity');
     }
   }, [selectedDistrictRoute]);
 
-  // Layer Toggles
+  // Strategic Transport Layer Toggles
   const [showLifelines, setShowLifelines] = useState(true);
   const [showRainfall, setShowRainfall] = useState(true);
   const [showLandslides, setShowLandslides] = useState(true);
@@ -605,17 +629,90 @@ function MapCanvas({
   const currentLayer = basemapLayers[basemap];
 
   // Current corridor config
-  const currentCorridorConfig = REGIONAL_CORRIDORS.find(c => c.id === selectedCorridor) || REGIONAL_CORRIDORS[0];
+  const currentCorridorConfig = useMemo(() => {
+    return availableCorridors.find(c => c.id === selectedCorridor) || availableCorridors[0] || REGIONAL_CORRIDORS[0];
+  }, [availableCorridors, selectedCorridor]);
 
-  // Filter segments according to selected corridor
+  // Target Map Center & Zoom: In connectivity mode focuses on state centroid; in transport mode focuses on corridor
+  const mapTargetCenter = useMemo(() => {
+    if (viewMode === 'connectivity' && selectedAuthorityState && STATE_VIEW_CENTERS[selectedAuthorityState]) {
+      return STATE_VIEW_CENTERS[selectedAuthorityState].center;
+    }
+    return currentCorridorConfig.center;
+  }, [viewMode, selectedAuthorityState, currentCorridorConfig]);
+
+  const mapTargetZoom = useMemo(() => {
+    if (viewMode === 'connectivity' && selectedAuthorityState && STATE_VIEW_CENTERS[selectedAuthorityState]) {
+      return STATE_VIEW_CENTERS[selectedAuthorityState].zoom;
+    }
+    return currentCorridorConfig.zoom;
+  }, [viewMode, selectedAuthorityState, currentCorridorConfig]);
+
+  // Filter Convoys by Selected Corridor
+  const allConvoys = ACTIVE_CONVOYS;
+  const filteredConvoys = useMemo(() => {
+    return selectedCorridor === 'ALL'
+      ? allConvoys
+      : allConvoys.filter(c => c.corridor === selectedCorridor);
+  }, [allConvoys, selectedCorridor]);
+
+  // Filter Convoys by Authority State (Intra-state & Inter-state involving the state)
+  const stateFilteredConvoys = useMemo(() => {
+    let base = filteredConvoys;
+    if (selectedAuthorityState && selectedAuthorityState !== 'ALL' && selectedAuthorityState !== 'MDoNER' && selectedAuthorityState !== 'Central') {
+      base = base.filter(c => {
+        if (c.states && Array.isArray(c.states)) {
+          return c.states.includes(selectedAuthorityState);
+        }
+        if (c.origin_state === selectedAuthorityState || c.dest_state === selectedAuthorityState) return true;
+        if (c.origin?.toLowerCase().includes(selectedAuthorityState.toLowerCase()) || 
+            c.destination?.toLowerCase().includes(selectedAuthorityState.toLowerCase())) return true;
+        return false;
+      });
+    }
+    return base;
+  }, [filteredConvoys, selectedAuthorityState]);
+
+  // Set of corridor IDs that currently carry active convoys in jurisdiction
+  const activeConvoyCorridorIds = useMemo(() => {
+    const ids = new Set();
+    stateFilteredConvoys.forEach(c => {
+      if (c.corridor) {
+        ids.add(c.corridor);
+        if (c.corridor === 'CORRIDOR_NH13') ids.add('CORRIDOR_NH13_BYPASS');
+      }
+    });
+    return ids;
+  }, [stateFilteredConvoys]);
+
+  // Visible convoys based on active vs inactive route filter
+  const visibleConvoys = useMemo(() => {
+    if (convoyRouteFilter === 'INACTIVE_NO_CONVOYS') return [];
+    return stateFilteredConvoys;
+  }, [stateFilteredConvoys, convoyRouteFilter]);
+
+  // Filter segments according to selected corridor, authority state, and active convoy filter
   const allSegments = (segments && segments.length > 0) ? segments : DEFAULT_SEGMENTS;
   const filteredSegments = useMemo(() => {
-    return selectedCorridor === 'ALL'
-      ? allSegments
-      : allSegments.filter(s => s.corridor === selectedCorridor || (selectedCorridor === 'CORRIDOR_NH13' && s.corridor === 'CORRIDOR_NH13_BYPASS'));
-  }, [allSegments, selectedCorridor]);
+    let segs = allSegments;
+    if (selectedCorridor !== 'ALL') {
+      segs = segs.filter(s => s.corridor === selectedCorridor || (selectedCorridor === 'CORRIDOR_NH13' && s.corridor === 'CORRIDOR_NH13_BYPASS'));
+    } else if (selectedAuthorityState && selectedAuthorityState !== 'ALL' && selectedAuthorityState !== 'MDoNER' && selectedAuthorityState !== 'Central') {
+      const stateCorridorIds = new Set(availableCorridors.filter(c => c.id !== 'ALL').map(c => c.id));
+      if (stateCorridorIds.has('CORRIDOR_NH13')) stateCorridorIds.add('CORRIDOR_NH13_BYPASS');
+      segs = segs.filter(s => stateCorridorIds.has(s.corridor));
+    }
 
-  // Filter nodes
+    if (convoyRouteFilter === 'ACTIVE_WITH_CONVOYS') {
+      segs = segs.filter(s => activeConvoyCorridorIds.has(s.corridor));
+    } else if (convoyRouteFilter === 'INACTIVE_NO_CONVOYS') {
+      segs = segs.filter(s => !activeConvoyCorridorIds.has(s.corridor));
+    }
+
+    return segs;
+  }, [allSegments, selectedCorridor, selectedAuthorityState, availableCorridors, convoyRouteFilter, activeConvoyCorridorIds]);
+
+  // Filter nodes (key town stations)
   const allNodes = (nodes && nodes.length > 0) ? nodes : DEFAULT_NODES;
   const filteredNodes = useMemo(() => {
     return selectedCorridor === 'ALL'
@@ -644,30 +741,6 @@ function MapCanvas({
       : BRO_MACHINERY_UNITS.filter(m => m.corridor === selectedCorridor);
   }, [selectedCorridor]);
 
-  // Filter Convoys
-  const filteredConvoys = useMemo(() => {
-    return selectedCorridor === 'ALL'
-      ? ACTIVE_CONVOYS
-      : ACTIVE_CONVOYS.filter(c => c.corridor === selectedCorridor);
-  }, [selectedCorridor]);
-
-  // Filter Convoys by Authority State (Intra-state & Inter-state involving the state)
-  const stateFilteredConvoys = useMemo(() => {
-    const base = filteredConvoys;
-    if (!selectedAuthorityState || selectedAuthorityState === 'ALL' || selectedAuthorityState === 'MDoNER' || selectedAuthorityState === 'Central') {
-      return base;
-    }
-    return base.filter(c => {
-      if (c.states && Array.isArray(c.states)) {
-        return c.states.includes(selectedAuthorityState);
-      }
-      if (c.origin_state === selectedAuthorityState || c.dest_state === selectedAuthorityState) return true;
-      if (c.origin?.toLowerCase().includes(selectedAuthorityState.toLowerCase()) || 
-          c.destination?.toLowerCase().includes(selectedAuthorityState.toLowerCase())) return true;
-      return false;
-    });
-  }, [filteredConvoys, selectedAuthorityState]);
-
   // District Connectivity Routes for selected state
   const stateRoutes = useMemo(() => {
     return getRoutesForState(selectedAuthorityState);
@@ -680,7 +753,6 @@ function MapCanvas({
 
   // Active District Routes to render on map based on Origin/Destination filter
   const activeDistrictRoutes = useMemo(() => {
-    if (!showDistrictConnectivity) return [];
     return stateRoutes.filter(r => {
       if (selectedOriginDistrict !== 'ALL' && selectedDestDistrict !== 'ALL') {
         return (
@@ -696,7 +768,7 @@ function MapCanvas({
       }
       return true;
     });
-  }, [showDistrictConnectivity, stateRoutes, selectedOriginDistrict, selectedDestDistrict]);
+  }, [stateRoutes, selectedOriginDistrict, selectedDestDistrict]);
 
   // Determine active Google Maps Highway Route to render
   const isSpecificCorridor = selectedCorridor !== 'ALL' && Boolean(CORRIDOR_ROUTE_META[selectedCorridor]);
@@ -725,51 +797,38 @@ function MapCanvas({
       {/* 1. TOP CONTROLS DECK: POSITIONED ABOVE THE MAP (Zero Map Obstruction)     */}
       {/* ========================================================================= */}
       <div className="glass-panel p-2.5 rounded-xl border border-slate-800 bg-slate-900/95 shadow-xl space-y-2">
-        {/* Row 1: Corridor Switcher + Google Highway Toggle + Basemap */}
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          {/* Corridor Switcher Dropdown */}
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800">
-              <Compass className="w-4 h-4 text-cyan-400 shrink-0" />
-              <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider hidden sm:inline">Corridor:</span>
-              <select
-                value={selectedCorridor}
-                onChange={(e) => {
-                  setSelectedCorridor(e.target.value);
-                  setUseAlternateBypass(false);
-                }}
-                className="bg-defense-900 border border-slate-700 text-slate-100 font-mono text-xs rounded px-2 py-0.5 focus:outline-none focus:border-cyan-500 cursor-pointer"
-              >
-                {REGIONAL_CORRIDORS.map(c => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Right Toolbar: Google Directions View Toggle & Basemap */}
-          <div className="flex items-center gap-2">
-            {/* Google Highway Directions Toggle */}
+        {/* Row 1: Primary View Mode Switcher Header + Basemap Switcher */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-800">
+          {/* Mode Switcher Buttons */}
+          <div className="flex items-center gap-1.5 p-0.5 rounded-lg bg-slate-950 border border-slate-800">
             <button
               type="button"
-              onClick={() => setShowGoogleDirections(!showGoogleDirections)}
-              className={`px-3 py-1 rounded-lg border shadow-sm text-xs font-bold font-sans flex items-center gap-1.5 transition-all cursor-pointer ${
-                showGoogleDirections 
-                  ? 'bg-blue-600 border-blue-400 text-white shadow-blue-900/50' 
-                  : 'bg-slate-950 border-slate-700 text-slate-400 hover:text-slate-200'
+              onClick={() => setViewMode('connectivity')}
+              className={`px-3 py-1.5 rounded-md text-xs font-bold font-sans flex items-center gap-2 transition-all cursor-pointer ${
+                viewMode === 'connectivity'
+                  ? 'bg-cyan-600 text-white shadow-md shadow-cyan-900/40'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
               }`}
-              title="Toggle Google Maps Directions Highway Geometry"
             >
-              <Navigation className={`w-3.5 h-3.5 ${showGoogleDirections ? 'text-white' : 'text-blue-400'}`} />
-              <span>Google Highway Route</span>
-              <span className={`px-1.5 py-0.2 text-[9px] rounded font-mono ${showGoogleDirections ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-400'}`}>
-                {showGoogleDirections ? 'ON' : 'OFF'}
-              </span>
+              <Route className="w-3.5 h-3.5 text-cyan-300" />
+              <span>District Connectivity Explorer</span>
             </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('transport')}
+              className={`px-3 py-1.5 rounded-md text-xs font-bold font-sans flex items-center gap-2 transition-all cursor-pointer ${
+                viewMode === 'transport'
+                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-900/40'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+              }`}
+            >
+              <Truck className="w-3.5 h-3.5 text-emerald-300" />
+              <span>Strategic Fleet & Convoys</span>
+            </button>
+          </div>
 
-            {/* Basemap Selector */}
+          {/* Basemap Selector */}
+          <div className="flex items-center gap-2">
             <div className="p-0.5 rounded-lg flex items-center gap-0.5 bg-slate-950 border border-slate-800 text-[11px] font-mono">
               <button
                 type="button"
@@ -802,175 +861,237 @@ function MapCanvas({
           </div>
         </div>
 
-        {/* Row 2: Interactive Authority Layer Filters */}
-        <div className="flex flex-wrap items-center gap-3 px-2.5 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-[11px] font-mono text-slate-300">
-          <label className="flex items-center gap-1.5 cursor-pointer hover:text-cyan-300">
-            <input
-              type="checkbox"
-              checked={showLifelines}
-              onChange={(e) => setShowLifelines(e.target.checked)}
-              className="accent-cyan-500 rounded"
-            />
-            <span className="font-bold text-cyan-400">Road Grid</span>
-          </label>
-
-          <label className="flex items-center gap-1.5 cursor-pointer hover:text-blue-300">
-            <input
-              type="checkbox"
-              checked={showRainfall}
-              onChange={(e) => setShowRainfall(e.target.checked)}
-              className="accent-blue-500 rounded"
-            />
-            <span className="font-bold text-blue-400 flex items-center gap-1">
-              <span>🌧️</span> Rainfall Overlay
-            </span>
-          </label>
-
-          <label className="flex items-center gap-1.5 cursor-pointer hover:text-rose-300">
-            <input
-              type="checkbox"
-              checked={showLandslides}
-              onChange={(e) => setShowLandslides(e.target.checked)}
-              className="accent-rose-500 rounded"
-            />
-            <span className="font-bold text-rose-400">⚠️ Landslides</span>
-          </label>
-
-          <label className="flex items-center gap-1.5 cursor-pointer hover:text-amber-300">
-            <input
-              type="checkbox"
-              checked={showMachinery}
-              onChange={(e) => setShowMachinery(e.target.checked)}
-              className="accent-amber-500 rounded"
-            />
-            <span className="font-bold text-amber-400">🚜 BRO Machinery</span>
-          </label>
-
-          <label className="flex items-center gap-1.5 cursor-pointer hover:text-emerald-300">
-            <input
-              type="checkbox"
-              checked={showConvoys}
-              onChange={(e) => setShowConvoys(e.target.checked)}
-              className="accent-emerald-500 rounded"
-            />
-            <span className="font-bold text-emerald-400">🚚 Active Convoys</span>
-          </label>
-
-          <label className="flex items-center gap-1.5 cursor-pointer hover:text-slate-100">
-            <input
-              type="checkbox"
-              checked={showStations}
-              onChange={(e) => setShowStations(e.target.checked)}
-              className="accent-slate-400 rounded"
-            />
-            <span>📍 Stations</span>
-          </label>
-
-          {isSpecificCorridor && (
-            <label className="flex items-center gap-1.5 cursor-pointer text-amber-400 border-l border-slate-700 pl-2">
-              <input
-                type="checkbox"
-                checked={focusRoadOnly}
-                onChange={(e) => setFocusRoadOnly(e.target.checked)}
-                className="accent-amber-500 rounded"
-              />
-              <span className="font-bold flex items-center gap-1">
-                {focusRoadOnly ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                Highway Focus Only
-              </span>
-            </label>
-          )}
-        </div>
-
-        {/* Row 3: District Connectivity & Google Live Traffic Flow Explorer Bar */}
-        <div className="flex flex-wrap items-center gap-2.5 px-2.5 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-xs font-sans">
-          <div className="flex items-center gap-1.5 text-cyan-400 font-bold font-mono text-[11px] pr-2 border-r border-slate-700">
-            <Route className="w-4 h-4 text-cyan-400 shrink-0" />
-            <span>DISTRICT CONNECTIVITY</span>
-          </div>
-
-          {/* Origin District Dropdown */}
-          <div className="flex items-center gap-1">
-            <span className="text-[10px] font-mono text-slate-400">From:</span>
-            <select
-              value={selectedOriginDistrict}
-              onChange={(e) => setSelectedOriginDistrict(e.target.value)}
-              className="bg-defense-900 border border-slate-700 text-slate-100 font-mono text-[11px] rounded px-2 py-0.5 focus:outline-none focus:border-cyan-500 cursor-pointer max-w-[150px]"
-            >
-              <option value="ALL">All Districts (Select All)</option>
-              {stateDistricts.map(d => (
-                <option key={`orig-${d.name}`} value={d.name}>
-                  {d.name} ({d.state})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Destination District Dropdown */}
-          <div className="flex items-center gap-1">
-            <span className="text-[10px] font-mono text-slate-400">To:</span>
-            <select
-              value={selectedDestDistrict}
-              onChange={(e) => setSelectedDestDistrict(e.target.value)}
-              className="bg-defense-900 border border-slate-700 text-slate-100 font-mono text-[11px] rounded px-2 py-0.5 focus:outline-none focus:border-cyan-500 cursor-pointer max-w-[150px]"
-            >
-              <option value="ALL">All Connections</option>
-              {stateDistricts.map(d => (
-                <option key={`dest-${d.name}`} value={d.name}>
-                  {d.name} ({d.state})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Select All Routes Button */}
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedOriginDistrict('ALL');
-              setSelectedDestDistrict('ALL');
-              setShowDistrictConnectivity(true);
-            }}
-            className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
-              selectedOriginDistrict === 'ALL' && selectedDestDistrict === 'ALL' && showDistrictConnectivity
-                ? 'bg-cyan-600 text-white shadow-md'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-            }`}
-          >
-            Select All ({activeDistrictRoutes.length} Routes)
-          </button>
-
-          {/* Live Traffic Color Legend / Toggle */}
-          <button
-            type="button"
-            onClick={() => setShowTrafficLayer(!showTrafficLayer)}
-            className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer border ${
-              showTrafficLayer
-                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm'
-                : 'bg-slate-800/80 text-slate-400 border-slate-700'
-            }`}
-            title="Toggle Google Maps-style live traffic speed colors (Green = Smooth, Yellow = Moderate, Orange = Congested, Red = Blocked)"
-          >
-            <div className="flex items-center gap-0.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400" title="Smooth (>45 km/h)"></span>
-              <span className="w-2 h-2 rounded-full bg-amber-400" title="Moderate (30-45 km/h)"></span>
-              <span className="w-2 h-2 rounded-full bg-orange-500" title="Congested (15-30 km/h)"></span>
-              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" title="Blocked (<15 km/h)"></span>
+        {/* ========================================================================= */}
+        {/* MODE A CONTROLS: DISTRICT CONNECTIVITY EXPLORER                          */}
+        {/* ========================================================================= */}
+        {viewMode === 'connectivity' && (
+          <div className="flex flex-wrap items-center gap-2.5 px-2.5 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-xs font-sans animate-fadeIn">
+            <div className="flex items-center gap-1.5 text-cyan-400 font-bold font-mono text-[11px] pr-2 border-r border-slate-700">
+              <Route className="w-4 h-4 text-cyan-400 shrink-0" />
+              <span>DISTRICT CONNECTIVITY</span>
             </div>
-            <span>Traffic Colors: {showTrafficLayer ? 'ON' : 'OFF'}</span>
-          </button>
 
-          {/* Connectivity Layer Visibility Toggle */}
-          <label className="flex items-center gap-1.5 cursor-pointer text-slate-300 text-[11px] font-mono ml-auto">
-            <input
-              type="checkbox"
-              checked={showDistrictConnectivity}
-              onChange={(e) => setShowDistrictConnectivity(e.target.checked)}
-              className="accent-cyan-500 rounded"
-            />
-            <span className="font-bold text-cyan-400">Routes Visible</span>
-          </label>
-        </div>
+            {/* Origin District Dropdown */}
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] font-mono text-slate-400">From:</span>
+              <select
+                value={selectedOriginDistrict}
+                onChange={(e) => setSelectedOriginDistrict(e.target.value)}
+                className="bg-defense-900 border border-slate-700 text-slate-100 font-mono text-[11px] rounded px-2 py-1 focus:outline-none focus:border-cyan-500 cursor-pointer max-w-[170px]"
+              >
+                <option value="ALL">All Districts ({selectedAuthorityState} & Inter-State)</option>
+                {stateDistricts.map(d => (
+                  <option key={`orig-${d.name}`} value={d.name}>
+                    {d.name} ({d.state})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Destination District Dropdown */}
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] font-mono text-slate-400">To:</span>
+              <select
+                value={selectedDestDistrict}
+                onChange={(e) => setSelectedDestDistrict(e.target.value)}
+                className="bg-defense-900 border border-slate-700 text-slate-100 font-mono text-[11px] rounded px-2 py-1 focus:outline-none focus:border-cyan-500 cursor-pointer max-w-[170px]"
+              >
+                <option value="ALL">All Connections</option>
+                {stateDistricts.map(d => (
+                  <option key={`dest-${d.name}`} value={d.name}>
+                    {d.name} ({d.state})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Select All Routes Button */}
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedOriginDistrict('ALL');
+                setSelectedDestDistrict('ALL');
+              }}
+              className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                selectedOriginDistrict === 'ALL' && selectedDestDistrict === 'ALL'
+                  ? 'bg-cyan-600 text-white shadow-md'
+                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              }`}
+            >
+              Select All ({stateRoutes.length} Routes)
+            </button>
+
+            {/* Live Traffic Color Legend / Toggle */}
+            <button
+              type="button"
+              onClick={() => setShowTrafficLayer(!showTrafficLayer)}
+              className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer border ${
+                showTrafficLayer
+                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm'
+                  : 'bg-slate-800/80 text-slate-400 border-slate-700'
+              }`}
+              title="Toggle Google Maps-style live traffic speed colors (Green = Smooth, Yellow = Moderate, Orange = Congested, Red = Blocked)"
+            >
+              <div className="flex items-center gap-0.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400" title="Smooth (>45 km/h)"></span>
+                <span className="w-2 h-2 rounded-full bg-amber-400" title="Moderate (30-45 km/h)"></span>
+                <span className="w-2 h-2 rounded-full bg-orange-500" title="Congested (15-30 km/h)"></span>
+                <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" title="Blocked (<15 km/h)"></span>
+              </div>
+              <span>Traffic Colors: {showTrafficLayer ? 'ON' : 'OFF'}</span>
+            </button>
+
+            {/* Routes count badge */}
+            <div className="ml-auto px-2 py-0.5 rounded text-[10px] font-mono bg-cyan-950/60 border border-cyan-800/50 text-cyan-300 font-bold">
+              {activeDistrictRoutes.length} / {stateRoutes.length} Routes Visible
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* MODE B CONTROLS: STRATEGIC TRANSPORT & ACTIVE CONVOYS                    */}
+        {/* ========================================================================= */}
+        {viewMode === 'transport' && (
+          <div className="space-y-2 animate-fadeIn">
+            {/* Row 1: Authority Corridor Switcher + Active vs Inactive Route Activity + Google Route */}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Corridor Switcher Dropdown (Dynamically Filtered by State Authority) */}
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800">
+                  <Compass className="w-4 h-4 text-cyan-400 shrink-0" />
+                  <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider hidden sm:inline">Corridor:</span>
+                  <select
+                    value={selectedCorridor}
+                    onChange={(e) => {
+                      setSelectedCorridor(e.target.value);
+                      setUseAlternateBypass(false);
+                    }}
+                    className="bg-defense-900 border border-slate-700 text-slate-100 font-mono text-xs rounded px-2 py-0.5 focus:outline-none focus:border-cyan-500 cursor-pointer max-w-[260px]"
+                  >
+                    {availableCorridors.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Active vs Inactive Convoy Route Filter Dropdown */}
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800">
+                  <Truck className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider hidden sm:inline">Routes:</span>
+                  <select
+                    value={convoyRouteFilter}
+                    onChange={(e) => setConvoyRouteFilter(e.target.value)}
+                    className="bg-defense-900 border border-slate-700 text-slate-100 font-mono text-xs rounded px-2 py-0.5 focus:outline-none focus:border-emerald-500 cursor-pointer"
+                  >
+                    <option value="ALL_ROUTES">All Corridors & Arterials</option>
+                    <option value="ACTIVE_WITH_CONVOYS">🟢 Active Routes (With Moving Convoys)</option>
+                    <option value="INACTIVE_NO_CONVOYS">⚪ Inactive Routes (No Current Convoys)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Google Highway Directions Toggle */}
+              <button
+                type="button"
+                onClick={() => setShowGoogleDirections(!showGoogleDirections)}
+                className={`px-3 py-1 rounded-lg border shadow-sm text-xs font-bold font-sans flex items-center gap-1.5 transition-all cursor-pointer ${
+                  showGoogleDirections 
+                    ? 'bg-blue-600 border-blue-400 text-white shadow-blue-900/50' 
+                    : 'bg-slate-950 border-slate-700 text-slate-400 hover:text-slate-200'
+                }`}
+                title="Toggle Google Maps Directions Highway Geometry"
+              >
+                <Navigation className={`w-3.5 h-3.5 ${showGoogleDirections ? 'text-white' : 'text-blue-400'}`} />
+                <span>Google Highway Route</span>
+                <span className={`px-1.5 py-0.2 text-[9px] rounded font-mono ${showGoogleDirections ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-400'}`}>
+                  {showGoogleDirections ? 'ON' : 'OFF'}
+                </span>
+              </button>
+            </div>
+
+            {/* Row 2: Fleet, Weather & Hazard Layers */}
+            <div className="flex flex-wrap items-center gap-3 px-2.5 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-[11px] font-mono text-slate-300">
+              <label className="flex items-center gap-1.5 cursor-pointer hover:text-emerald-300">
+                <input
+                  type="checkbox"
+                  checked={showConvoys}
+                  onChange={(e) => setShowConvoys(e.target.checked)}
+                  className="accent-emerald-500 rounded"
+                />
+                <span className="font-bold text-emerald-400">🚚 Active Convoys ({visibleConvoys.length})</span>
+              </label>
+
+              <label className="flex items-center gap-1.5 cursor-pointer hover:text-cyan-300">
+                <input
+                  type="checkbox"
+                  checked={showLifelines}
+                  onChange={(e) => setShowLifelines(e.target.checked)}
+                  className="accent-cyan-500 rounded"
+                />
+                <span className="font-bold text-cyan-400">Road Grid</span>
+              </label>
+
+              <label className="flex items-center gap-1.5 cursor-pointer hover:text-blue-300">
+                <input
+                  type="checkbox"
+                  checked={showRainfall}
+                  onChange={(e) => setShowRainfall(e.target.checked)}
+                  className="accent-blue-500 rounded"
+                />
+                <span className="font-bold text-blue-400 flex items-center gap-1">
+                  <span>🌧️</span> Rainfall Overlay
+                </span>
+              </label>
+
+              <label className="flex items-center gap-1.5 cursor-pointer hover:text-rose-300">
+                <input
+                  type="checkbox"
+                  checked={showLandslides}
+                  onChange={(e) => setShowLandslides(e.target.checked)}
+                  className="accent-rose-500 rounded"
+                />
+                <span className="font-bold text-rose-400">⚠️ Landslides</span>
+              </label>
+
+              <label className="flex items-center gap-1.5 cursor-pointer hover:text-amber-300">
+                <input
+                  type="checkbox"
+                  checked={showMachinery}
+                  onChange={(e) => setShowMachinery(e.target.checked)}
+                  className="accent-amber-500 rounded"
+                />
+                <span className="font-bold text-amber-400">🚜 BRO Machinery</span>
+              </label>
+
+              <label className="flex items-center gap-1.5 cursor-pointer hover:text-slate-100">
+                <input
+                  type="checkbox"
+                  checked={showStations}
+                  onChange={(e) => setShowStations(e.target.checked)}
+                  className="accent-slate-400 rounded"
+                />
+                <span>📍 Stations</span>
+              </label>
+
+              {isSpecificCorridor && (
+                <label className="flex items-center gap-1.5 cursor-pointer text-amber-400 border-l border-slate-700 pl-2">
+                  <input
+                    type="checkbox"
+                    checked={focusRoadOnly}
+                    onChange={(e) => setFocusRoadOnly(e.target.checked)}
+                    className="accent-amber-500 rounded"
+                  />
+                  <span className="font-bold flex items-center gap-1">
+                    {focusRoadOnly ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                    Highway Focus Only
+                  </span>
+                </label>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ========================================================================= */}
@@ -985,7 +1106,7 @@ function MapCanvas({
         style={{ width: '100%', height: '100%' }}
         scrollWheelZoom={true}
       >
-        <MapController center={currentCorridorConfig.center} zoom={currentCorridorConfig.zoom} />
+        <MapController center={mapTargetCenter} zoom={mapTargetZoom} />
 
         {/* 100% Free Base Tile Layer */}
         <TileLayer
@@ -1005,7 +1126,161 @@ function MapCanvas({
           />
         )}
 
-        {/* 3. Color-Graded Rainfall Catchment Bubbles & Stations */}
+        {/* ========================================================================= */}
+        {/* MODE A: DISTRICT CONNECTIVITY EXPLORER LAYERS                            */}
+        {/* ========================================================================= */}
+        {viewMode === 'connectivity' && (
+          <>
+            {/* 1. Inter-District Connectivity Routes (Google Traffic Color Coded) */}
+            {activeDistrictRoutes.map((route) => {
+              const isSelected = selectedRouteDetail && selectedRouteDetail.id === route.id;
+              const baseColor = showTrafficLayer ? route.traffic_color : '#06b6d4';
+
+              return (
+                <React.Fragment key={`dist-route-${route.id}`}>
+                  {/* Outer Contrast Casing */}
+                  <Polyline
+                    positions={route.coordinates}
+                    pathOptions={{
+                      color: isSelected ? '#ffffff' : '#090d16',
+                      weight: isSelected ? 10 : 7.5,
+                      opacity: isSelected ? 0.95 : 0.8,
+                      lineCap: 'round',
+                      lineJoin: 'round'
+                    }}
+                    eventHandlers={{
+                      click: () => {
+                        setSelectedRouteDetail(route);
+                        if (onSelectDistrictRoute) onSelectDistrictRoute(route);
+                      }
+                    }}
+                  />
+                  {/* Inner Live Traffic Flow Polyline */}
+                  <Polyline
+                    positions={route.coordinates}
+                    pathOptions={{
+                      color: isSelected ? '#38bdf8' : baseColor,
+                      weight: isSelected ? 6.5 : 4.5,
+                      opacity: 1.0,
+                      lineCap: 'round',
+                      lineJoin: 'round',
+                      dashArray: route.traffic_status === 'BLOCKED' ? '6, 6' : null
+                    }}
+                    eventHandlers={{
+                      click: () => {
+                        setSelectedRouteDetail(route);
+                        if (onSelectDistrictRoute) onSelectDistrictRoute(route);
+                      }
+                    }}
+                  >
+                    <Popup>
+                      <div className="p-1.5 text-slate-900 font-sans text-xs min-w-[240px]">
+                        <div className="flex items-center justify-between pb-1 border-b border-slate-200">
+                          <span className="font-bold text-slate-900">{route.highway}</span>
+                          <span 
+                            className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold text-white uppercase"
+                            style={{ background: route.traffic_color }}
+                          >
+                            {route.traffic_status}
+                          </span>
+                        </div>
+                        <div className="mt-1 font-bold text-slate-800 text-xs">
+                          {route.name}
+                        </div>
+                        <div className="text-[11px] text-slate-600 mt-1 font-mono space-y-0.5">
+                          <div>Connects: <b>{route.fromDistrict} ({route.fromState}) ↔ {route.toDistrict} ({route.toState})</b></div>
+                          <div>Distance: <b>{route.distance_km} km</b> • Est: <b>{route.travel_time_hrs} hrs</b></div>
+                          <div>Traffic Speed: <b style={{ color: route.traffic_color }}>{route.traffic_speed_kmh} km/h</b> (Normal: {route.normal_speed_kmh} km/h)</div>
+                          {route.delay_mins > 0 && (
+                            <div className="text-amber-700 font-bold">Delay: +{route.delay_mins} mins</div>
+                          )}
+                        </div>
+                        <div className="mt-1.5 p-1 rounded bg-slate-100 border border-slate-300 text-[10px] text-slate-700">
+                          <b>Condition:</b> {route.condition}
+                        </div>
+                        {route.active_chokepoints && (
+                          <div className="mt-1 text-[10px] text-rose-700">
+                            <b>Chokepoint:</b> {route.active_chokepoints}
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedRouteDetail(route);
+                            if (onSelectDistrictRoute) onSelectDistrictRoute(route);
+                          }}
+                          className="mt-2 w-full py-1 text-[10px] font-bold text-white rounded bg-cyan-700 hover:bg-cyan-800 cursor-pointer"
+                        >
+                          View Full Route Diagnostics ➔
+                        </button>
+                      </div>
+                    </Popup>
+                  </Polyline>
+                </React.Fragment>
+              );
+            })}
+
+            {/* 2. District Headquarters Centroid Waypoints */}
+            {stateDistricts.map((d) => (
+              <Marker
+                key={`dist-marker-${d.name}`}
+                position={d.coords}
+                icon={getDistrictMarkerIcon(
+                  d.name,
+                  d.state,
+                  selectedOriginDistrict === d.name || selectedDestDistrict === d.name,
+                  d.isHub ? 'SMOOTH' : 'MODERATE'
+                )}
+                eventHandlers={{
+                  click: () => {
+                    if (selectedOriginDistrict === 'ALL' || selectedOriginDistrict === d.name) {
+                      setSelectedOriginDistrict(d.name);
+                    } else {
+                      setSelectedDestDistrict(d.name);
+                    }
+                  }
+                }}
+              >
+                <Popup>
+                  <div className="p-1.5 text-slate-900 font-sans text-xs min-w-[190px]">
+                    <div className="font-bold text-cyan-800 flex items-center justify-between pb-1 border-b border-slate-200">
+                      <span>📍 {d.name} HQ</span>
+                      <span className="font-mono text-[9px] bg-slate-100 px-1 py-0.2 rounded text-slate-600">
+                        {d.state}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-700 mt-1 font-mono">
+                      Depot: <b>{d.hq}</b>
+                    </div>
+                    <div className="mt-2 flex gap-1.5 pt-1 border-t border-slate-200">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedOriginDistrict(d.name)}
+                        className="flex-1 py-1 px-1.5 rounded bg-cyan-700 hover:bg-cyan-800 text-white text-[10px] font-bold cursor-pointer"
+                      >
+                        Set Origin
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedDestDistrict(d.name)}
+                        className="flex-1 py-1 px-1.5 rounded bg-blue-700 hover:bg-blue-800 text-white text-[10px] font-bold cursor-pointer"
+                      >
+                        Set Dest
+                      </button>
+                    </div>
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
+          </>
+        )}
+
+        {/* ========================================================================= */}
+        {/* MODE B: STRATEGIC TRANSPORT & ACTIVE CONVOY LAYERS                       */}
+        {/* ========================================================================= */}
+        {viewMode === 'transport' && (
+          <>
+            {/* 3. Color-Graded Rainfall Catchment Bubbles & Stations */}
         {showRainfall && !focusRoadOnly && filteredWeather.map((w, idx) => (
           <React.Fragment key={`weather-${idx}`}>
             {/* Catchment Area Precipitation Circle */}
@@ -1147,150 +1422,6 @@ function MapCanvas({
             </Polyline>
           );
         })}
-
-        {/* ========================================================================= */}
-        {/* 4b. INTER-DISTRICT CONNECTIVITY ROUTES (Google Traffic Color Coded)       */}
-        {/* ========================================================================= */}
-        {showDistrictConnectivity && activeDistrictRoutes.map((route) => {
-          const isSelected = selectedRouteDetail && selectedRouteDetail.id === route.id;
-          const baseColor = showTrafficLayer ? route.traffic_color : '#06b6d4';
-
-          return (
-            <React.Fragment key={`dist-route-${route.id}`}>
-              {/* Outer Contrast Casing */}
-              <Polyline
-                positions={route.coordinates}
-                pathOptions={{
-                  color: isSelected ? '#ffffff' : '#090d16',
-                  weight: isSelected ? 10 : 7.5,
-                  opacity: isSelected ? 0.95 : 0.8,
-                  lineCap: 'round',
-                  lineJoin: 'round'
-                }}
-                eventHandlers={{
-                  click: () => {
-                    setSelectedRouteDetail(route);
-                    if (onSelectDistrictRoute) onSelectDistrictRoute(route);
-                  }
-                }}
-              />
-              {/* Inner Live Traffic Flow Polyline */}
-              <Polyline
-                positions={route.coordinates}
-                pathOptions={{
-                  color: isSelected ? '#38bdf8' : baseColor,
-                  weight: isSelected ? 6.5 : 4.5,
-                  opacity: 1.0,
-                  lineCap: 'round',
-                  lineJoin: 'round',
-                  dashArray: route.traffic_status === 'BLOCKED' ? '6, 6' : null
-                }}
-                eventHandlers={{
-                  click: () => {
-                    setSelectedRouteDetail(route);
-                    if (onSelectDistrictRoute) onSelectDistrictRoute(route);
-                  }
-                }}
-              >
-                <Popup>
-                  <div className="p-1.5 text-slate-900 font-sans text-xs min-w-[240px]">
-                    <div className="flex items-center justify-between pb-1 border-b border-slate-200">
-                      <span className="font-bold text-slate-900">{route.highway}</span>
-                      <span 
-                        className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold text-white uppercase"
-                        style={{ background: route.traffic_color }}
-                      >
-                        {route.traffic_status}
-                      </span>
-                    </div>
-                    <div className="mt-1 font-bold text-slate-800 text-xs">
-                      {route.name}
-                    </div>
-                    <div className="text-[11px] text-slate-600 mt-1 font-mono space-y-0.5">
-                      <div>Connects: <b>{route.fromDistrict} ({route.fromState}) ↔ {route.toDistrict} ({route.toState})</b></div>
-                      <div>Distance: <b>{route.distance_km} km</b> • Est: <b>{route.travel_time_hrs} hrs</b></div>
-                      <div>Traffic Speed: <b style={{ color: route.traffic_color }}>{route.traffic_speed_kmh} km/h</b> (Normal: {route.normal_speed_kmh} km/h)</div>
-                      {route.delay_mins > 0 && (
-                        <div className="text-amber-700 font-bold">Delay: +{route.delay_mins} mins</div>
-                      )}
-                    </div>
-                    <div className="mt-1.5 p-1 rounded bg-slate-100 border border-slate-300 text-[10px] text-slate-700">
-                      <b>Condition:</b> {route.condition}
-                    </div>
-                    {route.active_chokepoints && (
-                      <div className="mt-1 text-[10px] text-rose-700">
-                        <b>Chokepoint:</b> {route.active_chokepoints}
-                      </div>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedRouteDetail(route);
-                        if (onSelectDistrictRoute) onSelectDistrictRoute(route);
-                      }}
-                      className="mt-2 w-full py-1 text-[10px] font-bold text-white rounded bg-cyan-700 hover:bg-cyan-800 cursor-pointer"
-                    >
-                      View Full Route Diagnostics ➔
-                    </button>
-                  </div>
-                </Popup>
-              </Polyline>
-            </React.Fragment>
-          );
-        })}
-
-        {/* 4c. DISTRICT HEADQUARTERS PINS & INTERACTION */}
-        {showDistrictConnectivity && stateDistricts.map((d) => (
-          <Marker
-            key={`dist-marker-${d.name}`}
-            position={d.coords}
-            icon={getDistrictMarkerIcon(
-              d.name,
-              d.state,
-              selectedOriginDistrict === d.name || selectedDestDistrict === d.name,
-              d.isHub ? 'SMOOTH' : 'MODERATE'
-            )}
-            eventHandlers={{
-              click: () => {
-                if (selectedOriginDistrict === 'ALL' || selectedOriginDistrict === d.name) {
-                  setSelectedOriginDistrict(d.name);
-                } else {
-                  setSelectedDestDistrict(d.name);
-                }
-              }
-            }}
-          >
-            <Popup>
-              <div className="p-1.5 text-slate-900 font-sans text-xs min-w-[190px]">
-                <div className="font-bold text-cyan-800 flex items-center justify-between pb-1 border-b border-slate-200">
-                  <span>📍 {d.name} HQ</span>
-                  <span className="font-mono text-[9px] bg-slate-100 px-1 py-0.2 rounded text-slate-600">
-                    {d.state}
-                  </span>
-                </div>
-                <div className="text-[11px] text-slate-700 mt-1 font-mono">
-                  Depot: <b>{d.hq}</b>
-                </div>
-                <div className="mt-2 flex gap-1.5 pt-1 border-t border-slate-200">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedOriginDistrict(d.name)}
-                    className="flex-1 py-1 px-1.5 rounded bg-cyan-700 hover:bg-cyan-800 text-white text-[10px] font-bold cursor-pointer"
-                  >
-                    Set Origin
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedDestDistrict(d.name)}
-                    className="flex-1 py-1 px-1.5 rounded bg-blue-700 hover:bg-blue-800 text-white text-[10px] font-bold cursor-pointer"
-                  >
-                    Set Dest
-                  </button>
-                </div>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
 
         {/* ========================================================================= */}
         {/* 5. GOOGLE MAPS DIRECTIONS HIGHWAY PATH RENDERING (Turn-by-Turn Asphalt)    */}
@@ -1475,7 +1606,7 @@ function MapCanvas({
         ))}
 
         {/* 8. Regional Monitored Fleet Convoys */}
-        {showConvoys && !focusRoadOnly && stateFilteredConvoys
+        {showConvoys && !focusRoadOnly && visibleConvoys
           .filter(c => !(activeVehicle && (c.id === activeVehicle.id || c.id === activeVehicle.vehicle_id)))
           .map((convoy) => (
           <Marker
@@ -1627,12 +1758,14 @@ function MapCanvas({
             </Popup>
           </Marker>
         ))}
+          </>
+        )}
       </MapContainer>
 
       {/* ========================================================================= */}
       {/* 11. FLOATING GOOGLE MAPS DIRECTIONS NAVIGATION HUD CARD                    */}
       {/* ========================================================================= */}
-      {showGoogleDirections && isSpecificCorridor && activeDrivingRouteData && (
+      {viewMode === 'transport' && showGoogleDirections && isSpecificCorridor && activeDrivingRouteData && (
         <div className="absolute bottom-4 left-4 z-[1000] max-w-sm w-[330px] bg-slate-900/95 border border-slate-700/80 backdrop-blur-md rounded-2xl p-4 shadow-2xl text-slate-100 font-sans pointer-events-auto transition-all animate-fadeIn">
           {/* Header */}
           <div className="flex items-center justify-between pb-2 border-b border-slate-800">
@@ -1707,7 +1840,7 @@ function MapCanvas({
       )}
 
       {/* Floating Directions Card for Custom Calculated Mission Route (Dispatch View) */}
-      {showGoogleDirections && hasCustomActiveRoute && (
+      {viewMode === 'transport' && showGoogleDirections && hasCustomActiveRoute && (
         <div className="absolute bottom-4 left-4 z-[1000] max-w-sm w-[330px] bg-slate-900/95 border border-slate-700/80 backdrop-blur-md rounded-2xl p-4 shadow-2xl text-slate-100 font-sans pointer-events-auto transition-all animate-fadeIn">
           <div className="flex items-center justify-between pb-2 border-b border-slate-800">
             <div className="flex items-center gap-2">
@@ -1747,7 +1880,7 @@ function MapCanvas({
       )}
 
       {/* Floating District Route Inspection Card */}
-      {selectedRouteDetail && (
+      {viewMode === 'connectivity' && selectedRouteDetail && (
         <div className="absolute bottom-4 right-4 z-[1000] max-w-sm w-[350px] bg-slate-900/95 border border-slate-700/90 backdrop-blur-md rounded-2xl p-4 shadow-2xl text-slate-100 font-sans pointer-events-auto transition-all animate-fadeIn">
           <div className="flex items-center justify-between pb-2 border-b border-slate-800">
             <div className="flex items-center gap-2">
