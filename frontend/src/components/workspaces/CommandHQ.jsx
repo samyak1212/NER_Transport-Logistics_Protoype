@@ -32,7 +32,8 @@ import {
   Waves,
   Snowflake,
   AlertOctagon,
-  Clock
+  Clock,
+  MapPin
 } from 'lucide-react';
 import MapCanvas from '../MapCanvas';
 import GeotechnicalDrawer from '../GeotechnicalDrawer';
@@ -416,6 +417,7 @@ export default function CommandHQ({
                     <th className="p-2.5">Main Hospital Depot</th>
                     <th className="p-2.5 text-right">Medicine Stock</th>
                     <th className="p-2.5 text-right">Food Stock</th>
+                    <th className="p-2.5 text-center">GIS Map</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60 font-mono text-[11px]">
@@ -448,6 +450,14 @@ export default function CommandHQ({
                         <span className={`font-bold ${d.food_stock_days <= 8 ? 'text-amber-400' : 'text-emerald-400'}`}>
                           {d.food_stock_days} days
                         </span>
+                      </td>
+                      <td className="p-2.5 text-center">
+                        <button
+                          onClick={() => setActiveSubTab('gis')}
+                          className="px-2 py-1 rounded bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 text-[10px] font-bold border border-cyan-500/40 transition flex items-center gap-1 mx-auto"
+                        >
+                          <MapPin className="w-3 h-3" /> Inspect
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -494,9 +504,17 @@ export default function CommandHQ({
                       <span className="text-slate-500">Primary Artery:</span>{' '}
                       <span className="font-mono text-slate-200">{gap.single_lifeline_artery}</span>
                     </div>
-                    <div className="pt-1 border-t border-slate-800 text-[11px]">
-                      <span className="text-slate-500">Alternative Bypass:</span>{' '}
-                      <span className="text-emerald-400 font-medium">{gap.alternative_bypass}</span>
+                    <div className="pt-1 border-t border-slate-800 text-[11px] flex justify-between items-center">
+                      <div>
+                        <span className="text-slate-500">Alternative Bypass:</span>{' '}
+                        <span className="text-emerald-400 font-medium">{gap.alternative_bypass}</span>
+                      </div>
+                      <button
+                        onClick={() => setActiveSubTab('gis')}
+                        className="px-2 py-0.5 rounded bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 text-[10px] font-bold border border-cyan-500/30 transition flex items-center gap-1"
+                      >
+                        <MapPin className="w-3 h-3" /> Inspect on GIS
+                      </button>
                     </div>
                   </div>
                 </div>

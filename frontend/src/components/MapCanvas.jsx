@@ -121,6 +121,7 @@ const createStationIcon = (name, type, elevation) => {
           white-space: nowrap;
           border: 1.5px solid ${borderColor};
           box-shadow: 0 4px 12px rgba(0,0,0,0.85);
+          text-shadow: 0 1px 2px rgba(0,0,0,0.95), 0 0 3px rgba(0,0,0,0.9);
           display: flex;
           align-items: center;
           gap: 4px;

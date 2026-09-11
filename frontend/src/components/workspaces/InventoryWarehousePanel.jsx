@@ -105,11 +105,24 @@ export default function InventoryWarehousePanel() {
     setIsSubmittingOrder(false);
   };
 
-  const handleBookBackhaul = (bkhId) => {
+  const handleBookBackhaul = (bkhId, bkhCargo) => {
+    const truckAssignments = {
+      BKH_01_TAWANG_TEZPUR: 'AS-01-EC-4219 (10-Wheeler Reefer)',
+      BKH_02_ANJAW_TINSUKIA: 'AR-11-B-8092 (6-Wheeler 4x4 Mountain Truck)',
+      BKH_03_BOMDILA_GUWAHATI: 'AS-12-BC-6104 (Multi-Axle 12W)'
+    };
+    const assigned = truckAssignments[bkhId] || 'AS-01-M-9021 (Heavy Carrier)';
     setBookedBackhauls(prev => ({
       ...prev,
-      [bkhId]: 'DISPATCH_COMMITTED'
+      [bkhId]: assigned
     }));
+    setLatestBookingToast({
+      bkhId,
+      cargo: bkhCargo,
+      truck: assigned,
+      dispatchId: `DISP-BKH-${Math.floor(1000 + Math.random() * 9000)}`
+    });
+    setTimeout(() => setLatestBookingToast(null), 8000);
   };
 
   const currentDistrictStock = bufferStocks[selectedDistrict] || bufferStocks['Tawang'];
@@ -637,6 +650,23 @@ export default function InventoryWarehousePanel() {
               </span>
             </div>
 
+            {/* Backhaul Assignment Toast */}
+            {latestBookingToast && (
+              <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/50 flex items-center justify-between text-xs text-emerald-200 animate-fadeIn">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <div>
+                    <span className="font-bold">Carrier Assigned:</span>{' '}
+                    <span className="font-mono text-white bg-slate-900 px-1.5 py-0.5 rounded border border-slate-700">{latestBookingToast.truck}</span>{' '}
+                    allocated for <span className="font-semibold text-white">{latestBookingToast.cargo}</span>.
+                  </div>
+                </div>
+                <span className="font-mono text-[10px] bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-500/40 text-emerald-300">
+                  {latestBookingToast.dispatchId}
+                </span>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {marketData.backhaul_opportunities.map((bkh) => {
                 const isBooked = bookedBackhauls[bkh.id];
@@ -661,10 +691,15 @@ export default function InventoryWarehousePanel() {
                       <div className="text-[11px] font-sans text-emerald-400 font-semibold">
                         Est. Cost Savings / Income: ₹{bkh.potential_savings_inr?.toLocaleString()}
                       </div>
+                      {isBooked && (
+                        <div className="text-[10px] font-mono text-cyan-300 pt-1 border-t border-slate-800">
+                          Assigned: {isBooked}
+                        </div>
+                      )}
                     </div>
 
                     <button
-                      onClick={() => handleBookBackhaul(bkh.id)}
+                      onClick={() => handleBookBackhaul(bkh.id, bkh.cargo_description)}
                       disabled={isBooked}
                       className={`w-full py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition ${
                         isBooked
