@@ -530,14 +530,30 @@ const STATE_VIEW_CENTERS = {
   'Tripura': { center: [23.8, 91.5], zoom: 9.0 },
 };
 
-// Helper to center/fly map when corridor or authority state selection changes
-function MapController({ center, zoom }) {
+// Geodesic distance formula for accurate distance estimation
+function getApproxDistanceKm(lat1, lon1, lat2, lon2) {
+  if (lat1 === undefined || lon1 === undefined || lat2 === undefined || lon2 === undefined) return 0;
+  const R = 6371; // km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return Math.round(R * c);
+}
+
+// Helper to center/fly map when corridor, district selection or authority state changes
+function MapController({ center, zoom, bounds }) {
   const map = useMap();
   useEffect(() => {
-    if (center && zoom) {
-      map.flyTo(center, zoom, { duration: 1.2 });
+    if (bounds && bounds.isValid && bounds.isValid()) {
+      map.flyToBounds(bounds, { padding: [55, 55], maxZoom: 11, duration: 1.1 });
+    } else if (center && zoom) {
+      map.flyTo(center, zoom, { duration: 1.1 });
     }
-  }, [center, zoom, map]);
+  }, [center, zoom, bounds, map]);
   return null;
 }
 
@@ -633,20 +649,7 @@ function MapCanvas({
     return availableCorridors.find(c => c.id === selectedCorridor) || availableCorridors[0] || REGIONAL_CORRIDORS[0];
   }, [availableCorridors, selectedCorridor]);
 
-  // Target Map Center & Zoom: In connectivity mode focuses on state centroid; in transport mode focuses on corridor
-  const mapTargetCenter = useMemo(() => {
-    if (viewMode === 'connectivity' && selectedAuthorityState && STATE_VIEW_CENTERS[selectedAuthorityState]) {
-      return STATE_VIEW_CENTERS[selectedAuthorityState].center;
-    }
-    return currentCorridorConfig.center;
-  }, [viewMode, selectedAuthorityState, currentCorridorConfig]);
-
-  const mapTargetZoom = useMemo(() => {
-    if (viewMode === 'connectivity' && selectedAuthorityState && STATE_VIEW_CENTERS[selectedAuthorityState]) {
-      return STATE_VIEW_CENTERS[selectedAuthorityState].zoom;
-    }
-    return currentCorridorConfig.zoom;
-  }, [viewMode, selectedAuthorityState, currentCorridorConfig]);
+  // Target camera bounds, center & zoom are computed dynamically below after district route calculations
 
   // Filter Convoys by Selected Corridor
   const allConvoys = ACTIVE_CONVOYS;
@@ -751,9 +754,25 @@ function MapCanvas({
     return getDistrictsForState(selectedAuthorityState);
   }, [selectedAuthorityState]);
 
+  // All 30 strategic district centroids across the North Eastern Region
+  const allNerDistricts = useMemo(() => {
+    return Object.values(DISTRICT_CENTROIDS);
+  }, []);
+
+  // Other NER districts outside primary state authority jurisdiction
+  const otherNerDistricts = useMemo(() => {
+    const stateNames = new Set(stateDistricts.map(d => d.name));
+    return allNerDistricts.filter(d => !stateNames.has(d.name));
+  }, [allNerDistricts, stateDistricts]);
+
   // Active District Routes to render on map based on Origin/Destination filter
   const activeDistrictRoutes = useMemo(() => {
-    return stateRoutes.filter(r => {
+    // If specific origin AND destination are selected, search ALL routes across NER!
+    const baseRoutes = (selectedOriginDistrict !== 'ALL' && selectedDestDistrict !== 'ALL')
+      ? DISTRICT_CONNECTIVITY_ROUTES
+      : stateRoutes;
+
+    return baseRoutes.filter(r => {
       if (selectedOriginDistrict !== 'ALL' && selectedDestDistrict !== 'ALL') {
         return (
           (r.fromDistrict === selectedOriginDistrict && r.toDistrict === selectedDestDistrict) ||
@@ -769,6 +788,129 @@ function MapCanvas({
       return true;
     });
   }, [stateRoutes, selectedOriginDistrict, selectedDestDistrict]);
+
+  // Check if user selected two districts for which no telemetry data is added yet in this prototype
+  const isRouteDataMissing = useMemo(() => {
+    if (viewMode !== 'connectivity') return false;
+    if (selectedOriginDistrict === 'ALL' || selectedDestDistrict === 'ALL') return false;
+    if (selectedOriginDistrict === selectedDestDistrict) return false;
+    return activeDistrictRoutes.length === 0;
+  }, [viewMode, selectedOriginDistrict, selectedDestDistrict, activeDistrictRoutes]);
+
+  const originCentroid = DISTRICT_CENTROIDS[selectedOriginDistrict];
+  const destCentroid = DISTRICT_CENTROIDS[selectedDestDistrict];
+
+  const approxGeodesicDistanceKm = useMemo(() => {
+    if (isRouteDataMissing && originCentroid?.coords && destCentroid?.coords) {
+      return getApproxDistanceKm(
+        originCentroid.coords[0], originCentroid.coords[1],
+        destCentroid.coords[0], destCentroid.coords[1]
+      );
+    }
+    return 0;
+  }, [isRouteDataMissing, originCentroid, destCentroid]);
+
+  // Dynamic Camera Center, Zoom & Bounds computation: updates automatically on ANY district change
+  const { mapTargetCenter, mapTargetZoom, mapTargetBounds } = useMemo(() => {
+    if (viewMode === 'connectivity') {
+      // Case 1: Both Origin and Destination are selected
+      if (selectedOriginDistrict !== 'ALL' && selectedDestDistrict !== 'ALL') {
+        // If a matching route with coordinates exists
+        if (activeDistrictRoutes.length > 0 && activeDistrictRoutes[0].coordinates?.length > 1) {
+          const latLngs = activeDistrictRoutes[0].coordinates.map(pt => L.latLng(pt[0], pt[1]));
+          return {
+            mapTargetCenter: null,
+            mapTargetZoom: null,
+            mapTargetBounds: L.latLngBounds(latLngs)
+          };
+        }
+
+        // If no matching route in dataset, fit bounds between both district centroids
+        if (originCentroid?.coords && destCentroid?.coords) {
+          return {
+            mapTargetCenter: null,
+            mapTargetZoom: null,
+            mapTargetBounds: L.latLngBounds([
+              L.latLng(originCentroid.coords[0], originCentroid.coords[1]),
+              L.latLng(destCentroid.coords[0], destCentroid.coords[1])
+            ])
+          };
+        }
+      }
+
+      // Case 2: Only Origin is selected
+      if (selectedOriginDistrict !== 'ALL' && originCentroid?.coords) {
+        return {
+          mapTargetCenter: originCentroid.coords,
+          mapTargetZoom: 9.5,
+          mapTargetBounds: null
+        };
+      }
+
+      // Case 3: Only Destination is selected
+      if (selectedDestDistrict !== 'ALL' && destCentroid?.coords) {
+        return {
+          mapTargetCenter: destCentroid.coords,
+          mapTargetZoom: 9.5,
+          mapTargetBounds: null
+        };
+      }
+
+      // Case 4: Default State Centroid
+      if (selectedAuthorityState && STATE_VIEW_CENTERS[selectedAuthorityState]) {
+        return {
+          mapTargetCenter: STATE_VIEW_CENTERS[selectedAuthorityState].center,
+          mapTargetZoom: STATE_VIEW_CENTERS[selectedAuthorityState].zoom,
+          mapTargetBounds: null
+        };
+      }
+    }
+
+    // Transport Mode: Focus on corridor
+    return {
+      mapTargetCenter: currentCorridorConfig.center,
+      mapTargetZoom: currentCorridorConfig.zoom,
+      mapTargetBounds: null
+    };
+  }, [
+    viewMode,
+    selectedOriginDistrict,
+    selectedDestDistrict,
+    activeDistrictRoutes,
+    originCentroid,
+    destCentroid,
+    selectedAuthorityState,
+    currentCorridorConfig
+  ]);
+
+  // Auto-select route detail when a single specific route matches From & To
+  useEffect(() => {
+    if (viewMode === 'connectivity') {
+      if (selectedOriginDistrict !== 'ALL' && selectedDestDistrict !== 'ALL') {
+        if (activeDistrictRoutes.length === 1) {
+          setSelectedRouteDetail(activeDistrictRoutes[0]);
+          if (onSelectDistrictRoute) {
+            onSelectDistrictRoute(activeDistrictRoutes[0]);
+          }
+        } else if (activeDistrictRoutes.length === 0) {
+          setSelectedRouteDetail(null);
+        }
+      }
+    }
+  }, [viewMode, selectedOriginDistrict, selectedDestDistrict, activeDistrictRoutes, onSelectDistrictRoute]);
+
+  // Ensure selected origin and destination districts are always present in the rendered marker list
+  const visibleDistrictsInModeA = useMemo(() => {
+    const list = [...stateDistricts];
+    const existingNames = new Set(stateDistricts.map(d => d.name));
+    if (originCentroid && !existingNames.has(originCentroid.name)) {
+      list.push(originCentroid);
+    }
+    if (destCentroid && !existingNames.has(destCentroid.name)) {
+      list.push(destCentroid);
+    }
+    return list;
+  }, [stateDistricts, originCentroid, destCentroid]);
 
   // Determine active Google Maps Highway Route to render
   const isSpecificCorridor = selectedCorridor !== 'ALL' && Boolean(CORRIDOR_ROUTE_META[selectedCorridor]);
@@ -877,14 +1019,25 @@ function MapCanvas({
               <select
                 value={selectedOriginDistrict}
                 onChange={(e) => setSelectedOriginDistrict(e.target.value)}
-                className="bg-defense-900 border border-slate-700 text-slate-100 font-mono text-[11px] rounded px-2 py-1 focus:outline-none focus:border-cyan-500 cursor-pointer max-w-[170px]"
+                className="bg-defense-900 border border-slate-700 text-slate-100 font-mono text-[11px] rounded px-2 py-1 focus:outline-none focus:border-cyan-500 cursor-pointer max-w-[185px]"
               >
-                <option value="ALL">All Districts ({selectedAuthorityState} & Inter-State)</option>
-                {stateDistricts.map(d => (
-                  <option key={`orig-${d.name}`} value={d.name}>
-                    {d.name} ({d.state})
-                  </option>
-                ))}
+                <option value="ALL">All Districts ({selectedAuthorityState} & Gateways)</option>
+                <optgroup label={`${selectedAuthorityState} & Connected Corridors`}>
+                  {stateDistricts.map(d => (
+                    <option key={`orig-${d.name}`} value={d.name}>
+                      {d.name} ({d.state})
+                    </option>
+                  ))}
+                </optgroup>
+                {otherNerDistricts.length > 0 && (
+                  <optgroup label="Other North East Districts (Provisional)">
+                    {otherNerDistricts.map(d => (
+                      <option key={`orig-oth-${d.name}`} value={d.name}>
+                        {d.name} ({d.state})
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
             </div>
 
@@ -894,14 +1047,25 @@ function MapCanvas({
               <select
                 value={selectedDestDistrict}
                 onChange={(e) => setSelectedDestDistrict(e.target.value)}
-                className="bg-defense-900 border border-slate-700 text-slate-100 font-mono text-[11px] rounded px-2 py-1 focus:outline-none focus:border-cyan-500 cursor-pointer max-w-[170px]"
+                className="bg-defense-900 border border-slate-700 text-slate-100 font-mono text-[11px] rounded px-2 py-1 focus:outline-none focus:border-cyan-500 cursor-pointer max-w-[185px]"
               >
                 <option value="ALL">All Connections</option>
-                {stateDistricts.map(d => (
-                  <option key={`dest-${d.name}`} value={d.name}>
-                    {d.name} ({d.state})
-                  </option>
-                ))}
+                <optgroup label={`${selectedAuthorityState} & Connected Corridors`}>
+                  {stateDistricts.map(d => (
+                    <option key={`dest-${d.name}`} value={d.name}>
+                      {d.name} ({d.state})
+                    </option>
+                  ))}
+                </optgroup>
+                {otherNerDistricts.length > 0 && (
+                  <optgroup label="Other North East Districts (Provisional)">
+                    {otherNerDistricts.map(d => (
+                      <option key={`dest-oth-${d.name}`} value={d.name}>
+                        {d.name} ({d.state})
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
             </div>
 
@@ -942,8 +1106,16 @@ function MapCanvas({
             </button>
 
             {/* Routes count badge */}
-            <div className="ml-auto px-2 py-0.5 rounded text-[10px] font-mono bg-cyan-950/60 border border-cyan-800/50 text-cyan-300 font-bold">
-              {activeDistrictRoutes.length} / {stateRoutes.length} Routes Visible
+            <div className={`ml-auto px-2.5 py-1 rounded text-[10px] font-mono font-bold border transition-colors ${
+              isRouteDataMissing 
+                ? 'bg-amber-950/70 border-amber-500/60 text-amber-300 animate-pulse' 
+                : 'bg-cyan-950/60 border-cyan-800/50 text-cyan-300'
+            }`}>
+              {isRouteDataMissing ? (
+                <span>⚠️ Data Pending for Prototype</span>
+              ) : (
+                <span>{activeDistrictRoutes.length} / {stateRoutes.length} Routes Visible</span>
+              )}
             </div>
           </div>
         )}
@@ -1106,7 +1278,7 @@ function MapCanvas({
         style={{ width: '100%', height: '100%' }}
         scrollWheelZoom={true}
       >
-        <MapController center={mapTargetCenter} zoom={mapTargetZoom} />
+        <MapController center={mapTargetCenter} zoom={mapTargetZoom} bounds={mapTargetBounds} />
 
         {/* 100% Free Base Tile Layer */}
         <TileLayer
@@ -1220,8 +1392,79 @@ function MapCanvas({
               );
             })}
 
+            {/* 1b. Prominent Start 'A' and Dest 'B' pins when a single specific route is selected */}
+            {activeDistrictRoutes.length === 1 && activeDistrictRoutes[0].coordinates?.length > 1 && (
+              <>
+                <Marker
+                  position={activeDistrictRoutes[0].coordinates[0]}
+                  icon={getGoogleWaypointIcon(
+                    'A', 
+                    `A: ${activeDistrictRoutes[0].fromDistrict}`, 
+                    '#16a34a'
+                  )}
+                />
+                <Marker
+                  position={activeDistrictRoutes[0].coordinates[activeDistrictRoutes[0].coordinates.length - 1]}
+                  icon={getGoogleWaypointIcon(
+                    'B', 
+                    `B: ${activeDistrictRoutes[0].toDistrict}`, 
+                    '#dc2626'
+                  )}
+                />
+              </>
+            )}
+
+            {/* 1c. Provisional Connecting Axis when Route Data is Pending in Prototype */}
+            {isRouteDataMissing && originCentroid?.coords && destCentroid?.coords && (
+              <>
+                {/* Provisional Dashed Polyline */}
+                <Polyline
+                  positions={[originCentroid.coords, destCentroid.coords]}
+                  pathOptions={{
+                    color: '#f59e0b',
+                    weight: 4.0,
+                    opacity: 0.9,
+                    dashArray: '8, 8',
+                    lineCap: 'round',
+                    lineJoin: 'round'
+                  }}
+                >
+                  <Popup>
+                    <div className="p-1.5 text-slate-900 font-sans text-xs min-w-[230px]">
+                      <div className="font-bold text-amber-800 flex items-center justify-between gap-1 pb-1 border-b border-slate-200">
+                        <span>⚠️ Provisional Direct Axis</span>
+                        <span className="text-[9px] font-mono bg-amber-100 text-amber-800 px-1 py-0.2 rounded font-bold border border-amber-300">
+                          PROTOTYPE SCOPE
+                        </span>
+                      </div>
+                      <div className="text-xs text-slate-800 font-bold mt-1">
+                        {selectedOriginDistrict} ({originCentroid.state}) ↔ {selectedDestDistrict} ({destCentroid.state})
+                      </div>
+                      <div className="text-[11px] text-slate-600 font-mono mt-0.5">
+                        Direct Axis Distance: <b>~{approxGeodesicDistanceKm} km</b>
+                      </div>
+                      <div className="mt-2 p-1.5 rounded bg-amber-50 border border-amber-300 text-[10px] text-amber-900 leading-snug">
+                        <b>Prototype Notice:</b> Detailed telemetry & road network data for this specific route is not added yet in this prototype. It will be added in a later phase.
+                      </div>
+                    </div>
+                  </Popup>
+                </Polyline>
+
+                {/* Waypoint Pin A */}
+                <Marker
+                  position={originCentroid.coords}
+                  icon={getGoogleWaypointIcon('A', `A: ${selectedOriginDistrict}`, '#16a34a')}
+                />
+                {/* Waypoint Pin B */}
+                <Marker
+                  position={destCentroid.coords}
+                  icon={getGoogleWaypointIcon('B', `B: ${selectedDestDistrict}`, '#dc2626')}
+                />
+              </>
+            )}
+
             {/* 2. District Headquarters Centroid Waypoints */}
-            {stateDistricts.map((d) => (
+            {visibleDistrictsInModeA.map((d) => (
               <Marker
                 key={`dist-marker-${d.name}`}
                 position={d.coords}
@@ -1947,6 +2190,52 @@ function MapCanvas({
                 <span className="text-slate-400 font-semibold">Key Infrastructure:</span> {selectedRouteDetail.bridge_or_tunnel}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Floating Notice Card when Route Data is Pending in Prototype */}
+      {viewMode === 'connectivity' && isRouteDataMissing && (
+        <div className="absolute bottom-4 left-4 z-[1000] max-w-sm w-[360px] bg-slate-900/95 border border-amber-500/60 backdrop-blur-md rounded-2xl p-4 shadow-2xl text-slate-100 font-sans pointer-events-auto transition-all animate-fadeIn">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-md bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center text-xs font-bold">
+                ⚠️
+              </div>
+              <span className="font-bold text-xs text-amber-300">Route Data Notice</span>
+            </div>
+            <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              PROTOTYPE NOTICE
+            </span>
+          </div>
+
+          <div className="mt-2.5 text-xs text-slate-200 leading-relaxed">
+            For this prototype, detailed telemetry data for <b className="text-white">{selectedOriginDistrict}</b> ({originCentroid?.state || 'NER'}) ↔ <b className="text-white">{selectedDestDistrict}</b> ({destCentroid?.state || 'NER'}) is not added yet. It will be added in a later phase.
+          </div>
+
+          <div className="mt-2.5 p-2 rounded-lg bg-slate-950/80 border border-slate-800 flex items-center justify-between text-xs font-mono">
+            <span className="text-slate-400">Estimated Direct Distance:</span>
+            <span className="text-amber-400 font-bold">~{approxGeodesicDistanceKm} km</span>
+          </div>
+
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={() => setSelectedDestDistrict('ALL')}
+              className="flex-1 py-1.5 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-mono transition-colors cursor-pointer"
+            >
+              Clear Destination
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedOriginDistrict('ALL');
+                setSelectedDestDistrict('ALL');
+              }}
+              className="flex-1 py-1.5 px-2 rounded-lg bg-cyan-700 hover:bg-cyan-800 text-white text-[11px] font-mono font-bold transition-colors cursor-pointer"
+            >
+              Show All Routes
+            </button>
           </div>
         </div>
       )}
