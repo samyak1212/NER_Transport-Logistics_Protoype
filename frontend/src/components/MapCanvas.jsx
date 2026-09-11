@@ -31,7 +31,8 @@ import {
   DISTRICT_CENTROIDS,
   getRoutesForState,
   getDistrictsForState,
-  getCorridorsForState
+  getCorridorsForState,
+  findConnectingRoute
 } from '../data/defaultData';
 import { CORRIDOR_DRIVING_ROUTES } from '../data/corridorDrivingRoutes';
 import { getMediaUrl } from '../services/api';
@@ -767,26 +768,30 @@ function MapCanvas({
 
   // Active District Routes to render on map based on Origin/Destination filter
   const activeDistrictRoutes = useMemo(() => {
-    // If specific origin AND destination are selected, search ALL routes across NER!
-    const baseRoutes = (selectedOriginDistrict !== 'ALL' && selectedDestDistrict !== 'ALL')
-      ? DISTRICT_CONNECTIVITY_ROUTES
-      : stateRoutes;
+    // If specific origin AND destination are selected, find direct or multi-hop real highway route!
+    if (selectedOriginDistrict !== 'ALL' && selectedDestDistrict !== 'ALL') {
+      if (selectedOriginDistrict === selectedDestDistrict) return [];
+      const connected = findConnectingRoute(selectedOriginDistrict, selectedDestDistrict);
+      if (connected) return [connected];
+      return [];
+    }
 
-    return baseRoutes.filter(r => {
-      if (selectedOriginDistrict !== 'ALL' && selectedDestDistrict !== 'ALL') {
-        return (
-          (r.fromDistrict === selectedOriginDistrict && r.toDistrict === selectedDestDistrict) ||
-          (r.fromDistrict === selectedDestDistrict && r.toDistrict === selectedOriginDistrict)
-        );
-      }
-      if (selectedOriginDistrict !== 'ALL') {
-        return r.fromDistrict === selectedOriginDistrict || r.toDistrict === selectedOriginDistrict;
-      }
-      if (selectedDestDistrict !== 'ALL') {
-        return r.fromDistrict === selectedDestDistrict || r.toDistrict === selectedDestDistrict;
-      }
-      return true;
-    });
+    // If only origin is selected, return all direct routes touching this origin
+    if (selectedOriginDistrict !== 'ALL') {
+      return DISTRICT_CONNECTIVITY_ROUTES.filter(r => 
+        r.fromDistrict === selectedOriginDistrict || r.toDistrict === selectedOriginDistrict
+      );
+    }
+
+    // If only destination is selected, return all direct routes touching this destination
+    if (selectedDestDistrict !== 'ALL') {
+      return DISTRICT_CONNECTIVITY_ROUTES.filter(r => 
+        r.fromDistrict === selectedDestDistrict || r.toDistrict === selectedDestDistrict
+      );
+    }
+
+    // Both ALL: scoped to stateRoutes
+    return stateRoutes;
   }, [stateRoutes, selectedOriginDistrict, selectedDestDistrict]);
 
   // Check if user selected two districts for which no telemetry data is added yet in this prototype
@@ -1414,52 +1419,35 @@ function MapCanvas({
               </>
             )}
 
-            {/* 1c. Provisional Connecting Axis when Route Data is Pending in Prototype */}
+            {/* 1c. Waypoint Markers when Route Data is Pending in Prototype */}
             {isRouteDataMissing && originCentroid?.coords && destCentroid?.coords && (
               <>
-                {/* Provisional Dashed Polyline */}
-                <Polyline
-                  positions={[originCentroid.coords, destCentroid.coords]}
-                  pathOptions={{
-                    color: '#f59e0b',
-                    weight: 4.0,
-                    opacity: 0.9,
-                    dashArray: '8, 8',
-                    lineCap: 'round',
-                    lineJoin: 'round'
-                  }}
-                >
-                  <Popup>
-                    <div className="p-1.5 text-slate-900 font-sans text-xs min-w-[230px]">
-                      <div className="font-bold text-amber-800 flex items-center justify-between gap-1 pb-1 border-b border-slate-200">
-                        <span>⚠️ Provisional Direct Axis</span>
-                        <span className="text-[9px] font-mono bg-amber-100 text-amber-800 px-1 py-0.2 rounded font-bold border border-amber-300">
-                          PROTOTYPE SCOPE
-                        </span>
-                      </div>
-                      <div className="text-xs text-slate-800 font-bold mt-1">
-                        {selectedOriginDistrict} ({originCentroid.state}) ↔ {selectedDestDistrict} ({destCentroid.state})
-                      </div>
-                      <div className="text-[11px] text-slate-600 font-mono mt-0.5">
-                        Direct Axis Distance: <b>~{approxGeodesicDistanceKm} km</b>
-                      </div>
-                      <div className="mt-2 p-1.5 rounded bg-amber-50 border border-amber-300 text-[10px] text-amber-900 leading-snug">
-                        <b>Prototype Notice:</b> Detailed telemetry & road network data for this specific route is not added yet in this prototype. It will be added in a later phase.
-                      </div>
-                    </div>
-                  </Popup>
-                </Polyline>
-
                 {/* Waypoint Pin A */}
                 <Marker
                   position={originCentroid.coords}
                   icon={getGoogleWaypointIcon('A', `A: ${selectedOriginDistrict}`, '#16a34a')}
-                />
+                >
+                  <Popup>
+                    <div className="p-1.5 text-slate-900 font-sans text-xs">
+                      <div className="font-bold text-emerald-800">Waypoint A (Origin)</div>
+                      <div className="font-semibold">{selectedOriginDistrict} ({originCentroid.state})</div>
+                      <div className="text-[10px] text-slate-500 mt-1">Detailed road telemetry pending in prototype</div>
+                    </div>
+                  </Popup>
+                </Marker>
                 {/* Waypoint Pin B */}
                 <Marker
                   position={destCentroid.coords}
                   icon={getGoogleWaypointIcon('B', `B: ${selectedDestDistrict}`, '#dc2626')}
-                />
+                >
+                  <Popup>
+                    <div className="p-1.5 text-slate-900 font-sans text-xs">
+                      <div className="font-bold text-red-800">Waypoint B (Destination)</div>
+                      <div className="font-semibold">{selectedDestDistrict} ({destCentroid.state})</div>
+                      <div className="text-[10px] text-slate-500 mt-1">Detailed road telemetry pending in prototype</div>
+                    </div>
+                  </Popup>
+                </Marker>
               </>
             )}
 

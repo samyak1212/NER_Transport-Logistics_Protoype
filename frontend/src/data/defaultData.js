@@ -6119,7 +6119,8 @@ export {
   DISTRICT_CENTROIDS, 
   NORTH_EAST_STATES, 
   getRoutesForState, 
-  getDistrictsForState 
+  getDistrictsForState,
+  findConnectingRoute
 } from './districtConnectivityRoutes.js';
 
 // ==============================================================================
