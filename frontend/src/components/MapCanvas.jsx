@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, memo } from 'react';
-import { MapContainer, TileLayer, Polyline, Marker, Popup, Circle, CircleMarker, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Polyline, Marker, Popup, Circle, CircleMarker, GeoJSON, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { 
   AlertOctagon, 
@@ -32,7 +32,14 @@ import {
   getRoutesForState,
   getDistrictsForState,
   getCorridorsForState,
-  findConnectingRoute
+  findConnectingRoute,
+  NER_STATES_GEOJSON,
+  NER_DISTRICTS_GEOJSON,
+  STATE_THEME_COLORS,
+  DISTRICT_NAME_ALIASES,
+  normalizeDistrictName,
+  getDistrictForPoint,
+  getDistrictsForRoute
 } from '../data/defaultData';
 import { CORRIDOR_DRIVING_ROUTES } from '../data/corridorDrivingRoutes';
 import { getMediaUrl } from '../services/api';
@@ -621,6 +628,12 @@ function MapCanvas({
   const [showConvoys, setShowConvoys] = useState(true);
   const [showStations, setShowStations] = useState(true);
 
+  // Administrative Boundary Layer Toggles (Highlighted States & Districts)
+  const [showStateBorders, setShowStateBorders] = useState(true);
+  const [showDistrictBorders, setShowDistrictBorders] = useState(true);
+  const [showDistrictLabels, setShowDistrictLabels] = useState(false);
+  const [hoveredDistrict, setHoveredDistrict] = useState(null);
+
   // Basemap definitions
   const basemapLayers = {
     dark: {
@@ -938,6 +951,133 @@ function MapCanvas({
   // Active Route from Dispatch / Driver workspace
   const hasCustomActiveRoute = activeRoute && activeRoute.geometry_coordinates && activeRoute.geometry_coordinates.length > 0;
 
+  // Ordered list of districts traversed by the active route
+  const activeTraversedDistricts = useMemo(() => {
+    if (viewMode === 'connectivity') {
+      if (activeDistrictRoutes.length === 1 && activeDistrictRoutes[0]?.coordinates) {
+        return getDistrictsForRoute(activeDistrictRoutes[0].coordinates);
+      }
+      if (selectedRouteDetail?.coordinates) {
+        return getDistrictsForRoute(selectedRouteDetail.coordinates);
+      }
+    } else {
+      if (activeDrivingRouteData && activeDrivingRouteData.coordinates) {
+        return getDistrictsForRoute(activeDrivingRouteData.coordinates);
+      }
+      if (Array.isArray(activeDrivingRouteData) && activeDrivingRouteData.length > 0) {
+        return getDistrictsForRoute(activeDrivingRouteData);
+      }
+      if (activeRoute?.geometry_coordinates && activeRoute.geometry_coordinates.length > 0) {
+        return getDistrictsForRoute(activeRoute.geometry_coordinates);
+      }
+    }
+    return [];
+  }, [viewMode, activeDistrictRoutes, selectedRouteDetail, activeDrivingRouteData, activeRoute]);
+
+  const activeTraversedDistrictSet = useMemo(() => {
+    const set = new Set();
+    activeTraversedDistricts.forEach(d => {
+      set.add(d.districtName);
+      set.add(normalizeDistrictName(d.districtName));
+    });
+    return set;
+  }, [activeTraversedDistricts]);
+
+  // Style function for State Boundary Outlines (Prominent, High-Contrast)
+  const getStateStyle = useMemo(() => {
+    return (feature) => {
+      const stateName = feature.properties.stateName;
+      const isAuthority = Boolean(
+        selectedAuthorityState && 
+        selectedAuthorityState !== 'ALL' && 
+        stateName.toLowerCase().includes(selectedAuthorityState.toLowerCase())
+      );
+      const theme = STATE_THEME_COLORS[stateName] || { border: '#38bdf8', fill: '#38bdf8' };
+      
+      return {
+        color: isAuthority ? '#f59e0b' : theme.border,
+        weight: isAuthority ? 3.2 : 2.0,
+        opacity: isAuthority ? 1.0 : 0.65,
+        fillColor: theme.fill,
+        fillOpacity: isAuthority ? 0.05 : 0.015,
+        dashArray: isAuthority ? null : '6, 4',
+        lineCap: 'round',
+        lineJoin: 'round'
+      };
+    };
+  }, [selectedAuthorityState]);
+
+  // Style function for District Boundaries (Hover glowing, traversed highlighted)
+  const getDistrictStyle = (feature) => {
+    const distName = feature.properties.districtName;
+    const isHovered = hoveredDistrict && (hoveredDistrict.districtName === distName || normalizeDistrictName(hoveredDistrict.districtName) === distName);
+    const isOrigin = selectedOriginDistrict === distName || normalizeDistrictName(selectedOriginDistrict) === distName;
+    const isDest = selectedDestDistrict === distName || normalizeDistrictName(selectedDestDistrict) === distName;
+    const isTraversed = activeTraversedDistrictSet.has(distName) || activeTraversedDistrictSet.has(normalizeDistrictName(distName));
+
+    if (isOrigin) {
+      return { color: '#16a34a', weight: 2.8, opacity: 1, fillColor: '#22c55e', fillOpacity: 0.28 };
+    }
+    if (isDest) {
+      return { color: '#dc2626', weight: 2.8, opacity: 1, fillColor: '#ef4444', fillOpacity: 0.28 };
+    }
+    if (isTraversed) {
+      return { color: '#38bdf8', weight: 2.4, opacity: 1.0, fillColor: '#0284c7', fillOpacity: 0.18 };
+    }
+    if (isHovered) {
+      return { color: '#fbbf24', weight: 2.4, opacity: 1.0, fillColor: '#f59e0b', fillOpacity: 0.20 };
+    }
+    return {
+      color: '#64748b',
+      weight: 1.1,
+      opacity: 0.45,
+      fillColor: '#000000',
+      fillOpacity: 0.01,
+      dashArray: '3, 3'
+    };
+  };
+
+  const onEachDistrictFeature = (feature, layer) => {
+    const distName = feature.properties.districtName;
+    const stateName = feature.properties.stateName;
+
+    layer.on({
+      mouseover: (e) => {
+        const l = e.target;
+        l.setStyle({
+          weight: 2.5,
+          color: '#fbbf24',
+          fillColor: '#f59e0b',
+          fillOpacity: 0.22
+        });
+        l.bringToFront();
+        setHoveredDistrict({ districtName: distName, stateName });
+      },
+      mouseout: (e) => {
+        const l = e.target;
+        l.setStyle(getDistrictStyle(feature));
+        setHoveredDistrict(null);
+      },
+      click: () => {
+        if (viewMode === 'connectivity') {
+          const canonical = DISTRICT_NAME_ALIASES[distName] || distName;
+          if (selectedOriginDistrict === 'ALL' || selectedOriginDistrict === canonical) {
+            setSelectedOriginDistrict(canonical);
+          } else {
+            setSelectedDestDistrict(canonical);
+          }
+        }
+      }
+    });
+
+    layer.bindTooltip(`
+      <div style="font-family: ui-sans-serif, system-ui, sans-serif; font-size: 11px; padding: 2px 4px; color: #0f172a;">
+        <div style="font-weight: 700; color: #0f172a;">${distName}</div>
+        <div style="font-size: 10px; color: #475569;">${stateName}</div>
+      </div>
+    `, { sticky: true, className: 'district-boundary-tooltip' });
+  };
+
   return (
     <div className="w-full flex flex-col gap-2.5">
       {/* ========================================================================= */}
@@ -974,8 +1114,50 @@ function MapCanvas({
             </button>
           </div>
 
-          {/* Basemap Selector */}
-          <div className="flex items-center gap-2">
+          {/* Administrative Boundary Layer Toggles & Basemap Selector */}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Boundary Toggles */}
+            <div className="p-0.5 rounded-lg flex items-center gap-1 bg-slate-950 border border-slate-800 text-[11px] font-mono">
+              <span className="text-[10px] text-slate-400 font-bold px-1.5 uppercase tracking-wider hidden sm:inline">Borders:</span>
+              <button
+                type="button"
+                onClick={() => setShowStateBorders(!showStateBorders)}
+                title="Highlight 8 North East State Borders"
+                className={`px-2 py-1 rounded transition-all font-semibold cursor-pointer flex items-center gap-1 ${
+                  showStateBorders
+                    ? 'bg-amber-600/30 text-amber-300 border border-amber-500/50 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-300 hover:bg-slate-900'
+                }`}
+              >
+                <span>🏛️ States</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowDistrictBorders(!showDistrictBorders)}
+                title="Highlight 80 North East District Borders"
+                className={`px-2 py-1 rounded transition-all font-semibold cursor-pointer flex items-center gap-1 ${
+                  showDistrictBorders
+                    ? 'bg-cyan-600/30 text-cyan-300 border border-cyan-500/50 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-300 hover:bg-slate-900'
+                }`}
+              >
+                <span>🗺️ Districts</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowDistrictLabels(!showDistrictLabels)}
+                title="Show District Name Labels on Map"
+                className={`px-2 py-1 rounded transition-all font-semibold cursor-pointer flex items-center gap-1 ${
+                  showDistrictLabels
+                    ? 'bg-indigo-600/30 text-indigo-300 border border-indigo-500/50 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-300 hover:bg-slate-900'
+                }`}
+              >
+                <span>🏷️ Labels</span>
+              </button>
+            </div>
+
+            {/* Basemap Selector */}
             <div className="p-0.5 rounded-lg flex items-center gap-0.5 bg-slate-950 border border-slate-800 text-[11px] font-mono">
               <button
                 type="button"
@@ -1302,6 +1484,54 @@ function MapCanvas({
             opacity={0.85}
           />
         )}
+
+        {/* ========================================================================= */}
+        {/* ADMINISTRATIVE BOUNDARY LAYERS (North East States & Districts)            */}
+        {/* ========================================================================= */}
+        {showStateBorders && (
+          <GeoJSON
+            key={`ner-states-layer-${selectedAuthorityState}`}
+            data={NER_STATES_GEOJSON}
+            style={getStateStyle}
+            interactive={false}
+          />
+        )}
+
+        {showDistrictBorders && (
+          <GeoJSON
+            key={`ner-districts-layer-${selectedOriginDistrict}-${selectedDestDistrict}-${activeTraversedDistricts.length}`}
+            data={NER_DISTRICTS_GEOJSON}
+            style={getDistrictStyle}
+            onEachFeature={onEachDistrictFeature}
+          />
+        )}
+
+        {showDistrictLabels && Object.values(DISTRICT_CENTROIDS).map((d) => (
+          <Marker
+            key={`dist-boundary-label-${d.name}`}
+            position={d.coords}
+            icon={L.divIcon({
+              className: 'district-boundary-label',
+              html: `<div style="
+                transform: translate(-50%, -50%);
+                font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+                font-size: 10px;
+                font-weight: 700;
+                color: #e2e8f0;
+                background: rgba(15, 23, 42, 0.82);
+                padding: 1px 5px;
+                border-radius: 4px;
+                border: 1px solid rgba(148, 163, 184, 0.4);
+                white-space: nowrap;
+                pointer-events: none;
+                backdrop-filter: blur(2px);
+                box-shadow: 0 1px 3px rgba(0,0,0,0.6);
+              ">${d.name}</div>`,
+              iconSize: [0, 0]
+            })}
+            interactive={false}
+          />
+        ))}
 
         {/* ========================================================================= */}
         {/* MODE A: DISTRICT CONNECTIVITY EXPLORER LAYERS                            */}
@@ -2178,6 +2408,58 @@ function MapCanvas({
                 <span className="text-slate-400 font-semibold">Key Infrastructure:</span> {selectedRouteDetail.bridge_or_tunnel}
               </div>
             )}
+            {activeTraversedDistricts.length > 0 && (
+              <div className="pt-2 border-t border-slate-800">
+                <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block mb-1">
+                  Traversed Districts ({activeTraversedDistricts.length}):
+                </span>
+                <div className="flex flex-wrap gap-1">
+                  {activeTraversedDistricts.map((d, i) => (
+                    <span key={`td-${d.districtName}-${i}`} className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 text-[10px] text-cyan-300 font-mono flex items-center gap-1">
+                      <span className="font-semibold text-slate-200">{d.districtName}</span>
+                      <span className="text-[8px] text-slate-500">({d.stateName})</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Route Traversal District Path Strip (Active Route Highlighting) */}
+      {activeTraversedDistricts.length > 0 && !selectedRouteDetail && (
+        <div className="absolute top-3 left-14 z-[900] max-w-[calc(100%-80px)] bg-slate-950/90 border border-cyan-500/40 backdrop-blur-md rounded-xl px-3 py-1.5 shadow-2xl text-xs font-sans pointer-events-auto transition-all animate-fadeIn">
+          <div className="flex flex-wrap items-center gap-1.5 font-mono text-[11px]">
+            <div className="flex items-center gap-1 text-cyan-400 font-bold text-[10px] uppercase tracking-wider pr-1 border-r border-slate-700">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+              <span>Traversing:</span>
+            </div>
+            {activeTraversedDistricts.map((item, idx) => (
+              <React.Fragment key={`trav-strip-${item.districtName}-${idx}`}>
+                <span className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-200 flex items-center gap-1 font-medium shadow-sm">
+                  <span className="text-white font-bold">{item.districtName}</span>
+                  <span className="text-[9px] text-slate-400">({item.stateName})</span>
+                </span>
+                {idx < activeTraversedDistricts.length - 1 && (
+                  <span className="text-cyan-500 text-[10px] font-bold">➔</span>
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Live District Inspection HUD (Cursor / Hover Indicator) */}
+      {hoveredDistrict && (
+        <div className="absolute bottom-4 right-4 z-[1000] px-3.5 py-2 rounded-xl bg-slate-950/95 border border-cyan-500/60 backdrop-blur-md shadow-2xl flex items-center gap-2.5 pointer-events-none text-xs font-sans animate-fadeIn">
+          <div className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+          <div className="flex flex-col">
+            <span className="text-[9px] font-mono text-slate-400 uppercase tracking-wider">Inspecting District</span>
+            <span className="text-slate-100 font-bold text-xs leading-tight flex items-center gap-1.5">
+              {hoveredDistrict.districtName}
+              <span className="text-[10px] font-normal text-cyan-300">({hoveredDistrict.stateName})</span>
+            </span>
           </div>
         </div>
       )}

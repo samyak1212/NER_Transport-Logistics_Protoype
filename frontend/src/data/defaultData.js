@@ -6123,6 +6123,16 @@ export {
   findConnectingRoute
 } from './districtConnectivityRoutes.js';
 
+export {
+  NER_STATES_GEOJSON,
+  NER_DISTRICTS_GEOJSON,
+  STATE_THEME_COLORS,
+  DISTRICT_NAME_ALIASES,
+  normalizeDistrictName,
+  getDistrictForPoint,
+  getDistrictsForRoute
+} from './nerBoundariesGeoJson.js';
+
 // ==============================================================================
 // FEATURE 1: ARMY & EMERGENCY RESPONSE RESOURCES
 // ==============================================================================
