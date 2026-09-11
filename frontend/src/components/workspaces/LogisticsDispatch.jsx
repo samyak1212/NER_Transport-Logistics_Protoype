@@ -520,7 +520,7 @@ export default function LogisticsDispatch({
           </div>
 
           {/* Map View of Route */}
-          <div className="lg:col-span-2 h-[420px] rounded-xl overflow-hidden border border-slate-800 shadow-xl">
+          <div className="lg:col-span-2">
             <MapCanvas
               nodes={nodes}
               segments={segments}

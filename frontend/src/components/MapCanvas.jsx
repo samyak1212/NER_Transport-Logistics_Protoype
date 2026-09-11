@@ -540,7 +540,8 @@ function MapCanvas({
   activeWorkspace = 'command',
   selectedAuthorityState = 'ALL',
   selectedDistrictRoute = null,
-  onSelectDistrictRoute = () => {}
+  onSelectDistrictRoute = () => {},
+  sideDrawer = null
 }) {
   const [selectedCorridor, setSelectedCorridor] = useState('ALL');
   const [basemap, setBasemap] = useState('dark');
@@ -719,253 +720,265 @@ function MapCanvas({
   const hasCustomActiveRoute = activeRoute && activeRoute.geometry_coordinates && activeRoute.geometry_coordinates.length > 0;
 
   return (
-    <div className="relative w-full h-full min-h-[480px] bg-slate-950 rounded-xl overflow-hidden border border-slate-800 shadow-2xl">
-      {/* 1. Top Bar: Regional Corridor Switcher, Google Directions Toggle & Basemap Selector */}
-      <div className="absolute top-3 left-3 right-3 z-[1000] flex flex-wrap items-center justify-between gap-2 pointer-events-none">
-        {/* Corridor Switcher Dropdown */}
-        <div className="glass-panel p-1.5 rounded-lg border border-slate-700/80 shadow-lg flex items-center gap-2 pointer-events-auto">
-          <Compass className="w-4 h-4 text-cyan-400 shrink-0 ml-1" />
-          <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider hidden sm:inline">Corridor:</span>
-          <select
-            value={selectedCorridor}
-            onChange={(e) => {
-              setSelectedCorridor(e.target.value);
-              setUseAlternateBypass(false);
-            }}
-            className="bg-defense-900 border border-slate-700 text-slate-100 font-mono text-xs rounded px-2 py-1 focus:outline-none focus:border-cyan-500 cursor-pointer"
-          >
-            {REGIONAL_CORRIDORS.map(c => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
+    <div className="w-full flex flex-col gap-2.5">
+      {/* ========================================================================= */}
+      {/* 1. TOP CONTROLS DECK: POSITIONED ABOVE THE MAP (Zero Map Obstruction)     */}
+      {/* ========================================================================= */}
+      <div className="glass-panel p-2.5 rounded-xl border border-slate-800 bg-slate-900/95 shadow-xl space-y-2">
+        {/* Row 1: Corridor Switcher + Google Highway Toggle + Basemap */}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          {/* Corridor Switcher Dropdown */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800">
+              <Compass className="w-4 h-4 text-cyan-400 shrink-0" />
+              <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider hidden sm:inline">Corridor:</span>
+              <select
+                value={selectedCorridor}
+                onChange={(e) => {
+                  setSelectedCorridor(e.target.value);
+                  setUseAlternateBypass(false);
+                }}
+                className="bg-defense-900 border border-slate-700 text-slate-100 font-mono text-xs rounded px-2 py-0.5 focus:outline-none focus:border-cyan-500 cursor-pointer"
+              >
+                {REGIONAL_CORRIDORS.map(c => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
 
-        {/* Center / Right Toolbar: Google Directions View Toggle & Basemap */}
-        <div className="flex items-center gap-2 pointer-events-auto">
-          {/* Google Highway Directions Toggle */}
-          <button
-            type="button"
-            onClick={() => setShowGoogleDirections(!showGoogleDirections)}
-            className={`glass-panel px-3 py-1.5 rounded-lg border shadow-lg text-xs font-bold font-sans flex items-center gap-1.5 transition-all ${
-              showGoogleDirections 
-                ? 'bg-blue-600/90 border-blue-400 text-white shadow-blue-900/50' 
-                : 'bg-slate-900/90 border-slate-700 text-slate-400 hover:text-slate-200'
-            }`}
-            title="Toggle Google Maps Directions Highway Geometry"
-          >
-            <Navigation className={`w-3.5 h-3.5 ${showGoogleDirections ? 'text-white' : 'text-blue-400'}`} />
-            <span>Google Highway Route</span>
-            <span className={`px-1.5 py-0.2 text-[9px] rounded font-mono ${showGoogleDirections ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-400'}`}>
-              {showGoogleDirections ? 'ON' : 'OFF'}
-            </span>
-          </button>
+          {/* Right Toolbar: Google Directions View Toggle & Basemap */}
+          <div className="flex items-center gap-2">
+            {/* Google Highway Directions Toggle */}
+            <button
+              type="button"
+              onClick={() => setShowGoogleDirections(!showGoogleDirections)}
+              className={`px-3 py-1 rounded-lg border shadow-sm text-xs font-bold font-sans flex items-center gap-1.5 transition-all cursor-pointer ${
+                showGoogleDirections 
+                  ? 'bg-blue-600 border-blue-400 text-white shadow-blue-900/50' 
+                  : 'bg-slate-950 border-slate-700 text-slate-400 hover:text-slate-200'
+              }`}
+              title="Toggle Google Maps Directions Highway Geometry"
+            >
+              <Navigation className={`w-3.5 h-3.5 ${showGoogleDirections ? 'text-white' : 'text-blue-400'}`} />
+              <span>Google Highway Route</span>
+              <span className={`px-1.5 py-0.2 text-[9px] rounded font-mono ${showGoogleDirections ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-400'}`}>
+                {showGoogleDirections ? 'ON' : 'OFF'}
+              </span>
+            </button>
 
-          {/* Basemap Selector */}
-          <div className="glass-panel p-1 rounded-lg flex items-center gap-1 border border-slate-700/80 shadow-lg text-[11px] font-mono">
-            <button
-              type="button"
-              onClick={() => setBasemap('dark')}
-              className={`px-2.5 py-1 rounded transition-all font-semibold ${
-                basemap === 'dark' ? 'bg-cyan-500 text-white shadow-md' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
-              }`}
-            >
-              Tactical Dark
-            </button>
-            <button
-              type="button"
-              onClick={() => setBasemap('satellite')}
-              className={`px-2.5 py-1 rounded transition-all font-semibold ${
-                basemap === 'satellite' ? 'bg-cyan-500 text-white shadow-md' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
-              }`}
-            >
-              Satellite
-            </button>
-            <button
-              type="button"
-              onClick={() => setBasemap('osm')}
-              className={`px-2.5 py-1 rounded transition-all font-semibold ${
-                basemap === 'osm' ? 'bg-cyan-500 text-white shadow-md' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
-              }`}
-            >
-              Street OSM
-            </button>
+            {/* Basemap Selector */}
+            <div className="p-0.5 rounded-lg flex items-center gap-0.5 bg-slate-950 border border-slate-800 text-[11px] font-mono">
+              <button
+                type="button"
+                onClick={() => setBasemap('dark')}
+                className={`px-2.5 py-1 rounded transition-all font-semibold cursor-pointer ${
+                  basemap === 'dark' ? 'bg-cyan-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
+                }`}
+              >
+                Tactical Dark
+              </button>
+              <button
+                type="button"
+                onClick={() => setBasemap('satellite')}
+                className={`px-2.5 py-1 rounded transition-all font-semibold cursor-pointer ${
+                  basemap === 'satellite' ? 'bg-cyan-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
+                }`}
+              >
+                Satellite
+              </button>
+              <button
+                type="button"
+                onClick={() => setBasemap('osm')}
+                className={`px-2.5 py-1 rounded transition-all font-semibold cursor-pointer ${
+                  basemap === 'osm' ? 'bg-cyan-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
+                }`}
+              >
+                Street OSM
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* 2. Top-Left Secondary: Interactive Authority Layer Filters */}
-      <div className="absolute top-14 left-3 z-[1000] glass-panel px-3 py-1.5 rounded-lg flex flex-wrap items-center gap-3 border border-slate-700/80 shadow-lg text-[11px] font-mono text-slate-300">
-        <label className="flex items-center gap-1.5 cursor-pointer hover:text-cyan-300">
-          <input
-            type="checkbox"
-            checked={showLifelines}
-            onChange={(e) => setShowLifelines(e.target.checked)}
-            className="accent-cyan-500 rounded"
-          />
-          <span className="font-bold text-cyan-400">Road Grid</span>
-        </label>
-
-        <label className="flex items-center gap-1.5 cursor-pointer hover:text-blue-300">
-          <input
-            type="checkbox"
-            checked={showRainfall}
-            onChange={(e) => setShowRainfall(e.target.checked)}
-            className="accent-blue-500 rounded"
-          />
-          <span className="font-bold text-blue-400 flex items-center gap-1">
-            <span>🌧️</span> Rainfall Overlay
-          </span>
-        </label>
-
-        <label className="flex items-center gap-1.5 cursor-pointer hover:text-rose-300">
-          <input
-            type="checkbox"
-            checked={showLandslides}
-            onChange={(e) => setShowLandslides(e.target.checked)}
-            className="accent-rose-500 rounded"
-          />
-          <span className="font-bold text-rose-400">⚠️ Landslides</span>
-        </label>
-
-        <label className="flex items-center gap-1.5 cursor-pointer hover:text-amber-300">
-          <input
-            type="checkbox"
-            checked={showMachinery}
-            onChange={(e) => setShowMachinery(e.target.checked)}
-            className="accent-amber-500 rounded"
-          />
-          <span className="font-bold text-amber-400">🚜 BRO Machinery</span>
-        </label>
-
-        <label className="flex items-center gap-1.5 cursor-pointer hover:text-emerald-300">
-          <input
-            type="checkbox"
-            checked={showConvoys}
-            onChange={(e) => setShowConvoys(e.target.checked)}
-            className="accent-emerald-500 rounded"
-          />
-          <span className="font-bold text-emerald-400">🚚 Active Convoys</span>
-        </label>
-
-        <label className="flex items-center gap-1.5 cursor-pointer hover:text-slate-100">
-          <input
-            type="checkbox"
-            checked={showStations}
-            onChange={(e) => setShowStations(e.target.checked)}
-            className="accent-slate-400 rounded"
-          />
-          <span>📍 Stations</span>
-        </label>
-
-        {isSpecificCorridor && (
-          <label className="flex items-center gap-1.5 cursor-pointer text-amber-400 border-l border-slate-700 pl-2">
+        {/* Row 2: Interactive Authority Layer Filters */}
+        <div className="flex flex-wrap items-center gap-3 px-2.5 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-[11px] font-mono text-slate-300">
+          <label className="flex items-center gap-1.5 cursor-pointer hover:text-cyan-300">
             <input
               type="checkbox"
-              checked={focusRoadOnly}
-              onChange={(e) => setFocusRoadOnly(e.target.checked)}
-              className="accent-amber-500 rounded"
+              checked={showLifelines}
+              onChange={(e) => setShowLifelines(e.target.checked)}
+              className="accent-cyan-500 rounded"
             />
-            <span className="font-bold flex items-center gap-1">
-              {focusRoadOnly ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-              Highway Focus Only
+            <span className="font-bold text-cyan-400">Road Grid</span>
+          </label>
+
+          <label className="flex items-center gap-1.5 cursor-pointer hover:text-blue-300">
+            <input
+              type="checkbox"
+              checked={showRainfall}
+              onChange={(e) => setShowRainfall(e.target.checked)}
+              className="accent-blue-500 rounded"
+            />
+            <span className="font-bold text-blue-400 flex items-center gap-1">
+              <span>🌧️</span> Rainfall Overlay
             </span>
           </label>
-        )}
-      </div>
 
-      {/* 2b. District Connectivity & Google Live Traffic Flow Explorer Bar */}
-      <div className="absolute top-26 sm:top-[94px] left-3 z-[1000] glass-panel px-3 py-2 rounded-xl flex flex-wrap items-center gap-2.5 border border-slate-700/80 shadow-2xl text-xs font-sans max-w-[calc(100%-24px)] pointer-events-auto bg-slate-900/95 backdrop-blur-md">
-        <div className="flex items-center gap-1.5 text-cyan-400 font-bold font-mono text-[11px] pr-2 border-r border-slate-700">
-          <Route className="w-4 h-4 text-cyan-400 shrink-0" />
-          <span>DISTRICT CONNECTIVITY</span>
+          <label className="flex items-center gap-1.5 cursor-pointer hover:text-rose-300">
+            <input
+              type="checkbox"
+              checked={showLandslides}
+              onChange={(e) => setShowLandslides(e.target.checked)}
+              className="accent-rose-500 rounded"
+            />
+            <span className="font-bold text-rose-400">⚠️ Landslides</span>
+          </label>
+
+          <label className="flex items-center gap-1.5 cursor-pointer hover:text-amber-300">
+            <input
+              type="checkbox"
+              checked={showMachinery}
+              onChange={(e) => setShowMachinery(e.target.checked)}
+              className="accent-amber-500 rounded"
+            />
+            <span className="font-bold text-amber-400">🚜 BRO Machinery</span>
+          </label>
+
+          <label className="flex items-center gap-1.5 cursor-pointer hover:text-emerald-300">
+            <input
+              type="checkbox"
+              checked={showConvoys}
+              onChange={(e) => setShowConvoys(e.target.checked)}
+              className="accent-emerald-500 rounded"
+            />
+            <span className="font-bold text-emerald-400">🚚 Active Convoys</span>
+          </label>
+
+          <label className="flex items-center gap-1.5 cursor-pointer hover:text-slate-100">
+            <input
+              type="checkbox"
+              checked={showStations}
+              onChange={(e) => setShowStations(e.target.checked)}
+              className="accent-slate-400 rounded"
+            />
+            <span>📍 Stations</span>
+          </label>
+
+          {isSpecificCorridor && (
+            <label className="flex items-center gap-1.5 cursor-pointer text-amber-400 border-l border-slate-700 pl-2">
+              <input
+                type="checkbox"
+                checked={focusRoadOnly}
+                onChange={(e) => setFocusRoadOnly(e.target.checked)}
+                className="accent-amber-500 rounded"
+              />
+              <span className="font-bold flex items-center gap-1">
+                {focusRoadOnly ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                Highway Focus Only
+              </span>
+            </label>
+          )}
         </div>
 
-        {/* Origin District Dropdown */}
-        <div className="flex items-center gap-1">
-          <span className="text-[10px] font-mono text-slate-400">From:</span>
-          <select
-            value={selectedOriginDistrict}
-            onChange={(e) => setSelectedOriginDistrict(e.target.value)}
-            className="bg-defense-900 border border-slate-700 text-slate-100 font-mono text-[11px] rounded px-2 py-1 focus:outline-none focus:border-cyan-500 cursor-pointer max-w-[150px]"
-          >
-            <option value="ALL">All Districts (Select All)</option>
-            {stateDistricts.map(d => (
-              <option key={`orig-${d.name}`} value={d.name}>
-                {d.name} ({d.state})
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Destination District Dropdown */}
-        <div className="flex items-center gap-1">
-          <span className="text-[10px] font-mono text-slate-400">To:</span>
-          <select
-            value={selectedDestDistrict}
-            onChange={(e) => setSelectedDestDistrict(e.target.value)}
-            className="bg-defense-900 border border-slate-700 text-slate-100 font-mono text-[11px] rounded px-2 py-1 focus:outline-none focus:border-cyan-500 cursor-pointer max-w-[150px]"
-          >
-            <option value="ALL">All Connections</option>
-            {stateDistricts.map(d => (
-              <option key={`dest-${d.name}`} value={d.name}>
-                {d.name} ({d.state})
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Select All Routes Button */}
-        <button
-          type="button"
-          onClick={() => {
-            setSelectedOriginDistrict('ALL');
-            setSelectedDestDistrict('ALL');
-            setShowDistrictConnectivity(true);
-          }}
-          className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
-            selectedOriginDistrict === 'ALL' && selectedDestDistrict === 'ALL' && showDistrictConnectivity
-              ? 'bg-cyan-600 text-white shadow-md'
-              : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-          }`}
-        >
-          Select All ({activeDistrictRoutes.length} Routes)
-        </button>
-
-        {/* Live Traffic Color Legend / Toggle */}
-        <button
-          type="button"
-          onClick={() => setShowTrafficLayer(!showTrafficLayer)}
-          className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer border ${
-            showTrafficLayer
-              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm'
-              : 'bg-slate-800/80 text-slate-400 border-slate-700'
-          }`}
-          title="Toggle Google Maps-style live traffic speed colors (Green = Smooth, Yellow = Moderate, Orange = Congested, Red = Blocked)"
-        >
-          <div className="flex items-center gap-0.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-400" title="Smooth (>45 km/h)"></span>
-            <span className="w-2 h-2 rounded-full bg-amber-400" title="Moderate (30-45 km/h)"></span>
-            <span className="w-2 h-2 rounded-full bg-orange-500" title="Congested (15-30 km/h)"></span>
-            <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" title="Blocked (<15 km/h)"></span>
+        {/* Row 3: District Connectivity & Google Live Traffic Flow Explorer Bar */}
+        <div className="flex flex-wrap items-center gap-2.5 px-2.5 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-xs font-sans">
+          <div className="flex items-center gap-1.5 text-cyan-400 font-bold font-mono text-[11px] pr-2 border-r border-slate-700">
+            <Route className="w-4 h-4 text-cyan-400 shrink-0" />
+            <span>DISTRICT CONNECTIVITY</span>
           </div>
-          <span>Traffic Colors: {showTrafficLayer ? 'ON' : 'OFF'}</span>
-        </button>
 
-        {/* Connectivity Layer Visibility Toggle */}
-        <label className="flex items-center gap-1.5 cursor-pointer text-slate-300 text-[11px] font-mono ml-auto">
-          <input
-            type="checkbox"
-            checked={showDistrictConnectivity}
-            onChange={(e) => setShowDistrictConnectivity(e.target.checked)}
-            className="accent-cyan-500 rounded"
-          />
-          <span className="font-bold text-cyan-400">Routes Visible</span>
-        </label>
+          {/* Origin District Dropdown */}
+          <div className="flex items-center gap-1">
+            <span className="text-[10px] font-mono text-slate-400">From:</span>
+            <select
+              value={selectedOriginDistrict}
+              onChange={(e) => setSelectedOriginDistrict(e.target.value)}
+              className="bg-defense-900 border border-slate-700 text-slate-100 font-mono text-[11px] rounded px-2 py-0.5 focus:outline-none focus:border-cyan-500 cursor-pointer max-w-[150px]"
+            >
+              <option value="ALL">All Districts (Select All)</option>
+              {stateDistricts.map(d => (
+                <option key={`orig-${d.name}`} value={d.name}>
+                  {d.name} ({d.state})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Destination District Dropdown */}
+          <div className="flex items-center gap-1">
+            <span className="text-[10px] font-mono text-slate-400">To:</span>
+            <select
+              value={selectedDestDistrict}
+              onChange={(e) => setSelectedDestDistrict(e.target.value)}
+              className="bg-defense-900 border border-slate-700 text-slate-100 font-mono text-[11px] rounded px-2 py-0.5 focus:outline-none focus:border-cyan-500 cursor-pointer max-w-[150px]"
+            >
+              <option value="ALL">All Connections</option>
+              {stateDistricts.map(d => (
+                <option key={`dest-${d.name}`} value={d.name}>
+                  {d.name} ({d.state})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Select All Routes Button */}
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedOriginDistrict('ALL');
+              setSelectedDestDistrict('ALL');
+              setShowDistrictConnectivity(true);
+            }}
+            className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
+              selectedOriginDistrict === 'ALL' && selectedDestDistrict === 'ALL' && showDistrictConnectivity
+                ? 'bg-cyan-600 text-white shadow-md'
+                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+            }`}
+          >
+            Select All ({activeDistrictRoutes.length} Routes)
+          </button>
+
+          {/* Live Traffic Color Legend / Toggle */}
+          <button
+            type="button"
+            onClick={() => setShowTrafficLayer(!showTrafficLayer)}
+            className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer border ${
+              showTrafficLayer
+                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm'
+                : 'bg-slate-800/80 text-slate-400 border-slate-700'
+            }`}
+            title="Toggle Google Maps-style live traffic speed colors (Green = Smooth, Yellow = Moderate, Orange = Congested, Red = Blocked)"
+          >
+            <div className="flex items-center gap-0.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400" title="Smooth (>45 km/h)"></span>
+              <span className="w-2 h-2 rounded-full bg-amber-400" title="Moderate (30-45 km/h)"></span>
+              <span className="w-2 h-2 rounded-full bg-orange-500" title="Congested (15-30 km/h)"></span>
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" title="Blocked (<15 km/h)"></span>
+            </div>
+            <span>Traffic Colors: {showTrafficLayer ? 'ON' : 'OFF'}</span>
+          </button>
+
+          {/* Connectivity Layer Visibility Toggle */}
+          <label className="flex items-center gap-1.5 cursor-pointer text-slate-300 text-[11px] font-mono ml-auto">
+            <input
+              type="checkbox"
+              checked={showDistrictConnectivity}
+              onChange={(e) => setShowDistrictConnectivity(e.target.checked)}
+              className="accent-cyan-500 rounded"
+            />
+            <span className="font-bold text-cyan-400">Routes Visible</span>
+          </label>
+        </div>
       </div>
 
-      <MapContainer
+      {/* ========================================================================= */}
+      {/* 2. LEAFLET MAP CANVAS CONTAINER (Completely Unobstructed & Visible)        */}
+      {/* ========================================================================= */}
+      <div className="relative w-full h-[520px] md:h-[580px] flex rounded-xl overflow-hidden border border-slate-800 shadow-2xl bg-slate-950">
+        <div className="relative flex-1 h-full min-w-0">
+          <MapContainer
         center={currentCorridorConfig.center}
         zoom={currentCorridorConfig.zoom}
         preferCanvas={true}
@@ -1804,6 +1817,11 @@ function MapCanvas({
           </div>
         </div>
       )}
+        </div>
+
+        {/* Side Drawer (e.g., Geotechnical Profile Drawer) */}
+        {sideDrawer}
+      </div>
     </div>
   );
 }

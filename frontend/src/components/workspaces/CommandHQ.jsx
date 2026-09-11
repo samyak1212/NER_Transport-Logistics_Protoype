@@ -524,29 +524,27 @@ export default function CommandHQ({
       {activeSubTab === 'activity' && (
         <div className="space-y-4">
           {/* Interactive GIS Map Canvas & Geotechnical Drawer */}
-          <div className="relative w-full h-[500px] md:h-[560px] flex rounded-xl overflow-hidden border border-slate-800 shadow-2xl">
-            <div className="flex-1 h-full">
-              <MapCanvas
-                nodes={nodes}
-                segments={segments}
-                activeRoute={activeRoute}
-                activeVehicle={activeVehicle}
-                reports={reports}
-                selectedSegment={selectedSegment}
-                onSelectSegment={(seg) => onSelectSegment(seg)}
-                onSelectConvoy={(convoy) => setSelectedConvoyForManifest(convoy)}
-                selectedAuthorityState={authority.state}
-                activeWorkspace="command"
-              />
-            </div>
-
-            {/* Geotechnical Drawer appears on segment click */}
-            {selectedSegment && (
-              <GeotechnicalDrawer
-                segment={selectedSegment}
-                onClose={() => onSelectSegment(null)}
-              />
-            )}
+          <div className="relative w-full">
+            <MapCanvas
+              nodes={nodes}
+              segments={segments}
+              activeRoute={activeRoute}
+              activeVehicle={activeVehicle}
+              reports={reports}
+              selectedSegment={selectedSegment}
+              onSelectSegment={(seg) => onSelectSegment(seg)}
+              onSelectConvoy={(convoy) => setSelectedConvoyForManifest(convoy)}
+              selectedAuthorityState={authority.state}
+              activeWorkspace="command"
+              sideDrawer={
+                selectedSegment ? (
+                  <GeotechnicalDrawer
+                    segment={selectedSegment}
+                    onClose={() => onSelectSegment(null)}
+                  />
+                ) : null
+              }
+            />
           </div>
 
           {/* Operations Activity Panel: Vital signs, Damaged/Alerted Convoys, Disrupted Roads, Field Operator Flags */}
