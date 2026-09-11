@@ -66,7 +66,7 @@ def run_tests():
     assert engine.segments[saved_rpt.snapped_segment_id]["is_blocked"] is True
 
     # 5. Reactive Disruption & Rerouting
-    print("  [5/5] Testing Automated Reactive Rerouting on Hazard...")
+    print("  [5/8] Testing Automated Reactive Rerouting on Hazard...")
     sim.evaluate_hazards("MED_CONVOY_01")
     v_alert = sim.get_vehicle_telemetry("MED_CONVOY_01")
     print(f"    ✓ Ahead Hazard Detected: {v_alert.ahead_hazard_detected}, Advisory: {v_alert.operational_advisory}")
@@ -80,8 +80,42 @@ def run_tests():
     assert resolved.is_resolved is True
     print(f"    ✓ Incident Resolved: Road reopened in graph={not engine.segments[saved_rpt.snapped_segment_id]['is_blocked']}")
 
-    print("\n🎉 ALL 5 VERIFICATION SUITE TESTS PASSED WITH 100% SUCCESS!")
+    # 6. Feature 6: Buffer Stock & Emergency Inventory Verification
+    print("  [6/8] Testing Buffer Stock Runways & Deficit Detection...")
+    from backend.services.inventory_clustering_service import InventoryClusteringService
+    inv_svc = InventoryClusteringService()
+    stocks = inv_svc.get_all_buffer_stocks()
+    assert "Tawang" in stocks
+    assert "Anjaw" in stocks
+    assert stocks["Anjaw"]["overall_stock_runway_days"] < 15
+    print(f"    ✓ Buffer Stocks Verified: Tawang Runway={stocks['Tawang']['overall_stock_runway_days']}d, Anjaw Runway={stocks['Anjaw']['overall_stock_runway_days']}d (Status={stocks['Anjaw']['status']})")
+
+    # 7. Feature 7: Warehousing & Local Market Backhaul Opportunities
+    print("  [7/8] Testing Warehousing Capacity & Backhaul Optimization...")
+    warehouses = inv_svc.get_warehousing_network()
+    markets = inv_svc.get_local_markets()
+    assert len(warehouses) >= 4
+    assert len(markets["backhaul_opportunities"]) >= 3
+    bkh = markets["backhaul_opportunities"][0]
+    print(f"    ✓ Warehousing Nodes: {len(warehouses)} depots/cold stores mapped.")
+    print(f"    ✓ Backhaul Opportunity: {bkh['origin_market']} -> {bkh['destination_hub']} ({bkh['available_weight_mt']} MT, Est. Savings: ₹{bkh['potential_savings_inr']})")
+
+    # 8. Feature 8: Scikit-Learn KMeans Clustering & 30-Day Demand Forecasting
+    print("  [8/8] Testing Scikit-Learn KMeans Clustering & Demand Forecasting...")
+    clusters = inv_svc.get_clusters()
+    assert len(clusters) == 4
+    forecast = inv_svc.generate_demand_forecast("Tawang", days=30)
+    assert len(forecast["commodity_forecasts"]) >= 4
+    assert forecast["advance_procurement_triggered"] is True
+    print(f"    ✓ Scikit-Learn KMeans: {len(clusters)} strategic demand clusters converged.")
+    for c in clusters:
+        print(f"      - Cluster #{c['cluster_id']}: {c['cluster_name']} ({len(c['districts'])} districts)")
+    print(f"    ✓ 30-Day Forecast Generated for Tawang: Advance Procurement Triggered={forecast['advance_procurement_triggered']}")
+    print(f"      - Sample Action: {forecast['recommended_procurement_actions'][0]}")
+
+    print("\n🎉 ALL 8 VERIFICATION SUITE TESTS PASSED WITH 100% SUCCESS!")
 
 
 if __name__ == "__main__":
     run_tests()
+

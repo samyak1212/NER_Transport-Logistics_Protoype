@@ -33,6 +33,7 @@ from backend.routers.routes_vehicles import router as vehicles_router
 from backend.routers.routes_field_reports import router as field_reports_router
 from backend.routers.routes_simulation import router as simulation_router
 from backend.routers.routes_ai import router as ai_router
+from backend.routers.routes_inventory import router as inventory_router
 
 
 if sys.stdout and hasattr(sys.stdout, "reconfigure"):
@@ -95,6 +96,7 @@ app.include_router(vehicles_router)
 app.include_router(field_reports_router)
 app.include_router(simulation_router)
 app.include_router(ai_router)
+app.include_router(inventory_router)
 
 
 @app.get("/health")

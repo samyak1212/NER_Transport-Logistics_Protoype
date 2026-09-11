@@ -7,6 +7,10 @@ import {
   ROADWORKS_AND_CONNECTIVITY,
   MULTIMODAL_LOGISTICS,
   FUEL_AND_ENERGY_RESERVES,
+  DEFAULT_BUFFER_STOCKS,
+  DEFAULT_WAREHOUSING_NETWORK,
+  DEFAULT_LOCAL_MARKETS,
+  DEFAULT_DEMAND_CLUSTERS,
 } from '../data/defaultData';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ? import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '') : '/api';
@@ -90,6 +94,66 @@ export const api = {
       if (res.ok) return await res.json();
     } catch (_) {}
     return FUEL_AND_ENERGY_RESERVES;
+  },
+
+  // --- Features 6, 7 & 8: Inventory, Warehousing & Demand Intelligence ---
+  async getBufferStocks() {
+    try {
+      const res = await fetch(`${API_BASE}/inventory/buffer-stocks`);
+      if (res.ok) return await res.json();
+    } catch (_) {}
+    return DEFAULT_BUFFER_STOCKS;
+  },
+
+  async getWarehousingNetwork() {
+    try {
+      const res = await fetch(`${API_BASE}/inventory/warehousing-network`);
+      if (res.ok) return await res.json();
+    } catch (_) {}
+    return DEFAULT_WAREHOUSING_NETWORK;
+  },
+
+  async getLocalMarkets() {
+    try {
+      const res = await fetch(`${API_BASE}/inventory/local-markets`);
+      if (res.ok) return await res.json();
+    } catch (_) {}
+    return DEFAULT_LOCAL_MARKETS;
+  },
+
+  async getDemandClusters() {
+    try {
+      const res = await fetch(`${API_BASE}/inventory/demand-clusters`);
+      if (res.ok) return await res.json();
+    } catch (_) {}
+    return DEFAULT_DEMAND_CLUSTERS;
+  },
+
+  async getDemandForecast(district = 'Tawang') {
+    try {
+      const res = await fetch(`${API_BASE}/inventory/demand-forecast?district=${encodeURIComponent(district)}`);
+      if (res.ok) return await res.json();
+    } catch (_) {}
+    return null;
+  },
+
+  async triggerAdvanceProcurement(payload) {
+    try {
+      const res = await fetch(`${API_BASE}/inventory/advance-procurement`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) return await res.json();
+    } catch (_) {}
+    return {
+      order_id: `LOCAL-PROC-${Date.now()}`,
+      district: payload.district,
+      commodity: payload.commodity,
+      quantity_mt: payload.quantity_mt,
+      status: 'DISPATCH_ORDER_CONFIRMED (OFFLINE)',
+      estimated_arrival_hours: 18
+    };
   },
 
   // --- Weather ---

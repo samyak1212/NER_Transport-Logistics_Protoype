@@ -6394,3 +6394,438 @@ export const FUEL_AND_ENERGY_RESERVES = {
     }
   ]
 };
+
+// ==========================================
+// FEATURE 6: BUFFER STOCKS & EMERGENCY INVENTORY
+// ==========================================
+export const DEFAULT_BUFFER_STOCKS = {
+  "Tawang": {
+    district_id: "DST_AR_01",
+    district_name: "Tawang",
+    state: "Arunachal Pradesh",
+    isolation_risk_index: 0.94,
+    total_population: 49977,
+    overall_stock_runway_days: 18,
+    status: "DEFICIT_RISK",
+    pre_disaster_procurement_active: true,
+    critical_replenishment_needed: ["Perishable Vegetables", "Infant Nutrition", "LPG Cylinders"],
+    commodities: [
+      { name: "PDS Rice & Wheat", category: "GRAIN", current_stock_mt: 180.0, safety_buffer_mt: 350.0, daily_burn_rate_mt: 8.5, days_remaining: 21, status: "WARNING" },
+      { name: "Lentils & Pulses (Dal)", category: "PULSE", current_stock_mt: 42.0, safety_buffer_mt: 80.0, daily_burn_rate_mt: 1.9, days_remaining: 22, status: "WARNING" },
+      { name: "Mustard Cooking Oil", category: "EDIBLE_OIL", current_stock_mt: 28.0, safety_buffer_mt: 45.0, daily_burn_rate_mt: 1.2, days_remaining: 23, status: "WARNING" },
+      { name: "Potatoes, Onions & Cabbage", category: "VEGETABLE", current_stock_mt: 12.0, safety_buffer_mt: 65.0, daily_burn_rate_mt: 3.4, days_remaining: 3, status: "CRITICAL" },
+      { name: "Emergency Trauma & Antibiotics", category: "MEDICINE", current_stock_mt: 6.5, safety_buffer_mt: 12.0, daily_burn_rate_mt: 0.3, days_remaining: 21, status: "WARNING" },
+      { name: "Infant Milk Formula & Baby Food", category: "BABY_FOOD", current_stock_mt: 1.8, safety_buffer_mt: 8.0, daily_burn_rate_mt: 0.4, days_remaining: 4, status: "CRITICAL" },
+      { name: "Winter Diesel & Sub-Zero Kerosene", category: "WINTER_FUEL", current_stock_mt: 95.0, safety_buffer_mt: 220.0, daily_burn_rate_mt: 6.8, days_remaining: 14, status: "CRITICAL" }
+    ]
+  },
+  "Anjaw": {
+    district_id: "DST_AR_02",
+    district_name: "Anjaw",
+    state: "Arunachal Pradesh",
+    isolation_risk_index: 0.98,
+    total_population: 21167,
+    overall_stock_runway_days: 9,
+    status: "CRITICAL_SHORTAGE",
+    pre_disaster_procurement_active: true,
+    critical_replenishment_needed: ["PDS Rice & Wheat", "Emergency Medicines", "Winter Diesel"],
+    commodities: [
+      { name: "PDS Rice & Wheat", category: "GRAIN", current_stock_mt: 32.0, safety_buffer_mt: 120.0, daily_burn_rate_mt: 3.8, days_remaining: 8, status: "CRITICAL" },
+      { name: "Lentils & Pulses (Dal)", category: "PULSE", current_stock_mt: 7.5, safety_buffer_mt: 25.0, daily_burn_rate_mt: 0.9, days_remaining: 8, status: "CRITICAL" },
+      { name: "Mustard Cooking Oil", category: "EDIBLE_OIL", current_stock_mt: 5.0, safety_buffer_mt: 15.0, daily_burn_rate_mt: 0.5, days_remaining: 10, status: "CRITICAL" },
+      { name: "Potatoes & Root Vegetables", category: "VEGETABLE", current_stock_mt: 4.0, safety_buffer_mt: 20.0, daily_burn_rate_mt: 1.4, days_remaining: 2, status: "CRITICAL" },
+      { name: "Emergency Trauma & Antibiotics", category: "MEDICINE", current_stock_mt: 1.2, safety_buffer_mt: 5.0, daily_burn_rate_mt: 0.2, days_remaining: 6, status: "CRITICAL" },
+      { name: "Infant Milk Formula & Baby Food", category: "BABY_FOOD", current_stock_mt: 0.9, safety_buffer_mt: 3.5, daily_burn_rate_mt: 0.15, days_remaining: 6, status: "CRITICAL" },
+      { name: "Winter Diesel & Sub-Zero Kerosene", category: "WINTER_FUEL", current_stock_mt: 22.0, safety_buffer_mt: 85.0, daily_burn_rate_mt: 2.5, days_remaining: 8, status: "CRITICAL" }
+    ]
+  },
+  "West_Kameng": {
+    district_id: "DST_AR_03",
+    district_name: "West Kameng",
+    state: "Arunachal Pradesh",
+    isolation_risk_index: 0.68,
+    total_population: 83947,
+    overall_stock_runway_days: 32,
+    status: "NORMAL",
+    pre_disaster_procurement_active: false,
+    critical_replenishment_needed: [],
+    commodities: [
+      { name: "PDS Rice & Wheat", category: "GRAIN", current_stock_mt: 480.0, safety_buffer_mt: 500.0, daily_burn_rate_mt: 14.5, days_remaining: 33, status: "ADEQUATE" },
+      { name: "Lentils & Pulses (Dal)", category: "PULSE", current_stock_mt: 110.0, safety_buffer_mt: 120.0, daily_burn_rate_mt: 3.4, days_remaining: 32, status: "ADEQUATE" },
+      { name: "Mustard Cooking Oil", category: "EDIBLE_OIL", current_stock_mt: 68.0, safety_buffer_mt: 75.0, daily_burn_rate_mt: 2.1, days_remaining: 32, status: "ADEQUATE" },
+      { name: "Potatoes, Onions & Cabbage", category: "VEGETABLE", current_stock_mt: 55.0, safety_buffer_mt: 70.0, daily_burn_rate_mt: 4.8, days_remaining: 11, status: "WARNING" },
+      { name: "Emergency Trauma & Antibiotics", category: "MEDICINE", current_stock_mt: 18.0, safety_buffer_mt: 20.0, daily_burn_rate_mt: 0.5, days_remaining: 36, status: "ADEQUATE" },
+      { name: "Infant Milk Formula & Baby Food", category: "BABY_FOOD", current_stock_mt: 9.0, safety_buffer_mt: 10.0, daily_burn_rate_mt: 0.3, days_remaining: 30, status: "ADEQUATE" },
+      { name: "Winter Diesel & Sub-Zero Kerosene", category: "WINTER_FUEL", current_stock_mt: 210.0, safety_buffer_mt: 250.0, daily_burn_rate_mt: 7.2, days_remaining: 29, status: "ADEQUATE" }
+    ]
+  },
+  "North_Sikkim": {
+    district_id: "DST_SK_01",
+    district_name: "North Sikkim",
+    state: "Sikkim",
+    isolation_risk_index: 0.96,
+    total_population: 43709,
+    overall_stock_runway_days: 11,
+    status: "CRITICAL_SHORTAGE",
+    pre_disaster_procurement_active: true,
+    critical_replenishment_needed: ["PDS Rice & Wheat", "LPG Cylinders", "Potatoes & Onions"],
+    commodities: [
+      { name: "PDS Rice & Wheat", category: "GRAIN", current_stock_mt: 82.0, safety_buffer_mt: 240.0, daily_burn_rate_mt: 7.8, days_remaining: 10, status: "CRITICAL" },
+      { name: "Lentils & Pulses (Dal)", category: "PULSE", current_stock_mt: 19.0, safety_buffer_mt: 55.0, daily_burn_rate_mt: 1.7, days_remaining: 11, status: "CRITICAL" },
+      { name: "Mustard Cooking Oil", category: "EDIBLE_OIL", current_stock_mt: 13.0, safety_buffer_mt: 35.0, daily_burn_rate_mt: 1.1, days_remaining: 11, status: "CRITICAL" },
+      { name: "Potatoes, Onions & Cabbage", category: "VEGETABLE", current_stock_mt: 7.0, safety_buffer_mt: 50.0, daily_burn_rate_mt: 3.1, days_remaining: 2, status: "CRITICAL" },
+      { name: "Emergency Trauma & Antibiotics", category: "MEDICINE", current_stock_mt: 4.5, safety_buffer_mt: 11.0, daily_burn_rate_mt: 0.3, days_remaining: 15, status: "WARNING" },
+      { name: "Infant Milk Formula & Baby Food", category: "BABY_FOOD", current_stock_mt: 1.5, safety_buffer_mt: 6.0, daily_burn_rate_mt: 0.25, days_remaining: 6, status: "CRITICAL" },
+      { name: "Winter Diesel & Sub-Zero Kerosene", category: "WINTER_FUEL", current_stock_mt: 48.0, safety_buffer_mt: 160.0, daily_burn_rate_mt: 5.5, days_remaining: 8, status: "CRITICAL" }
+    ]
+  },
+  "Sonitpur": {
+    district_id: "DST_AS_02",
+    district_name: "Sonitpur (Tezpur Hub)",
+    state: "Assam",
+    isolation_risk_index: 0.15,
+    total_population: 1924110,
+    overall_stock_runway_days: 68,
+    status: "SURPLUS",
+    pre_disaster_procurement_active: false,
+    critical_replenishment_needed: [],
+    commodities: [
+      { name: "PDS Rice & Wheat", category: "GRAIN", current_stock_mt: 18500.0, safety_buffer_mt: 8000.0, daily_burn_rate_mt: 280.0, days_remaining: 66, status: "SURPLUS" },
+      { name: "Lentils & Pulses (Dal)", category: "PULSE", current_stock_mt: 3800.0, safety_buffer_mt: 1800.0, daily_burn_rate_mt: 58.0, days_remaining: 65, status: "SURPLUS" },
+      { name: "Mustard Cooking Oil", category: "EDIBLE_OIL", current_stock_mt: 2400.0, safety_buffer_mt: 1200.0, daily_burn_rate_mt: 36.0, days_remaining: 66, status: "SURPLUS" },
+      { name: "Central Cold Storage Vegetables", category: "VEGETABLE", current_stock_mt: 1800.0, safety_buffer_mt: 900.0, daily_burn_rate_mt: 85.0, days_remaining: 21, status: "ADEQUATE" },
+      { name: "District Base Hospital Medical Stock", category: "MEDICINE", current_stock_mt: 140.0, safety_buffer_mt: 60.0, daily_burn_rate_mt: 2.1, days_remaining: 66, status: "SURPLUS" },
+      { name: "Infant Nutrition & Ready-to-Use Food", category: "BABY_FOOD", current_stock_mt: 120.0, safety_buffer_mt: 50.0, daily_burn_rate_mt: 1.8, days_remaining: 66, status: "SURPLUS" },
+      { name: "IOCL Regional Fuel Terminal", category: "WINTER_FUEL", current_stock_mt: 9500.0, safety_buffer_mt: 4000.0, daily_burn_rate_mt: 140.0, days_remaining: 67, status: "SURPLUS" }
+    ]
+  }
+};
+
+// ==========================================
+// FEATURE 7: WAREHOUSING & LOCAL MARKET NETWORK
+// ==========================================
+export const DEFAULT_WAREHOUSING_NETWORK = [
+  {
+    id: "WH_01_CHANGSARI",
+    name: "CWC Central Multimodal Logistics Park & Silos",
+    operator: "CWC",
+    warehouse_type: "CENTRAL_RAILHEAD_SILO",
+    location: "Changsari / Amingaon (Guwahati)",
+    coordinates: [26.2624, 91.6842],
+    total_capacity_mt: 65000.0,
+    utilized_mt: 48200.0,
+    utilization_pct: 74.2,
+    cold_storage_capacity_m3: 12000.0,
+    cold_storage_temp_c: 2.0,
+    road_connectivity: "NH-27 East-West Arterial & BG Broad-Gauge Railway Siding",
+    vulnerable_choke_point: "Saraighat Bridge Traffic Pinch",
+    feeder_mandis: ["MKN Agro Mandi Guwahati", "Pamohi Fruit Market", "Darrang Agricultural Hub"]
+  },
+  {
+    id: "WH_02_TEZPUR_FCI",
+    name: "FCI Strategic Inland Food Grain Depot",
+    operator: "FCI",
+    warehouse_type: "DISTRICT_DEPOT",
+    location: "Dekargaon (Tezpur Gateway)",
+    coordinates: [26.6548, 92.7845],
+    total_capacity_mt: 28000.0,
+    utilized_mt: 21400.0,
+    utilization_pct: 76.4,
+    cold_storage_capacity_m3: 4500.0,
+    cold_storage_temp_c: 3.5,
+    road_connectivity: "NH-15 & NH-13 Foothill Bifurcation",
+    vulnerable_choke_point: "Kalia Bhomora River Bridge Approach",
+    feeder_mandis: ["Tezpur Vegetable Wholesale Mandi", "Missamari Food Grain Yard"]
+  },
+  {
+    id: "WH_03_BOMDILA_DEPOT",
+    name: "BRO & State Civil Supplies Intermediate Godown",
+    operator: "STATE_CIVIL_SUPPLIES",
+    warehouse_type: "DISTRICT_DEPOT",
+    location: "Bomdila Hill Crest",
+    coordinates: [27.2645, 92.4215],
+    total_capacity_mt: 4800.0,
+    utilized_mt: 3650.0,
+    utilization_pct: 76.0,
+    cold_storage_capacity_m3: 850.0,
+    cold_storage_temp_c: 4.0,
+    road_connectivity: "NH-13 Mountain Spine (Single-Lifeline)",
+    vulnerable_choke_point: "Bhalukpong-Tippi Landslide Chute",
+    feeder_mandis: ["Bomdila Main Market", "Rupa Organic Haat"]
+  },
+  {
+    id: "WH_04_TAWANG_FSSP",
+    name: "Tawang Forward Strategic Supply Point (FSSP)",
+    operator: "BRO_DEPOT",
+    warehouse_type: "FORWARD_STRATEGIC_POINT",
+    location: "Tawang Valley Logistics Grid",
+    coordinates: [27.5862, 91.8654],
+    total_capacity_mt: 2200.0,
+    utilized_mt: 1420.0,
+    utilization_pct: 64.5,
+    cold_storage_capacity_m3: 350.0,
+    cold_storage_temp_c: -1.5,
+    road_connectivity: "Sela Tunnel NH-13 Terminal Loop",
+    vulnerable_choke_point: "Jaswantgarh-Sela Pass Avalanche Corridor",
+    feeder_mandis: ["Tawang Old Market Haat", "Lumla Rural Collection Centre"]
+  },
+  {
+    id: "WH_05_DIRANG_COLD",
+    name: "Dirang Agro-Horticulture Cold Store",
+    operator: "STATE_CIVIL_SUPPLIES",
+    warehouse_type: "COLD_CHAIN_STORAGE",
+    location: "Dirang Valley (West Kameng)",
+    coordinates: [27.3582, 92.2384],
+    total_capacity_mt: 1800.0,
+    utilized_mt: 1250.0,
+    utilization_pct: 69.4,
+    cold_storage_capacity_m3: 3200.0,
+    cold_storage_temp_c: 0.5,
+    road_connectivity: "NH-13 Mid-Valley Feeder",
+    vulnerable_choke_point: "Munna Camp Flash Flood Gully",
+    feeder_mandis: ["Dirang Kiwi & Apple Collective", "Sangti Valley Organic Mandi"]
+  },
+  {
+    id: "WH_06_HAWAI_ANJAW",
+    name: "Anjaw Sub-Divisional Emergency Godown",
+    operator: "STATE_CIVIL_SUPPLIES",
+    warehouse_type: "FORWARD_STRATEGIC_POINT",
+    location: "Hawai (Anjaw District HQ)",
+    coordinates: [27.8924, 96.5312],
+    total_capacity_mt: 950.0,
+    utilized_mt: 310.0,
+    utilization_pct: 32.6,
+    cold_storage_capacity_m3: 120.0,
+    cold_storage_temp_c: 4.0,
+    road_connectivity: "Walong Highway (NH-113 Lohit River Road)",
+    vulnerable_choke_point: "Hayuliang Sinking Zone",
+    feeder_mandis: ["Hawai Weekly Haat", "Walong Border Point"]
+  }
+];
+
+export const DEFAULT_LOCAL_MARKETS = {
+  markets: [
+    {
+      id: "MKT_01_TEZPUR",
+      name: "Tezpur Regional APMC Wholesale Mandi",
+      market_type: "APMC_MANDI",
+      location: "Tezpur Bypass Road, Assam",
+      coordinates: [26.6432, 92.7981],
+      operating_days: "Daily (04:00 - 14:00 IST)",
+      daily_trading_volume_mt: 240.0,
+      key_commodities: ["Potatoes", "Onions", "Cabbage", "Mustard Oil", "Rice", "Poultry"],
+      local_specialties: ["Assam CTC Tea", "Bhut Jolokia Chili", "Brahmaputra Fish"],
+      serving_warehouses: ["WH_02_TEZPUR_FCI", "WH_01_CHANGSARI"]
+    },
+    {
+      id: "MKT_02_BOMDILA",
+      name: "Bomdila Main Market & Farmers Haat",
+      market_type: "WEEKLY_HAAT",
+      location: "Bomdila Central Square",
+      coordinates: [27.2651, 92.4228],
+      operating_days: "Wednesday & Saturday Full Day",
+      daily_trading_volume_mt: 35.0,
+      key_commodities: ["Green Vegetables", "Dal", "Cooking Salt", "Flour"],
+      local_specialties: ["Organic Apples", "Yak Ghee (Churpi)", "Tibetan Carpets", "Monpa Woodcraft"],
+      serving_warehouses: ["WH_03_BOMDILA_DEPOT", "WH_05_DIRANG_COLD"]
+    },
+    {
+      id: "MKT_03_TAWANG",
+      name: "Tawang Old Market & Border Trade Point",
+      market_type: "BORDER_TRADE_CENTRE",
+      location: "Old Market Tawang Town",
+      coordinates: [27.5873, 91.8679],
+      operating_days: "Tuesday to Sunday",
+      daily_trading_volume_mt: 18.5,
+      key_commodities: ["PDS Grain", "LPG Refills", "Winter Warmwear", "Packaged Rations"],
+      local_specialties: ["Monpa Handmade Daphne Paper", "Traditional Thangka Textiles", "Churpi Cheese"],
+      serving_warehouses: ["WH_04_TAWANG_FSSP"]
+    },
+    {
+      id: "MKT_04_PASIGHAT",
+      name: "Pasighat APMC Agricultural Exchange",
+      market_type: "APMC_MANDI",
+      location: "Pasighat East Siang, Arunachal",
+      coordinates: [28.0664, 95.3265],
+      operating_days: "Daily (06:00 - 16:00 IST)",
+      daily_trading_volume_mt: 85.0,
+      key_commodities: ["Paddy", "Winter Vegetables", "Cereals", "Sugar"],
+      local_specialties: ["Arunachal Organic Oranges", "Ginger", "Bamboo Shoot Pickles"],
+      serving_warehouses: ["WH_02_TEZPUR_FCI"]
+    }
+  ],
+  local_products_catalog: [
+    {
+      id: "PRD_TEA_01",
+      name: "Assam Orthodox & Golden CTC Tea",
+      category: "TEA",
+      origin_district: "Sonitpur / Biswanath",
+      harvest_peak_months: "April - November (Second Flush Peak)",
+      annual_yield_mt_or_units: "45,000 MT Regional Export",
+      backhaul_suitability: "EXCELLENT (Dry containerized cargo, high density)",
+      preservation_requirements: "Moisture-sealed Kraft paper sacks, ambient dry ventilated",
+      economic_impact: "Direct lifeline livelihood for 185,000 tea smallholder families in Brahmaputra Valley."
+    },
+    {
+      id: "PRD_PAPER_02",
+      name: "Monpa Heritage Handmade Daphne Paper (Sukso)",
+      category: "HANDICRAFT",
+      origin_district: "Tawang / Mukto",
+      harvest_peak_months: "Year-round artisanal production",
+      annual_yield_mt_or_units: "28,000 High-Value Sheets / Month",
+      backhaul_suitability: "HIGH (Lightweight, compact high-margin return freight)",
+      preservation_requirements: "Flat-packed waterproof cartons, zero compression",
+      economic_impact: "Revived historical 1000-year Buddhist manuscript craft supporting Monpa tribal women artisans."
+    },
+    {
+      id: "PRD_KIWI_03",
+      name: "Organic Hayward Kiwi & Wild Walnuts",
+      category: "HORTICULTURE",
+      origin_district: "West Kameng (Dirang Valley)",
+      harvest_peak_months: "October - January",
+      annual_yield_mt_or_units: "3,200 MT Cold-Chain Harvest",
+      backhaul_suitability: "VERY HIGH (Pairs with refrigerated returning grocery trucks)",
+      preservation_requirements: "Refrigerated transit 1°C to 4°C, ventilated plastic crates",
+      economic_impact: "Top horticultural cash crop in Arunachal Pradesh fetching ₹180-250/kg in Delhi/Kolkata markets."
+    },
+    {
+      id: "PRD_CARDAMOM_04",
+      name: "Himalayan Large Cardamom (Badi Elaichi)",
+      category: "SPICES",
+      origin_district: "North Sikkim & Anjaw",
+      harvest_peak_months: "September - December",
+      annual_yield_mt_or_units: "4,100 MT Certified Organic Yield",
+      backhaul_suitability: "MAXIMUM (High value-to-weight ratio, shelf-stable)",
+      preservation_requirements: "Double-lined jute bags, ambient moisture < 11%",
+      economic_impact: "Primary cash crop of high-altitude Sikkim/Arunachal tribal growers with GI certification."
+    },
+    {
+      id: "PRD_TEXTILE_05",
+      name: "Mishmi Tribal Loin-Loom Handloom & Eri Silk",
+      category: "HANDICRAFT",
+      origin_district: "Anjaw / Lohit",
+      harvest_peak_months: "Post-Monsoon (August - February)",
+      annual_yield_mt_or_units: "14,500 Artisan Garments & Stoles",
+      backhaul_suitability: "HIGH (Low volume, high retail margin in national urban emporiums)",
+      preservation_requirements: "Pest-resistant moisture-proof poly-bales",
+      economic_impact: "Sustains indigenous handloom collectives in border villages along the LAC."
+    }
+  ],
+  backhaul_opportunities: [
+    {
+      id: "BKH_01_TAWANG_TEZPUR",
+      origin_market: "Tawang Old Market / Dirang Cold Store",
+      destination_hub: "Tezpur Multimodal Depot & Guwahati ICD",
+      cargo_description: "14 MT Organic Hayward Kiwi + 2.5 MT Monpa Handmade Paper",
+      cargo_category: "HORTICULTURE_HANDICRAFT",
+      available_weight_mt: 16.5,
+      vehicle_type_required: "10-Wheeler Reversible Reefer / Tarpaulin Truck",
+      distance_km: 348.0,
+      potential_savings_inr: 48500,
+      status: "READY_FOR_MATCHING"
+    },
+    {
+      id: "BKH_02_ANJAW_TINSUKIA",
+      origin_market: "Hawai Market (Anjaw)",
+      destination_hub: "Tinsukia Railhead Freight Hub",
+      cargo_description: "8 MT Organic Large Cardamom + 4 MT Mishmi Handloom Textiles",
+      cargo_category: "SPICES_HANDICRAFT",
+      available_weight_mt: 12.0,
+      vehicle_type_required: "Medium 6-Wheeler 4x4 Mountain Truck",
+      distance_km: 285.0,
+      potential_savings_inr: 36000,
+      status: "DISPATCH_RECOMMENDED"
+    },
+    {
+      id: "BKH_03_BOMDILA_GUWAHATI",
+      origin_market: "Bomdila Farmers Haat",
+      destination_hub: "Guwahati Changsari CWC Hub",
+      cargo_description: "18 MT Organic Red Ginger & High-Altitude Potatoes",
+      cargo_category: "ORGANIC_AGRO",
+      available_weight_mt: 18.0,
+      vehicle_type_required: "Multi-Axle 12-Wheeler Truck",
+      distance_km: 265.0,
+      potential_savings_inr: 52000,
+      status: "CONFIRMED_CARGO"
+    }
+  ]
+};
+
+// ==========================================
+// FEATURE 8: DEMAND CLUSTERING & FORECASTING
+// ==========================================
+export const DEFAULT_DEMAND_CLUSTERS = [
+  {
+    cluster_id: 0,
+    cluster_name: "High-Altitude Snowbound Strategic Redoubts",
+    description: "Sub-zero temperatures, Sela/Mayodia pass dependency, GLOF and blizzard risk. Requires minimum 60-day buffer.",
+    strategic_priority: "CRITICAL_DEFENSE_AND_CIVIL_SURVIVAL",
+    dominant_hazard: "Snow, Avalanche & Freezing Road Icing",
+    buffer_stock_multiplier: 2.2,
+    recommended_safety_days: 60,
+    districts: ["Tawang", "North_Sikkim", "Anjaw"],
+    key_features: {
+      avg_elevation_m: 2666.0,
+      avg_isolation_risk: 0.96,
+      avg_winter_severity: 0.91,
+      avg_population_scale: 0.12,
+      avg_flood_vulnerability: 0.46,
+      avg_inbound_freight_tpd: 32.0
+    }
+  },
+  {
+    cluster_id: 1,
+    cluster_name: "Riverine & Monsoon Cutoff Floodplains",
+    description: "Brahmaputra/Subansiri embankment breach zones, river-island isolation, high waterborne disease risk.",
+    strategic_priority: "DISASTER_RELIEF_AND_PUBLIC_HEALTH",
+    dominant_hazard: "Catastrophic Riverine Inundation",
+    buffer_stock_multiplier: 1.8,
+    recommended_safety_days: 45,
+    districts: ["Dhemaji", "Majuli", "Lower_Dibang"],
+    key_features: {
+      avg_elevation_m: 122.7,
+      avg_isolation_risk: 0.77,
+      avg_winter_severity: 0.10,
+      avg_population_scale: 0.48,
+      avg_flood_vulnerability: 0.95,
+      avg_inbound_freight_tpd: 107.3
+    }
+  },
+  {
+    cluster_id: 2,
+    cluster_name: "Fragile Escarpment Landslide Corridors",
+    description: "Steep Himalayan gorges with recurring scree falls and mudslides. Demands rolling cold-chain replenishment.",
+    strategic_priority: "CORRIDOR_MAINTENANCE_AND_PERISHABLES",
+    dominant_hazard: "Active Landslides & Mudflow Chutes",
+    buffer_stock_multiplier: 1.5,
+    recommended_safety_days: 30,
+    districts: ["West_Kameng", "Upper_Siang", "Dima_Hasao", "Papum_Pare", "Kurung_Kumey", "Dibang_Valley"],
+    key_features: {
+      avg_elevation_m: 1231.3,
+      avg_isolation_risk: 0.76,
+      avg_winter_severity: 0.50,
+      avg_population_scale: 0.29,
+      avg_flood_vulnerability: 0.68,
+      avg_inbound_freight_tpd: 92.0
+    }
+  },
+  {
+    cluster_id: 3,
+    cluster_name: "Gateway Hubs & Transshipment Consolidators",
+    description: "Railhead and multi-modal transfer gateways feeding mountain corridors with massive buffer silos.",
+    strategic_priority: "STRATEGIC_BUFFER_STAGING_AND_BACKHAUL",
+    dominant_hazard: "Logistics Bottlenecks & Rail Freight Congestion",
+    buffer_stock_multiplier: 1.1,
+    recommended_safety_days: 20,
+    districts: ["Sonitpur", "Kamrup_Metro", "Dimapur", "Siliguri_Junction"],
+    key_features: {
+      avg_elevation_m: 101.8,
+      avg_isolation_risk: 0.12,
+      avg_winter_severity: 0.04,
+      avg_population_scale: 0.89,
+      avg_flood_vulnerability: 0.36,
+      avg_inbound_freight_tpd: 1017.5
+    }
+  }
+];
+

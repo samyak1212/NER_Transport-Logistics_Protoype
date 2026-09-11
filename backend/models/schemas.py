@@ -346,3 +346,129 @@ class LocalEnergyDependence(BaseModel):
     firewood_stock_days: int
     winter_heating_status: str
     lpg_refill_backlog_days: int
+
+
+# --- Feature 6: Buffer Stock & Emergency Inventory Schemas ---
+class BufferCommodity(BaseModel):
+    name: str
+    category: str  # GRAIN, PULSE, EDIBLE_OIL, VEGETABLE, MEDICINE, BABY_FOOD, WINTER_FUEL
+    current_stock_mt: float
+    safety_buffer_mt: float
+    daily_burn_rate_mt: float
+    days_remaining: int
+    status: str  # ADEQUATE, WARNING, CRITICAL, SURPLUS
+
+
+class DistrictBufferStock(BaseModel):
+    district_id: str
+    district_name: str
+    state: str
+    isolation_risk_index: float
+    total_population: int
+    overall_stock_runway_days: int
+    status: str  # NORMAL, DEFICIT_RISK, CRITICAL_SHORTAGE
+    commodities: List[BufferCommodity]
+    pre_disaster_procurement_active: bool
+    critical_replenishment_needed: List[str]
+
+
+class AdvanceProcurementOrder(BaseModel):
+    order_id: str
+    district: str
+    commodity: str
+    category: str
+    quantity_mt: float
+    target_mandi_or_hub: str
+    urgency: str
+    trigger_reason: str
+    estimated_arrival_hours: int
+    status: str
+
+
+# --- Feature 7: Warehousing & Local Market Network Schemas ---
+class WarehouseFacility(BaseModel):
+    id: str
+    name: str
+    operator: str  # FCI, CWC, STATE_CIVIL_SUPPLIES, BRO_DEPOT
+    warehouse_type: str  # CENTRAL_RAILHEAD_SILO, DISTRICT_DEPOT, COLD_CHAIN_STORAGE, FORWARD_STRATEGIC_POINT
+    location: str
+    coordinates: List[float]
+    total_capacity_mt: float
+    utilized_mt: float
+    utilization_pct: float
+    cold_storage_capacity_m3: float
+    cold_storage_temp_c: float
+    road_connectivity: str
+    vulnerable_choke_point: str
+    feeder_mandis: List[str]
+
+
+class LocalMarketHub(BaseModel):
+    id: str
+    name: str
+    market_type: str  # APMC_MANDI, WEEKLY_HAAT, BORDER_TRADE_CENTRE, AGRO_COLLECTION_CENTRE
+    location: str
+    coordinates: List[float]
+    operating_days: str
+    daily_trading_volume_mt: float
+    key_commodities: List[str]
+    local_specialties: List[str]
+    serving_warehouses: List[str]
+
+
+class LocalProductItem(BaseModel):
+    id: str
+    name: str
+    category: str  # TEA, HORTICULTURE, HANDICRAFT, SPICES, ORGANIC_PRODUCE
+    origin_district: str
+    harvest_peak_months: str
+    annual_yield_mt_or_units: str
+    backhaul_suitability: str
+    preservation_requirements: str
+    economic_impact: str
+
+
+class BackhaulOpportunity(BaseModel):
+    id: str
+    origin_market: str
+    destination_hub: str
+    cargo_description: str
+    cargo_category: str
+    available_weight_mt: float
+    vehicle_type_required: str
+    distance_km: float
+    potential_savings_inr: int
+    status: str
+
+
+# --- Feature 8: Demand Forecasting & ML Clustering Schemas ---
+class DistrictDemandCluster(BaseModel):
+    cluster_id: int
+    cluster_name: str
+    description: str
+    strategic_priority: str
+    districts: List[str]
+    dominant_hazard: str
+    buffer_stock_multiplier: float
+    recommended_safety_days: int
+    key_features: Dict[str, float]
+
+
+class DemandForecastDataPoint(BaseModel):
+    day: int
+    date: str
+    baseline_mt: float
+    emergency_spike_mt: float
+    tourist_surge_mt: float
+    total_projected_mt: float
+
+
+class DistrictDemandForecastResponse(BaseModel):
+    district: str
+    cluster_name: str
+    disruption_probability: float
+    forecast_days: int
+    commodity_forecasts: Dict[str, List[DemandForecastDataPoint]]
+    advance_procurement_triggered: bool
+    recommended_procurement_actions: List[str]
+

@@ -7,6 +7,7 @@ import DriverHUD from './components/workspaces/DriverHUD';
 import PublicPortal from './components/workspaces/PublicPortal';
 import SimulationLab from './components/workspaces/SimulationLab';
 import ArmyEmergencyPanel from './components/workspaces/ArmyEmergencyPanel';
+import InventoryWarehousePanel from './components/workspaces/InventoryWarehousePanel';
 import ErrorBoundary from './components/ErrorBoundary';
 import { 
   DEFAULT_NODES, 
@@ -289,6 +290,10 @@ export default function App() {
                 emergencyData={emergencyData}
                 onAirDropTriggered={refreshAllData}
               />
+            )}
+
+            {activeWorkspace === 'inventory' && (
+              <InventoryWarehousePanel />
             )}
 
             {activeWorkspace === 'dispatch' && (
