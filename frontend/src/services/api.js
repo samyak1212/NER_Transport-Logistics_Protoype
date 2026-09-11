@@ -141,9 +141,11 @@ export const api = {
   },
 
   async getVehicleTelemetry(vehicleId = 'MED_CONVOY_01') {
-    const res = await fetch(`${API_BASE}/vehicles/${vehicleId}/telemetry`);
-    if (!res.ok) throw new Error('Failed to fetch vehicle telemetry');
-    return res.json();
+    try {
+      const res = await fetch(`${API_BASE}/vehicles/${vehicleId}/telemetry`);
+      if (res.ok) return await res.json();
+    } catch (_) {}
+    return null;
   },
 
   async advanceVehicle(vehicleId = 'MED_CONVOY_01', stepPct = 4.0) {

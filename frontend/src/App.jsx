@@ -7,6 +7,7 @@ import DriverHUD from './components/workspaces/DriverHUD';
 import PublicPortal from './components/workspaces/PublicPortal';
 import SimulationLab from './components/workspaces/SimulationLab';
 import ArmyEmergencyPanel from './components/workspaces/ArmyEmergencyPanel';
+import ErrorBoundary from './components/ErrorBoundary';
 import { 
   DEFAULT_NODES, 
   DEFAULT_SEGMENTS, 
@@ -260,93 +261,95 @@ export default function App() {
       <main className="flex-1 p-3 md:p-4 max-w-[1700px] w-full mx-auto space-y-4">
         {/* Role-Tailored Workspace Views */}
         <div className="transition-all">
-          {activeWorkspace === 'command' && (
-            <CommandHQ
-              nodes={nodes}
-              segments={segments}
-              activeRoute={activeRoute}
-              activeVehicle={currentVehicle}
-              allConvoys={convoys}
-              drivers={REGISTERED_DRIVERS}
-              selectedDriverId={selectedDriverId}
-              onSelectDriver={handleSelectDriver}
-              reports={reports}
-              selectedSegment={selectedSegment}
-              onSelectSegment={(seg) => setSelectedSegment(seg)}
-              corridorHealth={corridorHealth}
-              districts={districts}
-              broMachinery={broMachinery}
-              weatherData={weatherData}
-              executiveBrief={executiveBrief}
-              onCalculateRoute={handleCalculateRoute}
-            />
-          )}
+          <ErrorBoundary panelName={activeWorkspace}>
+            {activeWorkspace === 'command' && (
+              <CommandHQ
+                nodes={nodes}
+                segments={segments}
+                activeRoute={activeRoute}
+                activeVehicle={currentVehicle}
+                allConvoys={convoys}
+                drivers={REGISTERED_DRIVERS}
+                selectedDriverId={selectedDriverId}
+                onSelectDriver={handleSelectDriver}
+                reports={reports}
+                selectedSegment={selectedSegment}
+                onSelectSegment={(seg) => setSelectedSegment(seg)}
+                corridorHealth={corridorHealth}
+                districts={districts}
+                broMachinery={broMachinery}
+                weatherData={weatherData}
+                executiveBrief={executiveBrief}
+                onCalculateRoute={handleCalculateRoute}
+              />
+            )}
 
-          {activeWorkspace === 'army' && (
-            <ArmyEmergencyPanel
-              emergencyData={emergencyData}
-              onAirDropTriggered={refreshAllData}
-            />
-          )}
+            {activeWorkspace === 'army' && (
+              <ArmyEmergencyPanel
+                emergencyData={emergencyData}
+                onAirDropTriggered={refreshAllData}
+              />
+            )}
 
-          {activeWorkspace === 'dispatch' && (
-            <LogisticsDispatch
-              nodes={nodes}
-              segments={segments}
-              activeRoute={activeRoute}
-              activeVehicle={currentVehicle}
-              currentDriver={currentDriver}
-              drivers={REGISTERED_DRIVERS}
-              selectedDriverId={selectedDriverId}
-              onSelectDriver={handleSelectDriver}
-              comparisonData={comparisonData}
-              onCalculateRoute={handleCalculateRoute}
-              onAdvanceVehicle={handleAdvanceVehicle}
-              onPauseVehicle={handlePauseVehicle}
-              onResumeVehicle={handleResumeVehicle}
-              onRerouteVehicle={handleRerouteVehicle}
-              isLoadingRoute={isLoadingRoute}
-            />
-          )}
+            {activeWorkspace === 'dispatch' && (
+              <LogisticsDispatch
+                nodes={nodes}
+                segments={segments}
+                activeRoute={activeRoute}
+                activeVehicle={currentVehicle}
+                currentDriver={currentDriver}
+                drivers={REGISTERED_DRIVERS}
+                selectedDriverId={selectedDriverId}
+                onSelectDriver={handleSelectDriver}
+                comparisonData={comparisonData}
+                onCalculateRoute={handleCalculateRoute}
+                onAdvanceVehicle={handleAdvanceVehicle}
+                onPauseVehicle={handlePauseVehicle}
+                onResumeVehicle={handleResumeVehicle}
+                onRerouteVehicle={handleRerouteVehicle}
+                isLoadingRoute={isLoadingRoute}
+              />
+            )}
 
-          {activeWorkspace === 'field' && (
-            <FieldOps
-              reports={reports}
-              segments={segments}
-              selectedCoordinates={selectedCoordinates}
-              onReportSubmitted={refreshAllData}
-              onReportResolved={handleReportResolved}
-            />
-          )}
+            {activeWorkspace === 'field' && (
+              <FieldOps
+                reports={reports}
+                segments={segments}
+                selectedCoordinates={selectedCoordinates}
+                onReportSubmitted={refreshAllData}
+                onReportResolved={handleReportResolved}
+              />
+            )}
 
-          {activeWorkspace === 'driver' && (
-            <DriverHUD 
-              activeVehicle={currentVehicle}
-              currentDriver={currentDriver}
-              drivers={REGISTERED_DRIVERS}
-              selectedDriverId={selectedDriverId}
-              onSelectDriver={handleSelectDriver}
-              onRerouteVehicle={handleRerouteVehicle}
-            />
-          )}
+            {activeWorkspace === 'driver' && (
+              <DriverHUD 
+                activeVehicle={currentVehicle}
+                currentDriver={currentDriver}
+                drivers={REGISTERED_DRIVERS}
+                selectedDriverId={selectedDriverId}
+                onSelectDriver={handleSelectDriver}
+                onRerouteVehicle={handleRerouteVehicle}
+              />
+            )}
 
-          {activeWorkspace === 'public' && (
-            <PublicPortal 
-              activeVehicle={currentVehicle}
-              currentDriver={currentDriver}
-              allConvoys={convoys}
-              weatherData={weatherData}
-            />
-          )}
+            {activeWorkspace === 'public' && (
+              <PublicPortal 
+                activeVehicle={currentVehicle}
+                currentDriver={currentDriver}
+                allConvoys={convoys}
+                weatherData={weatherData}
+              />
+            )}
 
-          {activeWorkspace === 'lab' && (
-            <SimulationLab
-              segments={segments}
-              onHazardInjected={refreshAllData}
-              onWeatherChanged={refreshAllData}
-              onResetComplete={refreshAllData}
-            />
-          )}
+            {activeWorkspace === 'lab' && (
+              <SimulationLab
+                segments={segments}
+                onHazardInjected={refreshAllData}
+                onWeatherChanged={refreshAllData}
+                onResetComplete={refreshAllData}
+              />
+            )}
+          </ErrorBoundary>
         </div>
       </main>
     </div>
